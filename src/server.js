@@ -13,7 +13,7 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-app.options("*", cors()); // responde preflight requests corretamente
+app.options("/*", cors()); // responde preflight requests corretamente
 
 app.use(express.json());
 
