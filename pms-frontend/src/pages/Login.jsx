@@ -14,7 +14,7 @@ export default function Login() {
     setError("");
 
     try {
-      const base = import.meta.env.VITE_API_URL || "https://pms-backend.onrender.com";
+      const base = import.meta.env.VITE_API_URL || "https://pms-backend-d3e1.onrender.com/";
       const res = await fetch(base + "/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
