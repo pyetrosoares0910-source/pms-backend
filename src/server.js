@@ -6,14 +6,10 @@ require("dotenv").config();
 const app = express();
 const prisma = new PrismaClient();
 
-// ✅ CORS totalmente liberado (temporariamente) pra confirmar comunicação
 app.use(cors({
-  origin: true,          // aceita qualquer origem
-  credentials: true,     // se usar cookies, mantém compatibilidade
-  optionsSuccessStatus: 200
+  origin: true,
+  credentials: true,
 }));
-
-app.options("/*", cors()); // responde preflight requests corretamente
 
 app.use(express.json());
 
