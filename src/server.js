@@ -6,26 +6,17 @@ require("dotenv").config();
 const app = express();
 const prisma = new PrismaClient();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://pms.vercel.app",
-  "https://pms-frontend.vercel.app",
-  "https://pms-backend-mauve.vercel.app" 
-];
+// ✅ CORS totalmente liberado (temporariamente) pra confirmar comunicação
+app.use(cors({
+  origin: true,          // aceita qualquer origem
+  credentials: true,     // se usar cookies, mantém compatibilidade
+  optionsSuccessStatus: 200
+}));
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
-);
-
+app.options("*", cors()); // responde preflight requests corretamente
 
 app.use(express.json());
+
 
 // 🔹 Rotas
 const authRoutes = require("./routes/auth");
