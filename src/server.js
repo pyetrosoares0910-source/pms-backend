@@ -1,28 +1,43 @@
 const express = require("express");
-const cors = require("cors");
 const { PrismaClient } = require("@prisma/client");
 require("dotenv").config();
 
 const app = express();
 const prisma = new PrismaClient();
 
-// ✅ CORS
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://pms-backend-6jucva1r6-pyetro-vivianis-projects.vercel.app", 
-  "https://pms.vercel.app",
-  "https://pms-frontend.vercel.app",
-];
-
+// ✅ CORS manual 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.sendStatus(200);
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://pms-backend-6jucva1r6-pyetro-vivianis-projects.vercel.app", 
+    "https://pms.vercel.app",
+    "https://pms-frontend.vercel.app"
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
   next();
 });
 
 app.use(express.json());
+
 
 
 
