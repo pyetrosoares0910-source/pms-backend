@@ -6,12 +6,30 @@ require("dotenv").config();
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+// ✅ CORS
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://pms-backend-6jucva1r6-pyetro-vivianis-projects.vercel.app", 
+  "https://pms.vercel.app",
+  "https://pms-frontend.vercel.app",
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json());
+
 
 
 // 🔹 Rotas
