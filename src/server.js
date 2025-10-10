@@ -6,17 +6,16 @@ require("dotenv").config();
 const app = express();
 const prisma = new PrismaClient();
 
-// ✅ Configuração CORS ajustada
 const allowedOrigins = [
-  "http://localhost:5173",                   // ambiente local
-  "https://pms-backend-mauve.vercel.app/",                  // domínio final
-  "https://pms-frontend.vercel.app"          // fallback da Vercel
+  "http://localhost:5173",
+  "https://pms.vercel.app",
+  "https://pms-frontend.vercel.app",
+  "https://pms-backend-mauve.vercel.app" 
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permite requests sem origin (como Postman/Insomnia)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
@@ -24,6 +23,7 @@ app.use(
     credentials: true,
   })
 );
+
 
 app.use(express.json());
 
