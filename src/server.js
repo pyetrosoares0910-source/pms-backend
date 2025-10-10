@@ -6,10 +6,28 @@ require("dotenv").config();
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(cors());
+// ✅ Configuração CORS ajustada
+const allowedOrigins = [
+  "http://localhost:5173",                   // ambiente local
+  "https://pms-backend-mauve.vercel.app/",                  // domínio final
+  "https://pms-frontend.vercel.app"          // fallback da Vercel
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Permite requests sem origin (como Postman/Insomnia)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Rotas
+// 🔹 Rotas
 const authRoutes = require("./routes/auth");
 const guestsRoutes = require("./routes/guests");
 const staffRoutes = require("./routes/staffRoutes");
@@ -26,10 +44,10 @@ const reportPdfRoutes = require("./routes/reportPdfRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
-app.use("/staff",  staffRoutes);
-app.use("/rooms",  roomsRoutes);
-app.use("/reservations",  reservationsRoutes);
-app.use("/stats",  statsRoutes);
+app.use("/staff", staffRoutes);
+app.use("/rooms", roomsRoutes);
+app.use("/reservations", reservationsRoutes);
+app.use("/stats", statsRoutes);
 app.use("/cleaning-staff", cleaningStaffRoutes);
 app.use("/maintenance", maintenanceRoutes);
 app.use("/stays", staysRoutes);
@@ -38,7 +56,7 @@ app.use("/maids", maidRoutes);
 app.use("/reports", require("./routes/reportRoutes"));
 app.use("/", reportPdfRoutes);
 
-// Teste
+// 🔹 Teste
 app.get("/", (req, res) => {
   res.send("Servidor rodando! 🔥");
 });

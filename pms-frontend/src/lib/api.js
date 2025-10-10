@@ -4,7 +4,7 @@ export function useApi() {
   const { token } = useAuth();
 
   return async function api(path, opts = {}) {
-    const base = import.meta.env.VITE_API_URL || "http://localhost:3333";
+    const base = import.meta.env.VITE_API_URL || "https://pms-backend.onrender.com";
     const headers = {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${String(token).trim()}` } : {}),
