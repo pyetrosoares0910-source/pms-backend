@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "public"."Maid" ADD COLUMN     "available" TEXT[],
+ALTER COLUMN "bank" DROP DEFAULT,
+ALTER COLUMN "pixKey" DROP DEFAULT,
+ALTER COLUMN "updatedAt" DROP DEFAULT;

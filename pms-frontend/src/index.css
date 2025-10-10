@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --tw-bg-opacity: 1;
+  --tw-text-opacity: 1;
+}
+
+
+
+@keyframes fadeInDelayed {
+  0% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  60% {
+    opacity: 0;
+    transform: translateX(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-delay {
+  animation: fadeInDelayed 0.5s ease-out 0.3s forwards;
+}
+@keyframes fadeInBlur {
+  0% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateX(-4px);
+  }
+  60% {
+    opacity: 0.5;
+    filter: blur(3px);
+    transform: translateX(-2px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+  }
+}
+
+/* Base timing */
+.animate-fade-in-blur {
+  animation: fadeInBlur 0.6s ease-out 0.35s forwards;
+}
+
+/* Menu principal (entra depois) */
+.animate-fade-in-blur-slow {
+  animation: fadeInBlur 0.6s ease-out 0.55s forwards;
+}
+
+/* Categorias “Cadastros / Relatórios” (entra logo após menu) */
+.animate-fade-in-blur-slower {
+  animation: fadeInBlur 0.6s ease-out 0.65s forwards;
+}
+
+/* Rodapé “Recolher / Sair” (por último) */
+.animate-fade-in-blur-slowest {
+  animation: fadeInBlur 0.6s ease-out 0.8s forwards;
+}

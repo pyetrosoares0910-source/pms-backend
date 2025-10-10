@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // ou mysql/sqlite conforme seu setup
+  url      = env("DATABASE_URL")
+}
+
+model Stay {
+  id               String            @id @default(uuid())
+  name             String
+  position         Int?
+  rooms            Room[] // 1 Stay -> N Rooms
+  maintenanceTasks MaintenanceTask[]
+  createdAt        DateTime          @default(now())
+}
+
+model Room {
+  id               String            @id @default(uuid())
+  title            String
+  category         String? // ← novo
+  position         Int? // ← alterado de string?
+  capacity         Int?
+  description      String?
+  active           Boolean           @default(true)
+  maintenanceTasks MaintenanceTask[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // relação com Stay
+  stayId String?
+  stay   Stay?   @relation(fields: [stayId], references: [id])
+
+  reservations Reservation[]
+}
+
+model Guest {
+  id           String        @id @default(uuid())
+  name         String
+  email        String?       @unique
+  phone        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+}
+
+model Staff {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String // precisa existir em todos
+  role         String
+  phone        String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model CleaningStaff {
+  id        String   @id @default(uuid())
+  name      String
+  status    String // disponivel, em_servico, indisponivel
+  createdAt DateTime @default(now())
+}
+
+model Maintenance {
+  id          String   @id @default(uuid())
+  description String
+  status      String // pendente, em_andamento, concluido
+  createdAt   DateTime @default(now())
+}
+
+model Reservation {
+  id           String   @id @default(uuid())
+  roomId       String
+  guestId      String
+  checkinDate  DateTime
+  checkoutDate DateTime
+  status       String //  agendada | ativa | concluida | cancelada
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  room  Room  @relation(fields: [roomId], references: [id])
+  guest Guest @relation(fields: [guestId], references: [id])
+}
+
+model Maid {
+  id        Int      @id @default(autoincrement())
+  name      String
+  bank      String // Banco obrigatório
+  pixKey    String // Chave Pix obrigatória
+  available String[] // Disponibilidade fixa (ex: ["Mon","Tue","Wed"])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+}
+
+model Task {
+  id    String   @id @default(uuid())
+  date  DateTime
+  stay  String
+  rooms String
+
+  maidId Int? // mesmo tipo do id de Maid
+  maid   Maid? @relation(fields: [maidId], references: [id])
+}
+
+model MaintenanceTask {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  title       String
+  description String?
+  stayId      String?
+  stay        Stay?     @relation(fields: [stayId], references: [id])
+  roomId      String?
+  room        Room?     @relation(fields: [roomId], references: [id])
+  responsible String?
+  status      String    @default("pendente") // pendente | andamento | concluido
+  type        String? // preventiva | corretiva
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
