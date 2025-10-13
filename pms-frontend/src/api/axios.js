@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://pms-backend-mauve.vercel.app/", // mesma porta do backend
+  baseURL: "http://localhost:3333/", // mesma porta do backend
 });
 
 api.interceptors.request.use((config) => {
