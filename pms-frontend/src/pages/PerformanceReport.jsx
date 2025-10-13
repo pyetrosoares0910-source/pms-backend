@@ -56,10 +56,10 @@ export default function PerformanceReport() {
       try {
         const [monthlyRes, annualRes] = await Promise.all([
           axios.get(
-            `http://pms-backend-mauve.vercel.app/reports/performance?month=${selectedMonth}&year=${selectedYear}`
+            `https://pms-backend-mauve.vercel.app/reports/performance?month=${selectedMonth}&year=${selectedYear}`
           ),
           axios.get(
-            `http://pms-backend-mauve.vercel.app/reports/performance/annual?year=${selectedYear}`
+            `https://pms-backend-mauve.vercel.app/reports/performance/annual?year=${selectedYear}`
           ),
         ]);
 
@@ -603,7 +603,7 @@ clone.querySelectorAll("*").forEach((node) => {
               </button>
             <button
   onClick={() => {
-    const url = `http://:pms-backend-mauve.vercel.app/reports/performance/pdf?month=${selectedMonth}&year=${selectedYear}`;
+    const url = `https://:pms-backend-mauve.vercel.app/reports/performance/pdf?month=${selectedMonth}&year=${selectedYear}`;
     window.open(url, "_blank");
   }}
   className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md shadow-sm"
