@@ -77,13 +77,15 @@ const sortStays = (data) =>
 
 
         setMonthlyData({
-          ...monthlyRes.data,
-          stays: sortStays(monthlyRes.data),
-        });
-        setAnnualData({
-          ...annualRes.data,
-          stays: sortStays(annualRes.data),
-        });
+  ...monthlyRes.data,
+  stays: sortStays(monthlyRes.data.stays),
+});
+
+setAnnualData({
+  ...annualRes.data,
+  stays: sortStays(annualRes.data.stays),
+});
+
       } catch (err) {
         console.error("❌ Erro ao carregar relatórios:", err);
       } finally {
@@ -248,7 +250,7 @@ ${html}
 </html>`);
   w.document.close();
 
-  // dá um tempinho pros CSS carregarem
+  // time load CSS 
   setTimeout(() => {
     w.focus();
     w.print();
