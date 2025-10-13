@@ -7,7 +7,7 @@ router.get("/reports/performance/pdf", async (req, res) => {
   const { month, year } = req.query;
 
   // 🔹 URL do front: abre diretamente a página do relatório de desempenho
-  const FRONTEND_URL = process.env.FRONTEND_URL || "https://pms-backend-mauve.vercel.app"; //http://localhost:5173
+  const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173"; //http://localhost:5173
 
 router.get("/reports/performance/pdf", async (req, res) => {
   const { month, year } = req.query;
