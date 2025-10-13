@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import {
   LineChart,
   Line,
@@ -55,11 +55,9 @@ export default function PerformanceReport() {
     const fetchData = async () => {
       try {
         const [monthlyRes, annualRes] = await Promise.all([
-          axios.get(
-            `http://localhost:3333/reports/performance?month=${selectedMonth}&year=${selectedYear}`
+          api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`
           ),
-          axios.get(
-            `http://localhost:3333/reports/performance/annual?year=${selectedYear}`
+          api.get(`/reports/performance/annual?year=${selectedYear}`
           ),
         ]);
 
@@ -552,6 +550,8 @@ clone.querySelectorAll("*").forEach((node) => {
 
   /* ========== Render ========== */
   return (
+    console.log("🧭 Base API:", import.meta.env.VITE_API_URL),
+
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
@@ -603,8 +603,8 @@ clone.querySelectorAll("*").forEach((node) => {
               </button>
             <button
   onClick={() => {
-    const url = `http://localhost:3333/reports/performance/pdf?month=${selectedMonth}&year=${selectedYear}`;
-    window.open(url, "_blank");
+    const url = `${import.meta.env.VITE_API_URL}/reports/performance/pdf?month=${selectedMonth}&year=${selectedYear}`;
+  window.open(url, "_blank");
   }}
   className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md shadow-sm"
 >
