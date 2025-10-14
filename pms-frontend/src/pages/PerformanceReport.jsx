@@ -54,13 +54,11 @@ export default function PerformanceReport() {
   useEffect(() => {
   const fetchData = async () => {
     try {
-      
       const [monthlyRes, annualRes] = await Promise.all([
         api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`),
         api.get(`/reports/performance/annual?year=${selectedYear}`),
       ]);
 
-      
       const normalize = (s) =>
         s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -76,30 +74,30 @@ export default function PerformanceReport() {
         });
 
       setMonthlyData({
-  month: monthlyRes.data.month,
-  year: monthlyRes.data.year,
-  stays: sortStays(monthlyRes.data.stays),
-});
+        month: monthlyRes.data.month,
+        year: monthlyRes.data.year,
+        stays: sortStays(monthlyRes.data.stays),
+      });
 
-setAnnualData({
-  year: annualRes.data.year,
-  stays: sortStays(annualRes.data.stays),
-});
+      setAnnualData({
+        year: annualRes.data.year,
+        stays: sortStays(annualRes.data.stays),
+      });
 
-
-
-        //remover logs dps
       console.log("📊 monthlyData preview:", monthlyRes.data.stays?.[0]);
       console.log("📈 annualData preview:", annualRes.data.stays?.[0]);
+
+      // ✅ move o setLoading pra cá
+      setLoading(false);
     } catch (err) {
       console.error("❌ Erro ao carregar relatórios:", err);
-    } finally {
       setLoading(false);
     }
   };
 
   fetchData();
 }, [selectedMonth, selectedYear]);
+
 
 
   /* ========== Helpers ========== */
