@@ -87,7 +87,7 @@ export default function PerformanceReport() {
       console.log("📊 monthlyData preview:", monthlyRes.data.stays?.[0]);
       console.log("📈 annualData preview:", annualRes.data.stays?.[0]);
 
-      // ✅ move o setLoading pra cá
+      
       setLoading(false);
     } catch (err) {
       console.error("❌ Erro ao carregar relatórios:", err);
