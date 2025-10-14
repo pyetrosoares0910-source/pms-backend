@@ -76,14 +76,16 @@ export default function PerformanceReport() {
         });
 
       setMonthlyData({
-        ...monthlyRes.data,
-        stays: sortStays(monthlyRes.data.stays),
-      });
+  month: monthlyRes.data.month,
+  year: monthlyRes.data.year,
+  stays: sortStays(monthlyRes.data.stays),
+});
 
-      setAnnualData({
-        ...annualRes.data,
-        stays: sortStays(annualRes.data.stays),
-      });
+setAnnualData({
+  year: annualRes.data.year,
+  stays: sortStays(annualRes.data.stays),
+});
+
 
 
         //remover logs dps
@@ -633,7 +635,8 @@ clone.querySelectorAll("*").forEach((node) => {
         </h2>
 
         <div className="flex flex-col space-y-8">
-          {monthlyData?.stays.map((stay) => (
+          {Array.isArray(monthlyData?.stays) &&
+  monthlyData.stays.map((stay) => (
             <motion.div
               key={stay.stayName}
               initial={{ opacity: 0, y: 10 }}
@@ -786,7 +789,9 @@ clone.querySelectorAll("*").forEach((node) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
 
-          {annualData?.stays.map((stay) => (
+          {Array.isArray(annualData?.stays) &&
+  annualData.stays.map((stay) => (
+
             <motion.div
               key={stay.stayName}
               initial={{ opacity: 0, y: 10 }}
