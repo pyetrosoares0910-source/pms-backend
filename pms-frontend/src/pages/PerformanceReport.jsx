@@ -52,55 +52,45 @@ export default function PerformanceReport() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [monthlyRes, annualRes] = await Promise.all([
-          api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`
-          ),
-          api.get(`/reports/performance/annual?year=${selectedYear}`
-          ),
-        ]);
+  const fetchData = async () => {
+    try {
+      const [monthlyRes, annualRes] = await Promise.all([
+        api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`),
+        api.get(`/reports/performance/annual?year=${selectedYear}`),
+      ]);
 
-        const normalize = (s) =>
-  s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const normalize = (s) =>
+        s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-const sortStays = (data) =>
-  [...(data?.stays ?? [])].sort((a, b) => {
-    const ai = STAY_ORDER.findIndex(
-      (key) => normalize(key) === normalize(a.stayName)
-    );
-    const bi = STAY_ORDER.findIndex(
-      (key) => normalize(key) === normalize(b.stayName)
-    );
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
+      const sortStays = (data) =>
+        [...(data ?? [])].sort((a, b) => {
+          const ai = STAY_ORDER.findIndex(
+            (key) => normalize(key) === normalize(a.stayName)
+          );
+          const bi = STAY_ORDER.findIndex(
+            (key) => normalize(key) === normalize(b.stayName)
+          );
+          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        });
 
+      // ✅ Ajuste final (sem .data.data)
+      setMonthlyData({
+        ...monthlyRes.data,
+        stays: sortStays(monthlyRes.data.stays),
+      });
 
-        setMonthlyData({
-  ...monthlyRes.data,
-  stays: sortStays(monthlyRes.data.stays),
-});
-
-setAnnualData({
-  ...annualRes.data,
-  stays: sortStays(annualRes.data.stays),
-});
-
-      } catch (err) {
-        console.error("❌ Erro ao carregar relatórios:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [selectedMonth, selectedYear]);
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-[80vh] text-gray-400">
-        Carregando relatórios...
-      </div>
-    );
+      setAnnualData({
+        ...annualRes.data,
+        stays: sortStays(annualRes.data.stays),
+      });
+    } catch (err) {
+      console.error("❌ Erro ao carregar relatórios:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [selectedMonth, selectedYear]);
 
   /* ========== Helpers ========== */
   const getColorByOccupancy = (value) => {
