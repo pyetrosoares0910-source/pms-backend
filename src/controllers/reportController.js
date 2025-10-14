@@ -37,6 +37,16 @@ async function getMonthlyPerformance(req, res) {
   room.reservations.forEach((res) => {
     if (!res.checkinDate || !res.checkoutDate) return;
 
+    // 🧩 ignora canceladas logo aqui
+    if (
+      res.status &&
+      ["CANCELADA", "CANCELLED", "CANCELED"].includes(
+        String(res.status).toUpperCase()
+      )
+    ) {
+      return;
+    }
+
     const checkIn = dayjs(res.checkinDate);
     const checkOut = dayjs(res.checkoutDate);
     if (!checkIn.isValid() || !checkOut.isValid()) return;
@@ -60,29 +70,37 @@ async function getMonthlyPerformance(req, res) {
 
   totalOccupiedDays += occupiedDays;
   totalDaysAvailable += daysInMonth;
-  totalReservations += room.reservations.length;
 
-  return {
-  title: room.title,
-  ocupado: occupiedDays,
-  vazio,
-  ocupacao: ((occupiedDays / daysInMonth) * 100).toFixed(0),
-  reservas: room.reservations.filter(res => {
+  // ⚙️ ajusta aqui também o total geral (ignora canceladas)
+  const validReservations = room.reservations.filter((res) => {
     if (!res.checkinDate || !res.checkoutDate) return false;
-    //  ignore canceladas
-    if (res.status && ["CANCELADA","CANCELLED","CANCELED"].includes(String(res.status).toUpperCase())) return false;
+    if (
+      res.status &&
+      ["CANCELADA", "CANCELLED", "CANCELED"].includes(
+        String(res.status).toUpperCase()
+      )
+    )
+      return false;
 
     const ci = dayjs(res.checkinDate);
     const co = dayjs(res.checkoutDate);
     if (!ci.isValid() || !co.isValid()) return false;
     if (co.isBefore(ci)) return false;
 
-    // conta apenas se intersecta o mês
     return !(co.isBefore(startOfMonth) || ci.isAfter(endOfMonth));
-  }).length
-};
+  });
 
+  totalReservations += validReservations.length;
+
+  return {
+    title: room.title,
+    ocupado: occupiedDays,
+    vazio,
+    ocupacao: ((occupiedDays / daysInMonth) * 100).toFixed(0),
+    reservas: validReservations.length, // 👈 campo filtrado
+  };
 });
+
 
 
       const ocupacaoMedia =
