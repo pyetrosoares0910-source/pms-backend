@@ -54,11 +54,13 @@ export default function PerformanceReport() {
   useEffect(() => {
   const fetchData = async () => {
     try {
+      
       const [monthlyRes, annualRes] = await Promise.all([
         api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`),
         api.get(`/reports/performance/annual?year=${selectedYear}`),
       ]);
 
+      
       const normalize = (s) =>
         s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -73,7 +75,6 @@ export default function PerformanceReport() {
           return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
         });
 
-      // ✅ Ajuste final (sem .data.data)
       setMonthlyData({
         ...monthlyRes.data,
         stays: sortStays(monthlyRes.data.stays),
@@ -83,14 +84,21 @@ export default function PerformanceReport() {
         ...annualRes.data,
         stays: sortStays(annualRes.data.stays),
       });
+
+
+        //remover logs dps
+      console.log("📊 monthlyData preview:", monthlyRes.data.stays?.[0]);
+      console.log("📈 annualData preview:", annualRes.data.stays?.[0]);
     } catch (err) {
       console.error("❌ Erro ao carregar relatórios:", err);
     } finally {
       setLoading(false);
     }
   };
+
   fetchData();
 }, [selectedMonth, selectedYear]);
+
 
   /* ========== Helpers ========== */
   const getColorByOccupancy = (value) => {
