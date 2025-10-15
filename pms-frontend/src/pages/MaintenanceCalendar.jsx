@@ -114,7 +114,7 @@ export default function MaintenanceCalendar() {
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-semibold mb-4">Agenda de Manutenção</h1>
+      <h1 className="text-xl font-semibold mb-4">Agenda de Atividades</h1>
 
       {loading ? (
         <p>Carregando tarefas...</p>

@@ -124,7 +124,7 @@ export default function DashboardLayout() {
             icon={CalendarDays}
             showText={showText}
           >
-            Agenda de Manutenção
+            Agenda de Atividades
           </Item>
 
           {showText && (
@@ -151,7 +151,7 @@ export default function DashboardLayout() {
             Diaristas
           </Item>
           <Item to="/maintenance" icon={Wrench} showText={showText}>
-            Manutenção
+            Atividades
           </Item>
 
           {showText && (

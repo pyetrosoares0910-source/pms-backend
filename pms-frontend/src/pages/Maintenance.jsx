@@ -101,7 +101,7 @@ export default function Maintenance() {
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Manutenção</h1>
+        <h1 className="text-xl font-semibold">Atividades</h1>
         <button
           onClick={() => setModalOpen(true)}
           className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
@@ -195,7 +195,7 @@ export default function Maintenance() {
       )}
 
       {/* Modal de criação */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nova Tarefa de Manutenção">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nova Atividade">
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="text-sm">Título</label>

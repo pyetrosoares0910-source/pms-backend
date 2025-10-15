@@ -375,7 +375,7 @@ const maidsTomorrow = useMemo(() => {
           emptyText="Sem diaristas programadas"
         />
         <CalendarCard
-          title="🛠️ Agenda de Manutenção"
+          title="🛠️ Agenda de Atividades"
           events={maintenanceEvents}
           emptyText="Sem tarefas de manutenção"
         />

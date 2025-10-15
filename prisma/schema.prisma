@@ -119,8 +119,20 @@ model MaintenanceTask {
   room        Room?     @relation(fields: [roomId], references: [id])
   responsible String?
   status      String    @default("pendente") // pendente | andamento | concluido
-  type        String? // preventiva | corretiva
+  type        String?   // preventiva | corretiva
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // --- Recorrência ---
+  isRecurring Boolean   @default(false) // true = "modelo" de recorrência
+  recurrence  Json?
+  parentId    String?
+  parent      MaintenanceTask? @relation("RecurringParent", fields: [parentId], references: [id])
+  children    MaintenanceTask[] @relation("RecurringParent")
+  timezone    String?   @default("America/Sao_Paulo")
+
+  // Evita duplicar instâncias geradas para o mesmo modelo/data
+  @@index([parentId])
+  @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
 }
