@@ -1,8 +1,9 @@
 import pkg from "rrule";
-import dfnsTz from "date-fns-tz";
+import * as dfnsTz from "date-fns-tz";
 
-const { zonedTimeToUtc } = dfnsTz;
 const { RRule, RRuleSet } = pkg;
+const { zonedTimeToUtc } = dfnsTz;
+
 
 // Map dias da semana para rrule
 const WD = {
