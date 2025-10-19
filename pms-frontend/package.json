@@ -18,12 +18,14 @@
     "@plasmicapp/loader-react": "^1.0.398",
     "axios": "^1.12.2",
     "daisyui": "^5.1.25",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
     "framer-motion": "^12.23.22",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
+    "react-date-range": "^2.0.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
     "recharts": "^3.2.1"
@@ -42,8 +44,4 @@
     "tailwindcss": "^3.4.15",
     "vite": "^7.1.7"
   }
-
 }
-
-
-

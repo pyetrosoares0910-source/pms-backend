@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../lib/api";
+import { DateRange } from "react-date-range";
+import { addDays, ptBR } from "date-fns";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -210,16 +214,51 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     notes: "",
   });
 
+  // Range selecionado pelo usuário
+  const [range, setRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: addDays(new Date(), 1),
+      key: "selection",
+    },
+  ]);
+
+  // Quando abre o modal, preenche com os dados da reserva
   useEffect(() => {
     if (reservation) {
+      const checkin = reservation.checkinDate
+        ? new Date(reservation.checkinDate)
+        : new Date();
+      const checkout = reservation.checkoutDate
+        ? new Date(reservation.checkoutDate)
+        : addDays(new Date(), 1);
+
       setForm({
-        checkinDate: reservation.checkinDate?.split("T")[0] || "",
-        checkoutDate: reservation.checkoutDate?.split("T")[0] || "",
+        checkinDate: checkin.toISOString().split("T")[0],
+        checkoutDate: checkout.toISOString().split("T")[0],
         roomId: reservation.roomId || "",
         notes: reservation.notes || "",
       });
+
+      setRange([
+        {
+          startDate: checkin,
+          endDate: checkout,
+          key: "selection",
+        },
+      ]);
     }
   }, [reservation]);
+
+  const handleRangeChange = (r) => {
+    const { startDate, endDate } = r.selection;
+    setRange([r.selection]);
+    setForm((f) => ({
+      ...f,
+      checkinDate: startDate.toISOString().split("T")[0],
+      checkoutDate: endDate.toISOString().split("T")[0],
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -231,10 +270,9 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     setLoading(true);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
-  method: "PUT",
-  body: JSON.stringify(form),
-});
-
+        method: "PUT",
+        body: JSON.stringify(form),
+      });
       onUpdated(updated);
       onClose();
     } catch (err) {
@@ -249,31 +287,34 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
   return (
     <Modal open={open} onClose={onClose} title="Editar reserva">
-      <form onSubmit={handleSave} className="space-y-4">
+      <form onSubmit={handleSave} className="space-y-5">
+        {/* 🗓️ Novo seletor de intervalo */}
         <div>
-          <label className="text-sm">Check-in</label>
-          <input
-            type="date"
-            name="checkinDate"
-            value={form.checkinDate}
-            onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
-            required
+          <label className="text-sm font-medium mb-2 block">
+            Selecione o intervalo de datas
+          </label>
+          <DateRange
+            ranges={range}
+            onChange={handleRangeChange}
+            moveRangeOnFirstSelection={false}
+            showDateDisplay={false}
+            rangeColors={["#0284c7"]} // azul sky-600
+            editableDateInputs={true}
+            months={1}
+            direction="horizontal"
+            showMonthAndYearPickers={false}
+            minDate={new Date(2020, 0, 1)}
+            maxDate={addDays(new Date(), 365)}
           />
+          <div className="flex justify-between text-sm text-neutral-600 mt-2">
+            <span>Check-in: {form.checkinDate}</span>
+            <span>Check-out: {form.checkoutDate}</span>
+          </div>
         </div>
+
+        {/* Campos normais */}
         <div>
-          <label className="text-sm">Check-out</label>
-          <input
-            type="date"
-            name="checkoutDate"
-            value={form.checkoutDate}
-            onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
-            required
-          />
-        </div>
-        <div>
-          <label className="text-sm">Quarto</label>
+          <label className="text-sm font-medium">Quarto</label>
           <select
             name="roomId"
             value={form.roomId}
@@ -289,8 +330,9 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
             ))}
           </select>
         </div>
+
         <div>
-          <label className="text-sm">Observações</label>
+          <label className="text-sm font-medium">Observações</label>
           <textarea
             name="notes"
             value={form.notes}
@@ -300,7 +342,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
           />
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
@@ -326,30 +368,43 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const api = useApi();
   const [guestName, setGuestName] = useState("");
   const [roomId, setRoomId] = useState("");
-  const [checkin, setCheckin] = useState(fmtISO(new Date()));
-  const [checkout, setCheckout] = useState(fmtISO(addDays(new Date(), 1)));
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Estado do range (check-in / check-out)
+  const [range, setRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: addDays(new Date(), 1),
+      key: "selection",
+    },
+  ]);
+
+  const handleRangeChange = (r) => {
+    setRange([r.selection]);
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
+      // cria o hóspede
       const guest = await api("/guests", {
         method: "POST",
         body: JSON.stringify({ name: guestName }),
       });
 
+      // cria a reserva
       const created = await api("/reservations", {
         method: "POST",
         body: JSON.stringify({
           guestId: guest.id,
           roomId,
-          checkinDate: checkin,
-          checkoutDate: checkout,
-          status: ReservationStatus.AGENDADA,
+          checkinDate: range[0].startDate.toISOString().split("T")[0],
+          checkoutDate: range[0].endDate.toISOString().split("T")[0],
+          status: "agendada",
           notes,
         }),
       });
@@ -366,10 +421,13 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
     }
   }
 
+  if (!open) return null;
+
   return (
     <Modal open={open} onClose={onClose} title="Nova reserva">
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Nome do hóspede */}
+        <div>
           <label className="text-sm">Hóspede</label>
           <input
             className="mt-1 w-full border rounded-lg px-3 py-2"
@@ -378,27 +436,47 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
             required
           />
         </div>
+
+        {/* 🗓️ Calendário unificado */}
         <div>
-          <label className="text-sm">Check-in</label>
-          <input
-            type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2"
-            value={checkin}
-            onChange={(e) => setCheckin(e.target.value)}
-            required
+          <label className="text-sm font-medium mb-2 block">
+            Selecione o intervalo de datas
+          </label>
+          <DateRange
+            ranges={range}
+            onChange={handleRangeChange}
+            moveRangeOnFirstSelection={false}
+            showDateDisplay={false}
+            rangeColors={["#0284c7"]}
+            months={1}
+            direction="horizontal"
+            showMonthAndYearPickers={false}
+            locale={ptBR} // 👈 idioma português
+            minDate={new Date()}
+            maxDate={addDays(new Date(), 365)}
           />
+          <div className="flex justify-between text-sm text-neutral-600 mt-2">
+            <span>
+              Check-in:{" "}
+              {range[0].startDate.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })}
+            </span>
+            <span>
+              Check-out:{" "}
+              {range[0].endDate.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })}
+            </span>
+          </div>
         </div>
+
+        {/* Quarto */}
         <div>
-          <label className="text-sm">Check-out</label>
-          <input
-            type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2"
-            value={checkout}
-            onChange={(e) => setCheckout(e.target.value)}
-            required
-          />
-        </div>
-        <div className="col-span-2">
           <label className="text-sm">Quarto</label>
           <select
             className="mt-1 w-full border rounded-lg px-3 py-2"
@@ -414,7 +492,9 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
             ))}
           </select>
         </div>
-        <div className="col-span-2">
+
+        {/* Observações */}
+        <div>
           <label className="text-sm">Observações</label>
           <textarea
             className="mt-1 w-full border rounded-lg px-3 py-2"
@@ -423,8 +503,10 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
-        {error && <div className="col-span-2 text-sm text-red-600">{error}</div>}
-        <div className="col-span-2 flex justify-end gap-2">
+
+        {error && <div className="text-sm text-red-600">{error}</div>}
+
+        <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
