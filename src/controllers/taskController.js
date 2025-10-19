@@ -79,17 +79,27 @@ exports.assignMaid = async (req, res) => {
  * DELETE /tasks/:id
  * Remove uma task por ID (hard delete). Retorna 204 se OK.
  */
-exports.deleteTask = async (req, res) => {
+exports.deleteCheckoutTask = async (req, res) => {
   const { id } = req.params;
+
   try {
-    await prisma.task.delete({ where: { id } });
+    console.log("🗑️ Deletando task checkout ID:", id);
+
+    const deleted = await prisma.task.delete({
+      where: { id },
+    });
+
+    console.log("✅ Task deletada:", deleted.id);
     return res.status(204).send();
   } catch (err) {
+    console.error("Erro em deleteCheckoutTask:", err);
+
+    // Se o registro não for encontrado (P2025)
     if (err?.code === "P2025") {
       return res.status(404).json({ error: "Tarefa não encontrada" });
     }
-    console.error("Erro em deleteTask:", err);
-    return res.status(500).json({ error: "Erro interno" });
+
+    return res.status(500).json({ error: "Erro interno no servidor" });
   }
 };
 
