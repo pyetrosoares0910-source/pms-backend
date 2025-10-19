@@ -14,7 +14,8 @@ function parseDateOnly(isoString) {
   return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
-import { addDays as addDaysDateFns, ptBR } from "date-fns";
+import { addDays as addDaysDateFns } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { DateRange } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
