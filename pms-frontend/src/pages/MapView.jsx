@@ -1,9 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../lib/api";
-import { DateRange } from "react-date-range";
-import { addDays as addDaysFn, ptBR } from "date-fns";
-import "react-date-range/dist/styles.css";
-import "react-date-range/dist/theme/default.css";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -205,6 +201,10 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
 
 
 function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
+  const { addDays: addDaysFn, ptBR } = require("date-fns");
+  const { DateRange } = require("react-date-range");
+  require("react-date-range/dist/styles.css");
+  require("react-date-range/dist/theme/default.css");
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -365,6 +365,10 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
+   const { addDays: addDaysFn, ptBR } = require("date-fns");
+  const { DateRange } = require("react-date-range");
+  require("react-date-range/dist/styles.css");
+  require("react-date-range/dist/theme/default.css");
   const api = useApi();
   const [guestName, setGuestName] = useState("");
   const [roomId, setRoomId] = useState("");
