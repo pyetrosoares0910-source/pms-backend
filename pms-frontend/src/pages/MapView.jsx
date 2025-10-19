@@ -173,18 +173,18 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
             Fazer check-out
           </button>
           <button
+            onClick={() => setEditOpen(true)}
+            className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg mt-4"
+          >
+            Editar reserva
+          </button>
+          <button
             onClick={() => updateStatus("cancelada")}
             disabled={loading}
             className="w-full px-4 py-2 bg-red-600 text-white rounded-lg"
           >
             Cancelar reserva
-          </button>
-          <button
-            onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg mt-4"
-          >
-            ✏️ Editar reserva
-          </button>
+          </button>     
         </div>
       </Modal>
 
@@ -230,7 +230,11 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     e.preventDefault();
     setLoading(true);
     try {
-      const updated = await api.put(`/reservations/${reservation.id}`, form);
+      const updated = await api(`/reservations/${reservation.id}`, {
+  method: "PUT",
+  body: JSON.stringify(form),
+});
+
       onUpdated(updated);
       onClose();
     } catch (err) {
