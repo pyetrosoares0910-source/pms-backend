@@ -115,17 +115,18 @@ function ReservationBar({ res, day0, days, cellW = 45, onClick }) {
 }
 
 // ===== Modais (ações + adicionar reserva) =====
-function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
+function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms }) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
   if (!open || !reservation) return null;
 
   async function updateStatus(newStatus) {
     setLoading(true);
     try {
-      const updated = await api(`/reservations/${reservation.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status: newStatus }),
+      const updated = await api.put(`/reservations/${reservation.id}`, {
+        status: newStatus,
       });
       onUpdated(updated);
       onClose();
@@ -141,46 +142,181 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
   const co = parseDateOnly(reservation.checkoutDate);
 
   return (
-    <Modal open={open} onClose={onClose} title="Ações da Reserva">
-      <h2 className="text-lg font-semibold mb-4">
-        {reservation.guest?.name} • {reservation.room?.title}
-      </h2>
-      <p className="text-sm mb-4">
-        {fmtBR(ci)} → {fmtBR(co)}
-      </p>
-      <div className="space-y-2">
-        <button
-          onClick={() => updateStatus("ativa")}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
-        >
-          Fazer check-in
-       </button>
-           <button
-           onClick={() => updateStatus("agendada")}
-           disabled={loading}
-           className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
-        >
-           Reverter check-in
+    <>
+      <Modal open={open} onClose={onClose} title="Ações da Reserva">
+        <h2 className="text-lg font-semibold mb-4">
+          {reservation.guest?.name} • {reservation.room?.title}
+        </h2>
+        <p className="text-sm mb-4">
+          {fmtBR(ci)} → {fmtBR(co)}
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={() => updateStatus("ativa")}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            Fazer check-in
           </button>
-        <button
-          onClick={() => updateStatus("concluida")}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg"
-        >
-          Fazer check-out
-        </button>
-        <button
-          onClick={() => updateStatus("cancelada")}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg"
-        >
-          Cancelar reserva
-        </button>
-      </div>
+          <button
+            onClick={() => updateStatus("agendada")}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
+          >
+            Reverter check-in
+          </button>
+          <button
+            onClick={() => updateStatus("concluida")}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg"
+          >
+            Fazer check-out
+          </button>
+          <button
+            onClick={() => updateStatus("cancelada")}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-red-600 text-white rounded-lg"
+          >
+            Cancelar reserva
+          </button>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg mt-4"
+          >
+            ✏️ Editar reserva
+          </button>
+        </div>
+      </Modal>
+
+      <EditReservationModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        reservation={reservation}
+        rooms={rooms}
+        onUpdated={onUpdated}
+      />
+    </>
+  );
+}
+
+
+function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
+  const api = useApi();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    checkinDate: "",
+    checkoutDate: "",
+    roomId: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (reservation) {
+      setForm({
+        checkinDate: reservation.checkinDate?.split("T")[0] || "",
+        checkoutDate: reservation.checkoutDate?.split("T")[0] || "",
+        roomId: reservation.roomId || "",
+        notes: reservation.notes || "",
+      });
+    }
+  }, [reservation]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const updated = await api.put(`/reservations/${reservation.id}`, form);
+      onUpdated(updated);
+      onClose();
+    } catch (err) {
+      console.error("Erro ao editar reserva:", err);
+      alert("Erro ao salvar alterações");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open || !reservation) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Editar reserva">
+      <form onSubmit={handleSave} className="space-y-4">
+        <div>
+          <label className="text-sm">Check-in</label>
+          <input
+            type="date"
+            name="checkinDate"
+            value={form.checkinDate}
+            onChange={handleChange}
+            className="w-full border rounded-lg px-3 py-2 mt-1"
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm">Check-out</label>
+          <input
+            type="date"
+            name="checkoutDate"
+            value={form.checkoutDate}
+            onChange={handleChange}
+            className="w-full border rounded-lg px-3 py-2 mt-1"
+            required
+          />
+        </div>
+        <div>
+          <label className="text-sm">Quarto</label>
+          <select
+            name="roomId"
+            value={form.roomId}
+            onChange={handleChange}
+            className="w-full border rounded-lg px-3 py-2 mt-1"
+            required
+          >
+            <option value="">Selecione...</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.stay?.name} - {r.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm">Observações</label>
+          <textarea
+            name="notes"
+            value={form.notes}
+            onChange={handleChange}
+            className="w-full border rounded-lg px-3 py-2 mt-1"
+            rows={3}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border rounded-lg"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+          >
+            {loading ? "Salvando..." : "Salvar alterações"}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }
+
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const api = useApi();
@@ -552,6 +688,7 @@ export default function MapView() {
     open={!!selected}
     onClose={() => setSelected(null)}
     reservation={selected}
+    rooms={rooms}
     onUpdated={(updated) =>
       setReservations((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r))
