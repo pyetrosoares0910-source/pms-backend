@@ -181,7 +181,7 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
           </button>
           <button
             onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg mt-4"
+            className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg mt-4"
           >
             ✏️ Editar reserva
           </button>
