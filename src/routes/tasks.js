@@ -7,7 +7,7 @@ router.get("/checkouts", taskController.getCheckouts);
 router.put("/:id/assign", taskController.assignMaid);
 router.get("/monthly", taskController.getMonthly);
 router.get("/debug", taskController.getAllTasksDebug);
-router.delete("/tasks/checkouts/:id", tasks.deleteCheckoutTask);
-router.delete("/tasks/:id", tasks.deleteTask);
+router.delete("/tasks/checkouts/:id", taskController.deleteCheckoutTask);
+router.delete("/tasks/:id", taskController.deleteTask);
 
 module.exports = router;
