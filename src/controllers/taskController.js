@@ -76,6 +76,25 @@ exports.assignMaid = async (req, res) => {
 };
 
 /**
+ * DELETE /tasks/:id
+ * Remove uma task por ID (hard delete). Retorna 204 se OK.
+ */
+exports.deleteTask = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.task.delete({ where: { id } });
+    return res.status(204).send();
+  } catch (err) {
+    if (err?.code === "P2025") {
+      return res.status(404).json({ error: "Tarefa não encontrada" });
+    }
+    console.error("Erro em deleteTask:", err);
+    return res.status(500).json({ error: "Erro interno" });
+  }
+};
+
+
+/**
  * GET /tasks/monthly?month=YYYY-MM
  * Retorna todas as tarefas do mês informado.
  */
