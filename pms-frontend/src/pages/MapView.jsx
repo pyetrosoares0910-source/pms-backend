@@ -154,34 +154,34 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
           <button
             onClick={() => updateStatus("ativa")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-blue-800 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg"
           >
             Fazer check-in
           </button>
           <button
             onClick={() => updateStatus("agendada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-indigo-800 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
           >
             Reverter check-in
           </button>
           <button
             onClick={() => updateStatus("concluida")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-violet-800 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
           >
             Fazer check-out
           </button>
           <button
             onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-purple-800 text-white rounded-lg mt-4"
+            className="w-full px-4 py-2 bg-blue-800 text-white rounded-lg mt-4"
           >
             Editar reserva
           </button>
           <button
             onClick={() => updateStatus("cancelada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-rose-700 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-rose-500 text-white rounded-lg"
           >
             Cancelar reserva
           </button>     
