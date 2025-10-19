@@ -123,17 +123,14 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
   async function updateStatus(newStatus) {
     setLoading(true);
     try {
-      // PUT no mesmo formato do handleUpdate da page de reservas
-      const updated = await api.put(`/reservations/${reservation.id}`, {
-        status: newStatus,
+      const updated = await api(`/reservations/${reservation.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus }),
       });
-
-      // Atualiza a lista no pai (MapView)
       onUpdated(updated);
-
       onClose();
     } catch (err) {
-      console.error("Erro ao atualizar reserva:", err);
+      console.error(err);
       alert("Erro ao atualizar reserva");
     } finally {
       setLoading(false);
@@ -151,7 +148,6 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
       <p className="text-sm mb-4">
         {fmtBR(ci)} → {fmtBR(co)}
       </p>
-
       <div className="space-y-2">
         <button
           onClick={() => updateStatus("ativa")}
@@ -159,14 +155,14 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
           Fazer check-in
-        </button>
-        <button
-          onClick={() => updateStatus("agendada")}
-          disabled={loading}
-          className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
+       </button>
+           <button
+           onClick={() => updateStatus("agendada")}
+           disabled={loading}
+           className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
         >
-          Reverter check-in
-        </button>
+           Reverter check-in
+          </button>
         <button
           onClick={() => updateStatus("concluida")}
           disabled={loading}
@@ -185,7 +181,6 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated }) {
     </Modal>
   );
 }
-
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const api = useApi();
