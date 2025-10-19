@@ -1,28 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../lib/api";
 
-// ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
-const fmtBR = (d) =>
-  `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${String(
-    d.getFullYear()
-  ).slice(-2)}`;
-const fmtISO = (d) =>
-  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const addDays = (d, n) => {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-};
+const fmtBR = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`;
+const fmtISO = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const diffInDays = (a, b) =>
-  Math.round((startOfDay(b) - startOfDay(a)) / (1000 * 60 * 60 * 24));
+const diffInDays = (a, b) => Math.round((startOfDay(b) - startOfDay(a)) / (1000 * 60 * 60 * 24));
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 function parseDateOnly(isoString) {
   const [y, m, d] = isoString.split("T")[0].split("-");
   return new Date(Number(y), Number(m) - 1, Number(d));
 }
+
+import { addDays as addDaysDateFns, ptBR } from "date-fns";
+import { DateRange } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+
 
 const ReservationStatus = {
   AGENDADA: "agendada",
@@ -201,7 +197,7 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
 
 
 function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
-  const { addDays: addDaysFn, ptBR } = require("date-fns");
+  const { addDays: addDaysDateFns, ptBR } = require("date-fns");
   const { DateRange } = require("react-date-range");
   require("react-date-range/dist/styles.css");
   require("react-date-range/dist/theme/default.css");
@@ -218,7 +214,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
   const [range, setRange] = useState([
     {
       startDate: new Date(),
-      endDate: addDaysFn(new Date(), 1),
+      endDate: addDaysDateFns(new Date(), 1),
       key: "selection",
     },
   ]);
@@ -231,7 +227,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
         : new Date();
       const checkout = reservation.checkoutDate
         ? new Date(reservation.checkoutDate)
-        : addDaysFn(new Date(), 1);
+        : addDaysDateFns(new Date(), 1);
 
       setForm({
         checkinDate: checkin.toISOString().split("T")[0],
@@ -304,7 +300,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
             direction="horizontal"
             showMonthAndYearPickers={false}
             minDate={new Date(2020, 0, 1)}
-            maxDate={addDaysFn(new Date(), 365)}
+            maxDate={addDaysDateFns(new Date(), 365)}
           />
           <div className="flex justify-between text-sm text-neutral-600 mt-2">
             <span>Check-in: {form.checkinDate}</span>
@@ -365,7 +361,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
-   const { addDays: addDaysFn, ptBR } = require("date-fns");
+   const { addDays: addDaysDateFns, ptBR } = require("date-fns");
   const { DateRange } = require("react-date-range");
   require("react-date-range/dist/styles.css");
   require("react-date-range/dist/theme/default.css");
@@ -380,7 +376,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const [range, setRange] = useState([
     {
       startDate: new Date(),
-      endDate: addDaysFn(new Date(), 1),
+      endDate: addDaysDateFns(new Date(), 1),
       key: "selection",
     },
   ]);
@@ -457,7 +453,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
             showMonthAndYearPickers={false}
             locale={ptBR} 
             minDate={new Date()}
-            maxDate={addDaysFn(new Date(), 365)}
+            maxDate={addDaysDateFns(new Date(), 365)}
           />
           <div className="flex justify-between text-sm text-neutral-600 mt-2">
             <span>
