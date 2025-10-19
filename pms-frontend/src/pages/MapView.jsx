@@ -197,7 +197,7 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
 
 
 function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
-  const { addDays: addDaysDateFns, ptBR } = require("date-fns");
+  
   const { DateRange } = require("react-date-range");
   require("react-date-range/dist/styles.css");
   require("react-date-range/dist/theme/default.css");
@@ -361,7 +361,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
-   const { addDays: addDaysDateFns, ptBR } = require("date-fns");
+ 
   const { DateRange } = require("react-date-range");
   require("react-date-range/dist/styles.css");
   require("react-date-range/dist/theme/default.css");
