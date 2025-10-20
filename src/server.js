@@ -59,6 +59,7 @@ const staysRoutes = require("./routes/stays");
 const taskRoutes = require("./routes/tasks");
 const maidRoutes = require("./routes/maids");
 const reportPdfRoutes = require("./routes/reportPdfRoutes");
+const paymentRoutes = require("./routes/paymentRoutes")
 
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
@@ -73,6 +74,7 @@ app.use("/tasks", taskRoutes);
 app.use("/maids", maidRoutes);
 app.use("/reports", require("./routes/reportRoutes"));
 app.use("/", reportPdfRoutes);
+app.use("/payments", paymentRoutes);
 
 // 🔹 Teste
 app.get("/", (req, res) => {

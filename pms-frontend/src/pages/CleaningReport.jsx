@@ -26,23 +26,62 @@ export default function RelatorioLimpeza() {
   const [maids, setMaids] = useState([]);
   const [month, setMonth] = useState(dayjs().format("YYYY-MM"));
   const [extras, setExtras] = useState({});
-  const [selectedStays, setSelectedStays] = useState([]); // 👈 filtro multi-select
+  const [selectedStays, setSelectedStays] = useState([]);
+  const [statusMap, setStatusMap] = useState(new Map()); // chave: `${maidId}|${date}`, valor: "pendente"|"pago"
+  const [filtroStatus, setFiltroStatus] = useState("pendente"); // "pendente" | "pago" | "ambos"
+
+  // helpers para statusMap
+  const keyStatus = (maidId, dateISO) => `${maidId}|${dateISO}`;
+  const getStatus = (maidId, dateISO) => statusMap.get(keyStatus(maidId, dateISO)) || "pendente";
+  const setStatusLocal = (maidId, dateISO, status) => {
+    setStatusMap(prev => {
+      const clone = new Map(prev);
+      clone.set(keyStatus(maidId, dateISO), status);
+      return clone;
+    });
+  };
+
+  // persiste status no backend (upsert)
+  const saveStatus = async (maidId, dateISO, status) => {
+    try {
+      await api("/payments/status", {
+        method: "POST",
+        body: JSON.stringify({ maidId, date: dateISO, status }),
+      });
+      setStatusLocal(maidId, dateISO, status);
+    } catch (e) {
+      console.error("Falha ao salvar status", e);
+      alert("Não foi possível salvar o status. Tente novamente.");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       const start = dayjs(month).tz("America/Sao_Paulo").startOf("month").format("YYYY-MM-DD");
       const end = dayjs(month).tz("America/Sao_Paulo").endOf("month").format("YYYY-MM-DD");
 
-      const [checkouts, maidsRes] = await Promise.all([
+      const [checkouts, maidsRes, statuses] = await Promise.all([
         api(`/tasks/checkouts?start=${start}&end=${end}`),
         api("/maids"),
+        api(`/payments/status?start=${start}&end=${end}`).catch(() => []), // caso ainda não exista no backend
       ]);
+
+      // monta statusMap inicial
+      const initialMap = new Map();
+      (statuses || []).forEach(s => {
+        if (s?.maidId && s?.date && s?.status) {
+          initialMap.set(keyStatus(s.maidId, s.date), s.status);
+        }
+      });
+      setStatusMap(initialMap);
 
       const mapped = checkouts.map((t) => {
         const maidInfo = maidsRes.find((m) => m.id === t.maidId) || null;
         return {
           id: t.id,
-          date: dayjs.utc(t.date).add(1, "day").format("YYYY-MM-DD"),
+          maidId: t.maidId,
+          // CORREÇÃO: removido o .add(1,"day")
+          date: dayjs.utc(t.date).format("YYYY-MM-DD"),
           stay: t.stay || "Sem Stay",
           rooms: t.rooms || "Sem identificação",
           maid: maidInfo
@@ -57,26 +96,25 @@ export default function RelatorioLimpeza() {
     fetchData();
   }, [api, month]);
 
-  // stays únicos para popular o filtro
   const availableStays = [...new Set(tasks.map((t) => t.stay).filter(Boolean))];
 
-  // aplica o filtro de empreendimentos
   const filteredTasks =
     selectedStays.length > 0
       ? tasks.filter((t) => selectedStays.includes(t.stay))
       : tasks;
 
-  // agrupamento
+  // agrupamento por (diarista + date) mantendo maidId para status
   const grouped = {};
   filteredTasks.forEach((t) => {
-    const date = dayjs.utc(t.date).format("YYYY-MM-DD");
-    const key = `${t.maid.name}-${date}`;
+    const dateISO = dayjs.utc(t.date).format("YYYY-MM-DD");
+    const key = `${t.maid.name}-${dateISO}`;
     if (!grouped[key]) {
       grouped[key] = {
         diarista: t.maid.name,
         pix: t.maid.pix,
         banco: t.maid.banco,
-        date,
+        maidId: t.maidId,
+        dateISO,
         stays: new Set(),
         rooms: [],
       };
@@ -85,20 +123,31 @@ export default function RelatorioLimpeza() {
     grouped[key].rooms.push(t.rooms);
   });
 
-  const rows = Object.values(grouped).map((g) => {
-    const valor = isWeekendOrHoliday(g.date) ? 280 : 250;
+  // rows base
+  let rows = Object.values(grouped).map((g) => {
+    const valor = isWeekendOrHoliday(g.dateISO) ? 280 : 250;
+    const status = getStatus(g.maidId, g.dateISO); // pendente|pago
     return {
       diarista: g.diarista,
       pix: g.pix,
       banco: g.banco,
+      maidId: g.maidId,
       stays: [...g.stays].join(", "),
       rooms: g.rooms.join(", "),
-      date: dayjs(g.date).format("DD/MM/YYYY"),
+      dateISO: g.dateISO,
+      date: dayjs(g.dateISO).format("DD/MM/YYYY"),
       valor,
+      status,
     };
   });
 
+  // aplica filtro de status (pendente/pago/ambos)
+  if (filtroStatus !== "ambos") {
+    rows = rows.filter(r => r.status === filtroStatus);
+  }
+
   const totalGeral = rows.reduce((acc, r) => acc + r.valor, 0);
+
   const totaisPorDiarista = rows.reduce((acc, r) => {
     if (!acc[r.diarista]) acc[r.diarista] = { total: 0, dias: 0, pix: r.pix, banco: r.banco };
     acc[r.diarista].total += r.valor;
@@ -106,11 +155,11 @@ export default function RelatorioLimpeza() {
     return acc;
   }, {});
 
-  // === Export CSV ===
+  // === Export CSV (mantido) ===
   const exportCSV = () => {
-    let csv = "Diarista,Empreendimento,Acomodações,Dia,Valor\n";
+    let csv = "Diarista,Empreendimento,Acomodações,Dia,Valor,Status\n";
     rows.forEach((r) => {
-      csv += `${r.diarista},"${r.stays}","${r.rooms}",${r.date},${r.valor}\n`;
+      csv += `${r.diarista},"${r.stays}","${r.rooms}",${r.date},${r.valor},${r.status}\n`;
     });
     csv += `\nTOTAL,, , ,${totalGeral}`;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -122,7 +171,7 @@ export default function RelatorioLimpeza() {
     URL.revokeObjectURL(url);
   };
 
-  // === Export PDF geral ===
+  // === Export PDF geral (mantendo seu visual + evitando quebrar blocos) ===
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFillColor(59, 130, 246);
@@ -136,7 +185,11 @@ export default function RelatorioLimpeza() {
     doc.setFont("helvetica", "normal");
     let y = 35;
 
-    Object.entries(totaisPorDiarista).forEach(([nome, info]) => {
+    // garantir blocos por diarista
+    const diaristasOrdem = Object.keys(totaisPorDiarista);
+
+    diaristasOrdem.forEach((nome, idx) => {
+      // se pouco espaço antes do bloco, quebra manualmente
       if (y > 240) {
         doc.addPage();
         y = 20;
@@ -149,8 +202,8 @@ export default function RelatorioLimpeza() {
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      const pix = info.pix || "Não informado";
-      const banco = info.banco || "Não informado";
+      const pix = totaisPorDiarista[nome].pix || "Não informado";
+      const banco = totaisPorDiarista[nome].banco || "Não informado";
       const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
 
       doc.text(`Banco: ${banco}`, 14, y);
@@ -160,12 +213,9 @@ export default function RelatorioLimpeza() {
       doc.text(`Último pagamento: ${ultimo}`, 14, y);
       y += 7;
 
-      const linhas = rows.filter((r) => r.diarista === nome).map((r) => [
-        r.stays,
-        r.rooms,
-        r.date,
-        `R$ ${r.valor},00`,
-      ]);
+      const linhas = rows
+        .filter((r) => r.diarista === nome)
+        .map((r) => [r.stays, r.rooms, r.date, `R$ ${r.valor},00`]);
 
       autoTable(doc, {
         head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
@@ -176,12 +226,18 @@ export default function RelatorioLimpeza() {
         bodyStyles: { fontSize: 9, cellPadding: 3 },
         alternateRowStyles: { fillColor: [249, 250, 251] },
         margin: { left: 14, right: 14 },
+        pageBreak: "avoid",
       });
 
       y = doc.lastAutoTable.finalY + 10;
       doc.setFont("helvetica", "bold");
-      doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
+      doc.text(`Subtotal: R$ ${totaisPorDiarista[nome].total},00`, 14, y);
       y += 15;
+
+      if (idx < diaristasOrdem.length - 1 && y > 240) {
+        doc.addPage();
+        y = 20;
+      }
     });
 
     doc.setFontSize(13);
@@ -191,7 +247,7 @@ export default function RelatorioLimpeza() {
     doc.save(`Relatorio-Limpeza-${month}.pdf`);
   };
 
-  // === Export individual ===
+  // === Export individual (agora lista dias + total dias, respeitando filtroStatus atual) ===
   const exportIndividualPDF = (nome) => {
     const dados = totaisPorDiarista[nome];
     if (!dados) return;
@@ -212,13 +268,25 @@ export default function RelatorioLimpeza() {
     const banco = dados.banco || "Não informado";
     const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
 
+    // dias trabalhados (respeitando o filtroStatus atual)
+    const diasTrabalhados = rows
+      .filter(r => r.diarista === nome)
+      .map(r => dayjs(r.date, "DD/MM/YYYY").format("DD"))
+      .sort((a,b) => Number(a) - Number(b));
+
     doc.text(`Banco: ${banco}`, 14, 40);
     doc.text(`Chave Pix: ${pix}`, 14, 46);
-    doc.text(`Dias trabalhados: ${dados.dias}`, 14, 52);
-    doc.text(`Total: R$ ${dados.total},00`, 14, 58);
-    doc.text(`Último pagamento: ${ultimo}`, 14, 64);
+    doc.text(`dias trabalhados: ${diasTrabalhados.join(", ")}`, 14, 52);
+    doc.text(`total dias: ${diasTrabalhados.length}`, 14, 58);
+    doc.text(`Total: R$ ${dados.total},00`, 14, 64);
+    doc.text(`Último pagamento: ${ultimo}`, 14, 70);
 
     doc.save(`Recibo-${nome}-${month}.pdf`);
+  };
+
+  // altera status de uma linha (persistente)
+  const handleChangeStatusRow = async (maidId, dateISO, newStatus) => {
+    await saveStatus(maidId, dateISO, newStatus);
   };
 
   return (
@@ -232,37 +300,47 @@ export default function RelatorioLimpeza() {
       </div>
 
       {/* Filtros */}
-<div className="flex flex-wrap gap-4 items-center">
-  {/* filtro mês */}
-  <input
-    type="month"
-    value={month}
-    onChange={(e) => setMonth(e.target.value)}
-    className="input input-bordered"
-  />
-
-  {/* checkboxes de empreendimentos */}
-  <div className="flex flex-wrap gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-    {availableStays.map((s) => (
-      <label key={s} className="flex items-center gap-2 cursor-pointer">
+      <div className="flex flex-wrap gap-4 items-center">
+        {/* filtro mês */}
         <input
-          type="checkbox"
-          checked={selectedStays.includes(s)}
-          onChange={() => {
-            setSelectedStays((prev) =>
-              prev.includes(s)
-                ? prev.filter((stay) => stay !== s)
-                : [...prev, s]
-            );
-          }}
-          className="checkbox checkbox-sm"
+          type="month"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          className="input input-bordered"
         />
-        <span className="text-sm text-gray-700">{s}</span>
-      </label>
-    ))}
-  </div>
-</div>
 
+        {/* filtro status */}
+        <select
+          value={filtroStatus}
+          onChange={(e) => setFiltroStatus(e.target.value)}
+          className="select select-bordered"
+        >
+          <option value="pendente">Somente pendentes</option>
+          <option value="pago">Somente pagos</option>
+          <option value="ambos">Todos</option>
+        </select>
+
+        {/* checkboxes de empreendimentos */}
+        <div className="flex flex-wrap gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+          {availableStays.map((s) => (
+            <label key={s} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedStays.includes(s)}
+                onChange={() => {
+                  setSelectedStays((prev) =>
+                    prev.includes(s)
+                      ? prev.filter((stay) => stay !== s)
+                      : [...prev, s]
+                  );
+                }}
+                className="checkbox checkbox-sm"
+              />
+              <span className="text-sm text-gray-700">{s}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
       {/* Tabela */}
       <div className="overflow-x-auto bg-white rounded-2xl shadow-md border border-gray-200 mt-4">
@@ -274,22 +352,33 @@ export default function RelatorioLimpeza() {
               <th>Acomodações</th>
               <th>Dia</th>
               <th>Valor</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.length > 0 ? (
               rows.map((r, idx) => (
-                <tr key={idx}>
+                <tr key={`${r.maidId}-${r.dateISO}-${idx}`}>
                   <td>{r.diarista}</td>
                   <td>{r.stays}</td>
                   <td>{r.rooms}</td>
                   <td>{r.date}</td>
                   <td>R$ {r.valor},00</td>
+                  <td>
+                    <select
+                      className="select select-xs select-bordered"
+                      value={r.status}
+                      onChange={(e) => handleChangeStatusRow(r.maidId, r.dateISO, e.target.value)}
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="pago">Pago</option>
+                    </select>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="text-center text-gray-400 py-4">
+                <td colSpan="6" className="text-center text-gray-400 py-4">
                   Nenhum registro encontrado
                 </td>
               </tr>
@@ -327,6 +416,7 @@ export default function RelatorioLimpeza() {
                 }))
               }
             />
+
             <button
               className="btn btn-sm btn-outline w-full"
               onClick={() => exportIndividualPDF(d)}

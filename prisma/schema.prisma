@@ -108,6 +108,20 @@ model Task {
   maid   Maid? @relation(fields: [maidId], references: [id])
 }
 
+model PaymentStatus {
+  id      String   @id @default(cuid())
+  maidId  String
+  date    DateTime
+  status  PaymentState @default(PENDENTE)
+
+  @@unique([maidId, date])
+}
+
+enum PaymentState {
+  PENDENTE
+  PAGO
+}
+
 model MaintenanceTask {
   id          String    @id @default(uuid())
   code        String    @unique
