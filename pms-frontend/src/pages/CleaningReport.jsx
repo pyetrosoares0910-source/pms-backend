@@ -200,14 +200,9 @@ export default function RelatorioLimpeza() {
       y = 20;
     }
 
-     // ==== Total Geral ====
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+   
 
     // ==== Cabeçalho do diarista ====
-
-  doc.save(`Relatorio-Limpeza-${month}.pdf`);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.text(`${nome}`, 14, y);
@@ -254,7 +249,11 @@ export default function RelatorioLimpeza() {
     doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
     y += 15;
   }
-
+    // ==== Total Geral ====
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+    doc.save(`Relatorio-Limpeza-${month}.pdf`);
  
 };
 
