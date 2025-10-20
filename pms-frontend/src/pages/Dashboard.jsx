@@ -262,10 +262,10 @@ const maidsTomorrow = useMemo(() => {
 
       {/* ==== KPIs PRINCIPAIS ==== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📘" color="primary" />
-        <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🧳" color="accent" />
-        <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🏁" color="info" />
-        <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="📅" color="secondary" />
+        <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
+        <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
+        <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
+        <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
       </div>
 
       {/* ==== PROGRESSO DE MANUTENÇÃO ==== */}
@@ -294,7 +294,7 @@ const maidsTomorrow = useMemo(() => {
         <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2">
           <div className="card-body px-6">
             <h2 className="card-title text-lg font-semibold text-neutral mb-4">
-              🏨 Ocupação por empreendimento{" "}
+              📈 Ocupação por empreendimento{" "}
               <span className="text-sm text-gray-500">
                 (média geral: {occupancy.avg}%)
               </span>
