@@ -73,7 +73,12 @@ export default function RelatorioLimpeza() {
           initialMap.set(keyStatus(s.maidId, s.date), s.status);
         }
       });
-      setStatusMap(initialMap);
+      setStatusMap(prev => {
+  const merged = new Map(prev);
+  initialMap.forEach((v, k) => merged.set(k, v));
+  return merged;
+});
+
 
       const mapped = checkouts.map((t) => {
         const maidInfo = maidsRes.find((m) => m.id === t.maidId) || null;
@@ -314,8 +319,20 @@ autoTable(doc, {
 
   // altera status de uma linha (persistente)
   const handleChangeStatusRow = async (maidId, dateISO, newStatus) => {
+  // Aplica instantaneamente no front
+  setStatusLocal(maidId, dateISO, newStatus);
+
+  // Persiste no backend (sem bloquear UI)
+  try {
     await saveStatus(maidId, dateISO, newStatus);
-  };
+  } catch (e) {
+    // Reverte se der erro
+    console.error("Falha ao salvar status", e);
+    alert("Erro ao salvar status. Revertendo...");
+    setStatusLocal(maidId, dateISO, getStatus(maidId, dateISO));
+  }
+};
+
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
