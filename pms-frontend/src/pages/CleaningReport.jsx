@@ -200,7 +200,14 @@ export default function RelatorioLimpeza() {
       y = 20;
     }
 
+     // ==== Total Geral ====
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+
     // ==== Cabeçalho do diarista ====
+
+  doc.save(`Relatorio-Limpeza-${month}.pdf`);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.text(`${nome}`, 14, y);
@@ -248,12 +255,7 @@ export default function RelatorioLimpeza() {
     y += 15;
   }
 
-  // ==== Total Geral ====
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
-
-  doc.save(`Relatorio-Limpeza-${month}.pdf`);
+ 
 };
 
 
@@ -287,9 +289,8 @@ export default function RelatorioLimpeza() {
 
     doc.text(`Banco: ${banco}`, 14, 40);
     doc.text(`Chave Pix: ${pix}`, 14, 46);
-    doc.text(`dias trabalhados: ${diasTrabalhados.join(", ")}`, 14, 52);
-    doc.text(`total dias: ${diasTrabalhados.length}`, 14, 58);
-    doc.text(`Total: R$ ${dados.total},00`, 14, 64);
+    doc.text(`Dias trabalhados: ${diasTrabalhados.join(", ")}`, 14, 52);
+    doc.text(`Total diárias: ${diasTrabalhados.length} dias`, 14, 58);
     doc.text(`Último pagamento: ${ultimo}`, 14, 70);
 
         const linhas = rows
@@ -307,7 +308,7 @@ autoTable(doc, {
   margin: { left: 14, right: 14 },
 });
 
-
+      doc.text(`Valor total: R$ ${dados.total},00`, 14, 64);
 
     doc.save(`Recibo-${nome}-${month}.pdf`);
   };

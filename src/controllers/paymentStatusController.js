@@ -25,9 +25,12 @@ async function getPaymentStatuses(req, res) {
 
 async function upsertPaymentStatus(req, res) {
   try {
-    const { maidId, date, status } = req.body;
+    let { maidId, date, status } = req.body;
     if (!maidId || !date || !status)
       return res.status(400).json({ error: "Campos obrigatórios ausentes" });
+
+    // 🧠 força tipo string
+    maidId = String(maidId);
 
     // normaliza data e status
     const parsedDate = new Date(`${date}T00:00:00Z`);
@@ -51,9 +54,13 @@ async function upsertPaymentStatus(req, res) {
     res.json(saved);
   } catch (err) {
     console.error("❌ Erro ao salvar status de pagamento:", err);
-    res.status(500).json({ error: "Erro ao salvar status de pagamento", detail: err.message });
+    res.status(500).json({
+      error: "Erro ao salvar status de pagamento",
+      detail: err.message,
+    });
   }
 }
+
 
 
 module.exports = { getPaymentStatuses, upsertPaymentStatus };
