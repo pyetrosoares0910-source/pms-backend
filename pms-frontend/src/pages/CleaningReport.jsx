@@ -191,7 +191,10 @@ export default function RelatorioLimpeza() {
   let y = 35;
 
   const pageHeight = doc.internal.pageSize.height;
-  const diaristasOrdem = Object.keys(totaisPorDiarista);
+  
+   const diaristasOrdem = Object.keys(totaisPorDiarista).sort((a, b) =>
+    a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+  );
 
   for (const nome of diaristasOrdem) {
     const info = totaisPorDiarista[nome];
@@ -335,124 +338,185 @@ autoTable(doc, {
 
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Relatório Mensal de Diaristas</h1>
-        <div className="flex gap-2">
-          <button onClick={exportCSV} className="btn btn-outline btn-sm">⬇ CSV</button>
-          <button onClick={exportPDF} className="btn btn-outline btn-sm">⬇ PDF</button>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* filtro mês */}
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="input input-bordered"
-        />
-
-        {/* filtro status */}
-        <select
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-          className="select select-bordered"
+  <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
+    {/* Header */}
+    <div className="flex flex-wrap items-center justify-between mb-6">
+      <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
+        📋 Relatório Mensal de Diaristas
+      </h1>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={exportCSV}
+          className="btn btn-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
         >
-          <option value="pendente">Somente pendentes</option>
-          <option value="pago">Somente pagos</option>
-          <option value="ambos">Todos</option>
-        </select>
+          ⬇ Exportar CSV
+        </button>
+        <button
+          onClick={exportPDF}
+          className="btn btn-sm bg-blue-600 text-white border-none hover:bg-blue-700"
+        >
+          ⬇ Exportar PDF
+        </button>
+      </div>
+    </div>
 
-        {/* checkboxes de empreendimentos */}
-        <div className="flex flex-wrap gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-          {availableStays.map((s) => (
-            <label key={s} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedStays.includes(s)}
-                onChange={() => {
-                  setSelectedStays((prev) =>
-                    prev.includes(s)
-                      ? prev.filter((stay) => stay !== s)
-                      : [...prev, s]
-                  );
-                }}
-                className="checkbox checkbox-sm"
-              />
-              <span className="text-sm text-gray-700">{s}</span>
-            </label>
-          ))}
+    {/* Filtros */}
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
+      <div className="flex flex-wrap gap-5 items-center">
+        {/* Mês */}
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-gray-600 mb-1">
+            Mês de referência
+          </label>
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="input input-bordered input-sm w-48"
+          />
+        </div>
+
+        {/* Status */}
+        <div className="flex flex-col">
+          <label className="text-sm font-semibold text-gray-600 mb-1">
+            Status das diárias
+          </label>
+          <select
+            value={filtroStatus}
+            onChange={(e) => setFiltroStatus(e.target.value)}
+            className="select select-bordered select-sm w-48"
+          >
+            <option value="pendente">Somente pendentes</option>
+            <option value="pago">Somente pagos</option>
+            <option value="ambos">Todos</option>
+          </select>
+        </div>
+
+        {/* Empreendimentos */}
+        <div className="flex flex-col flex-1 min-w-[300px]">
+          <label className="text-sm font-semibold text-gray-600 mb-1">
+            Empreendimentos
+          </label>
+          <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-28 overflow-y-auto">
+            {availableStays.map((s) => (
+              <label
+                key={s}
+                className="flex items-center gap-2 cursor-pointer text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedStays.includes(s)}
+                  onChange={() => {
+                    setSelectedStays((prev) =>
+                      prev.includes(s)
+                        ? prev.filter((stay) => stay !== s)
+                        : [...prev, s]
+                    );
+                  }}
+                  className="checkbox checkbox-sm"
+                />
+                {s}
+              </label>
+            ))}
+          </div>
         </div>
       </div>
+    </div>
 
-      {/* Tabela */}
-      <div className="overflow-x-auto bg-white rounded-2xl shadow-md border border-gray-200 mt-4">
-        <table className="table w-full">
-          <thead className="bg-gray-100 text-gray-700 uppercase text-sm">
-            <tr>
-              <th>Diarista</th>
-              <th>Empreendimento</th>
-              <th>Acomodações</th>
-              <th>Dia</th>
-              <th>Valor</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length > 0 ? (
-              rows.map((r, idx) => (
-                <tr key={`${r.maidId}-${r.dateISO}-${idx}`}>
-                  <td>{r.diarista}</td>
-                  <td>{r.stays}</td>
-                  <td>{r.rooms}</td>
-                  <td>{r.date}</td>
-                  <td>R$ {r.valor},00</td>
-                  <td>
-                    <select
-                      className="select select-xs select-bordered"
-                      value={r.status}
-                      onChange={(e) => handleChangeStatusRow(r.maidId, r.dateISO, e.target.value)}
-                    >
-                      <option value="pendente">Pendente</option>
-                      <option value="pago">Pago</option>
-                    </select>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="text-center text-gray-400 py-4">
-                  Nenhum registro encontrado
+    {/* Tabela */}
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+      <table className="table w-full">
+        <thead className="bg-gray-100 text-gray-700 text-sm uppercase font-semibold">
+          <tr>
+            <th className="px-4 py-3 text-left">Diarista</th>
+            <th className="px-4 py-3 text-left">Empreendimento</th>
+            <th className="px-4 py-3 text-left">Acomodações</th>
+            <th className="px-4 py-3 text-center">Dia</th>
+            <th className="px-4 py-3 text-center">Valor</th>
+            <th className="px-4 py-3 text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length > 0 ? (
+            rows.map((r, idx) => (
+              <tr
+                key={`${r.maidId}-${r.dateISO}-${idx}`}
+                className="hover:bg-gray-50 border-t border-gray-100 text-sm"
+              >
+                <td className="px-4 py-2 font-medium text-gray-800">
+                  {r.diarista}
+                </td>
+                <td className="px-4 py-2 text-gray-600">{r.stays}</td>
+                <td className="px-4 py-2 text-gray-600">{r.rooms}</td>
+                <td className="px-4 py-2 text-center text-gray-700">
+                  {r.date}
+                </td>
+                <td className="px-4 py-2 text-center font-semibold text-gray-800">
+                  R$ {r.valor},00
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <select
+                    className={`select select-xs rounded-md ${
+                      r.status === "pago"
+                        ? "bg-green-50 border-green-500 text-green-700"
+                        : "bg-yellow-50 border-yellow-500 text-yellow-700"
+                    }`}
+                    value={r.status}
+                    onChange={(e) =>
+                      handleChangeStatusRow(r.maidId, r.dateISO, e.target.value)
+                    }
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="pago">Pago</option>
+                  </select>
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          ) : (
+            <tr>
+              <td
+                colSpan="6"
+                className="text-center text-gray-400 py-8 text-sm"
+              >
+                Nenhum registro encontrado
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
 
-      {/* Cards individuais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        {Object.keys(totaisPorDiarista).map((d) => (
-          <div key={d} className="card bg-white shadow p-4 border border-gray-200">
-            <h3 className="font-semibold text-gray-800 mb-2">{d}</h3>
+    {/* Cards individuais */}
+    <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      {Object.keys(totaisPorDiarista).map((d) => (
+        <div
+          key={d}
+          className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all"
+        >
+          <h3 className="font-semibold text-lg text-gray-800 mb-3 flex items-center justify-between">
+            {d}
+            <span className="text-sm font-normal text-gray-500">
+              {totaisPorDiarista[d].dias} dia(s)
+            </span>
+          </h3>
+
+          <div className="space-y-2">
             <input
               type="text"
-              className="input input-sm input-bordered w-full mb-2 bg-gray-100"
+              className="input input-sm input-bordered w-full bg-gray-100 text-gray-700"
               value={totaisPorDiarista[d].banco || "Não informado"}
               readOnly
             />
             <input
               type="text"
-              className="input input-sm input-bordered w-full mb-2 bg-gray-100"
+              className="input input-sm input-bordered w-full bg-gray-100 text-gray-700"
               value={totaisPorDiarista[d].pix || "Não informado"}
               readOnly
             />
             <input
               type="text"
               placeholder="Último pagamento"
-              className="input input-sm input-bordered w-full mb-2"
+              className="input input-sm input-bordered w-full"
               value={extras[d]?.ultimoPagamento || ""}
               onChange={(e) =>
                 setExtras((prev) => ({
@@ -461,16 +525,18 @@ autoTable(doc, {
                 }))
               }
             />
-
-            <button
-              className="btn btn-sm btn-outline w-full"
-              onClick={() => exportIndividualPDF(d)}
-            >
-              ⬇ PDF Individual
-            </button>
           </div>
-        ))}
-      </div>
+
+          <button
+            className="btn btn-sm mt-4 w-full bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
+            onClick={() => exportIndividualPDF(d)}
+          >
+            ⬇ PDF Individual
+          </button>
+        </div>
+      ))}
     </div>
-  );
+  </div>
+);
+
 }
