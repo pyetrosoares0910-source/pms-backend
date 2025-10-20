@@ -59,7 +59,7 @@ const staysRoutes = require("./routes/stays");
 const taskRoutes = require("./routes/tasks");
 const maidRoutes = require("./routes/maids");
 const reportPdfRoutes = require("./routes/reportPdfRoutes");
-const paymentRoutes = require("./routes/paymentRoutes")
+const paymentRoutes = require("./routes/paymentRoutes");
 
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
