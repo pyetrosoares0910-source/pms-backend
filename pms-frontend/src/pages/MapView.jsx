@@ -125,9 +125,11 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
   async function updateStatus(newStatus) {
     setLoading(true);
     try {
-      const updated = await api.put(`/reservations/${reservation.id}`, {
-        status: newStatus,
-      });
+      const updated = await api(`/reservations/${reservation.id}`, {
+  method: "PUT",
+  body: JSON.stringify({ status: newStatus }),
+});
+
       onUpdated(updated);
       onClose();
     } catch (err) {
