@@ -425,7 +425,7 @@ autoTable(doc, {
 
     {/* Tabela */}
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      <table className="table w-full">
+      <table className="table w-full table-auto">
         <thead className="bg-gray-100 text-gray-700 text-sm uppercase font-semibold">
           <tr>
             <th className="px-4 py-3 text-left">Diarista</th>

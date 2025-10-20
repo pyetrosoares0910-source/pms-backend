@@ -7,12 +7,19 @@ async function getPaymentStatuses(req, res) {
 
     const filters = {};
     if (start && end) {
-      filters.date = { gte: new Date(start), lte: new Date(end) };
+      filters.date = {
+        gte: new Date(`${start}T00:00:00Z`),
+        lte: new Date(`${end}T23:59:59Z`),
+      };
     }
 
     const statuses = await prisma.paymentStatus.findMany({
       where: filters,
-      select: { maidId: true, date: true, status: true },
+      select: {
+        maidId: true,
+        date: true,
+        status: true,
+      },
       orderBy: { date: "asc" },
     });
 
@@ -22,6 +29,7 @@ async function getPaymentStatuses(req, res) {
     res.status(500).json({ error: "Erro ao listar status de pagamento" });
   }
 }
+
 
 async function upsertPaymentStatus(req, res) {
   try {
