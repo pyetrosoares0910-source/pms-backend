@@ -29,20 +29,31 @@ async function upsertPaymentStatus(req, res) {
     if (!maidId || !date || !status)
       return res.status(400).json({ error: "Campos obrigatórios ausentes" });
 
-    const parsedDate = new Date(`${date}T00:00:00.000Z`);
+    // normaliza data e status
+    const parsedDate = new Date(`${date}T00:00:00Z`);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ error: "Data inválida" });
+    }
+
     const normalizedStatus = status.toUpperCase() === "PAGO" ? "PAGO" : "PENDENTE";
 
     const saved = await prisma.paymentStatus.upsert({
-      where: { maidId_date: { maidId, date: parsedDate } },
+      where: {
+        maidId_date: {
+          maidId,
+          date: parsedDate,
+        },
+      },
       update: { status: normalizedStatus },
       create: { maidId, date: parsedDate, status: normalizedStatus },
     });
 
     res.json(saved);
   } catch (err) {
-    console.error("Erro ao salvar status de pagamento:", err);
-    res.status(500).json({ error: "Erro ao salvar status de pagamento" });
+    console.error("❌ Erro ao salvar status de pagamento:", err);
+    res.status(500).json({ error: "Erro ao salvar status de pagamento", detail: err.message });
   }
 }
+
 
 module.exports = { getPaymentStatuses, upsertPaymentStatus };

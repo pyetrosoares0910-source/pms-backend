@@ -3,36 +3,33 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" // ou mysql/sqlite conforme seu setup
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Stay {
   id               String            @id @default(uuid())
   name             String
-  position         Int?
-  rooms            Room[] // 1 Stay -> N Rooms
-  maintenanceTasks MaintenanceTask[]
   createdAt        DateTime          @default(now())
+  position         Int?
+  maintenanceTasks MaintenanceTask[]
+  rooms            Room[]
 }
 
 model Room {
   id               String            @id @default(uuid())
-  title            String
-  category         String? // ← novo
-  position         Int? // ← alterado de string?
-  capacity         Int?
-  description      String?
   active           Boolean           @default(true)
-  maintenanceTasks MaintenanceTask[]
+  stayId           String?
+  description      String?
+  title            String
+  capacity         Int?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-
-  // relação com Stay
-  stayId String?
-  stay   Stay?   @relation(fields: [stayId], references: [id])
-
-  reservations Reservation[]
+  category         String?
+  position         Int?
+  maintenanceTasks MaintenanceTask[]
+  reservations     Reservation[]
+  stay             Stay?             @relation(fields: [stayId], references: [id])
 }
 
 model Guest {
@@ -48,105 +45,99 @@ model Guest {
 model Staff {
   id           String   @id @default(uuid())
   name         String
-  email        String   @unique
-  passwordHash String // precisa existir em todos
   role         String
-  phone        String?
+  email        String   @unique
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
+  passwordHash String
+  phone        String?
   updatedAt    DateTime @updatedAt
 }
 
 model CleaningStaff {
   id        String   @id @default(uuid())
   name      String
-  status    String // disponivel, em_servico, indisponivel
+  status    String
   createdAt DateTime @default(now())
 }
 
 model Maintenance {
   id          String   @id @default(uuid())
   description String
-  status      String // pendente, em_andamento, concluido
+  status      String
   createdAt   DateTime @default(now())
 }
 
 model Reservation {
   id           String   @id @default(uuid())
   roomId       String
-  guestId      String
   checkinDate  DateTime
   checkoutDate DateTime
-  status       String //  agendada | ativa | concluida | cancelada
-  notes        String?
+  guestId      String
+  status       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  room  Room  @relation(fields: [roomId], references: [id])
-  guest Guest @relation(fields: [guestId], references: [id])
+  notes        String?
+  guest        Guest    @relation(fields: [guestId], references: [id])
+  room         Room     @relation(fields: [roomId], references: [id])
 }
 
 model Maid {
-  id        Int      @id @default(autoincrement())
   name      String
-  bank      String // Banco obrigatório
-  pixKey    String // Chave Pix obrigatória
-  available String[] // Disponibilidade fixa (ex: ["Mon","Tue","Wed"])
+  bank      String
   createdAt DateTime @default(now())
+  pixKey    String
   updatedAt DateTime @updatedAt
-
-  tasks Task[]
+  id        Int      @id @default(autoincrement())
+  available String[]
+  tasks     Task[]
 }
 
 model Task {
-  id    String   @id @default(uuid())
-  date  DateTime
-  stay  String
-  rooms String
-
-  maidId Int? // mesmo tipo do id de Maid
-  maid   Maid? @relation(fields: [maidId], references: [id])
+  id     String   @id @default(uuid())
+  date   DateTime
+  stay   String
+  rooms  String
+  maidId Int?
+  maid   Maid?    @relation(fields: [maidId], references: [id])
 }
 
 model PaymentStatus {
-  id      String   @id @default(cuid())
-  maidId  String
-  date    DateTime
-  status  PaymentState @default(PENDENTE)
+  id     String       @id @default(cuid())
+  maidId String
+  date   DateTime
+  status PaymentState @default(PENDENTE)
 
   @@unique([maidId, date])
+}
+
+model MaintenanceTask {
+  id          String            @id @default(uuid())
+  code        String            @unique
+  title       String
+  description String?
+  stayId      String?
+  roomId      String?
+  responsible String?
+  status      String            @default("pendente")
+  type        String?
+  dueDate     DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  isRecurring Boolean           @default(false)
+  parentId    String?
+  recurrence  Json?
+  timezone    String?           @default("America/Sao_Paulo")
+  parent      MaintenanceTask?  @relation("RecurringParent", fields: [parentId], references: [id])
+  children    MaintenanceTask[] @relation("RecurringParent")
+  room        Room?             @relation(fields: [roomId], references: [id])
+  stay        Stay?             @relation(fields: [stayId], references: [id])
+
+  @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
+  @@index([parentId])
 }
 
 enum PaymentState {
   PENDENTE
   PAGO
-}
-
-model MaintenanceTask {
-  id          String    @id @default(uuid())
-  code        String    @unique
-  title       String
-  description String?
-  stayId      String?
-  stay        Stay?     @relation(fields: [stayId], references: [id])
-  roomId      String?
-  room        Room?     @relation(fields: [roomId], references: [id])
-  responsible String?
-  status      String    @default("pendente") // pendente | andamento | concluido
-  type        String?   // preventiva | corretiva
-  dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // --- Recorrência ---
-  isRecurring Boolean   @default(false) // true = "modelo" de recorrência
-  recurrence  Json?
-  parentId    String?
-  parent      MaintenanceTask? @relation("RecurringParent", fields: [parentId], references: [id])
-  children    MaintenanceTask[] @relation("RecurringParent")
-  timezone    String?   @default("America/Sao_Paulo")
-
-  // Evita duplicar instâncias geradas para o mesmo modelo/data
-  @@index([parentId])
-  @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
 }

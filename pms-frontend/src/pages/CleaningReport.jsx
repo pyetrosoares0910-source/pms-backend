@@ -173,79 +173,89 @@ export default function RelatorioLimpeza() {
 
   // === Export PDF geral (mantendo seu visual + evitando quebrar blocos) ===
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 210, 25, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(`Relatório de Limpeza - ${dayjs(month).format("MMMM/YYYY")}`, 14, 16);
+  const doc = new jsPDF();
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 0, 210, 25, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text(`Relatório de Limpeza - ${dayjs(month).format("MMMM/YYYY")}`, 14, 16);
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    let y = 35;
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "normal");
+  let y = 35;
 
-    // garantir blocos por diarista
-    const diaristasOrdem = Object.keys(totaisPorDiarista);
+  const pageHeight = doc.internal.pageSize.height;
+  const diaristasOrdem = Object.keys(totaisPorDiarista);
 
-    diaristasOrdem.forEach((nome, idx) => {
-      // se pouco espaço antes do bloco, quebra manualmente
-      if (y > 240) {
-        doc.addPage();
-        y = 20;
-      }
+  for (const nome of diaristasOrdem) {
+    const info = totaisPorDiarista[nome];
+    const linhas = rows.filter(r => r.diarista === nome);
+    const linhasAltura = linhas.length * 6 + 40; // ~6px por linha + header
+    const blocoAltura = 30 + linhasAltura; // margem + subtotal + cabeçalho
 
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${nome}`, 14, y);
-      y += 6;
+    // 👇 se o bloco inteiro não couber, pula pra nova página antes de imprimir
+    if (y + blocoAltura > pageHeight - 10) {
+      doc.addPage();
+      y = 20;
+    }
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      const pix = totaisPorDiarista[nome].pix || "Não informado";
-      const banco = totaisPorDiarista[nome].banco || "Não informado";
-      const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
-
-      doc.text(`Banco: ${banco}`, 14, y);
-      y += 5;
-      doc.text(`Chave Pix: ${pix}`, 14, y);
-      y += 5;
-      doc.text(`Último pagamento: ${ultimo}`, 14, y);
-      y += 7;
-
-      const linhas = rows
-        .filter((r) => r.diarista === nome)
-        .map((r) => [r.stays, r.rooms, r.date, `R$ ${r.valor},00`]);
-
-      autoTable(doc, {
-        head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
-        body: linhas,
-        startY: y,
-        theme: "grid",
-        headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39], fontSize: 10 },
-        bodyStyles: { fontSize: 9, cellPadding: 3 },
-        alternateRowStyles: { fillColor: [249, 250, 251] },
-        margin: { left: 14, right: 14 },
-        pageBreak: "avoid",
-      });
-
-      y = doc.lastAutoTable.finalY + 10;
-      doc.setFont("helvetica", "bold");
-      doc.text(`Subtotal: R$ ${totaisPorDiarista[nome].total},00`, 14, y);
-      y += 15;
-
-      if (idx < diaristasOrdem.length - 1 && y > 240) {
-        doc.addPage();
-        y = 20;
-      }
-    });
-
+    // ==== Cabeçalho do diarista ====
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+    doc.text(`${nome}`, 14, y);
+    y += 6;
 
-    doc.save(`Relatorio-Limpeza-${month}.pdf`);
-  };
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const pix = info.pix || "Não informado";
+    const banco = info.banco || "Não informado";
+    const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
+
+    doc.text(`Banco: ${banco}`, 14, y);
+    y += 5;
+    doc.text(`Chave Pix: ${pix}`, 14, y);
+    y += 5;
+    doc.text(`Último pagamento: ${ultimo}`, 14, y);
+    y += 7;
+
+    // ==== Tabela ====
+    const tabela = linhas.map(r => [
+      r.stays,
+      r.rooms,
+      r.date,
+      `R$ ${r.valor},00`,
+    ]);
+
+    autoTable(doc, {
+      head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
+      body: tabela,
+      startY: y,
+      theme: "grid",
+      headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39], fontSize: 10 },
+      bodyStyles: { fontSize: 9, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      margin: { left: 14, right: 14 },
+      pageBreak: "avoid",
+    });
+
+    // posição após a tabela
+    y = doc.lastAutoTable.finalY + 10;
+
+    // ==== Subtotal ====
+    doc.setFont("helvetica", "bold");
+    doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
+    y += 15;
+  }
+
+  // ==== Total Geral ====
+  doc.setFontSize(13);
+  doc.setFont("helvetica", "bold");
+  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+
+  doc.save(`Relatorio-Limpeza-${month}.pdf`);
+};
+
 
   // === Export individual (agora lista dias + total dias, respeitando filtroStatus atual) ===
   const exportIndividualPDF = (nome) => {
@@ -268,11 +278,12 @@ export default function RelatorioLimpeza() {
     const banco = dados.banco || "Não informado";
     const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
 
-    // dias trabalhados (respeitando o filtroStatus atual)
+    // dias trabalhados 
     const diasTrabalhados = rows
-      .filter(r => r.diarista === nome)
-      .map(r => dayjs(r.date, "DD/MM/YYYY").format("DD"))
-      .sort((a,b) => Number(a) - Number(b));
+  .filter(r => r.diarista === nome)
+  .map(r => dayjs(r.dateISO).format("DD"))
+  .sort((a,b) => Number(a) - Number(b));
+
 
     doc.text(`Banco: ${banco}`, 14, 40);
     doc.text(`Chave Pix: ${pix}`, 14, 46);
@@ -280,6 +291,23 @@ export default function RelatorioLimpeza() {
     doc.text(`total dias: ${diasTrabalhados.length}`, 14, 58);
     doc.text(`Total: R$ ${dados.total},00`, 14, 64);
     doc.text(`Último pagamento: ${ultimo}`, 14, 70);
+
+        const linhas = rows
+  .filter(r => r.diarista === nome)
+  .map(r => [r.stays, r.rooms, dayjs(r.dateISO).format("DD/MM/YYYY"), `R$ ${r.valor},00`]);
+
+autoTable(doc, {
+  head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
+  body: linhas,
+  startY: 78,
+  theme: "grid",
+  headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39], fontSize: 10 },
+  bodyStyles: { fontSize: 9, cellPadding: 3 },
+  alternateRowStyles: { fillColor: [249, 250, 251] },
+  margin: { left: 14, right: 14 },
+});
+
+
 
     doc.save(`Recibo-${nome}-${month}.pdf`);
   };
