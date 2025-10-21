@@ -380,9 +380,13 @@ const generatePDF = async () => {
       const clone = el.cloneNode(true);
       wrapper.appendChild(clone);
 
+      clone.style.transform = "scale(1.35)";
+      clone.style.transformOrigin = "top left";
+      
+      wrapper.style.width = "calc(1100px * 1.35)";
       // 🔹 Aumenta fonte e altura das tabelas
       clone.querySelectorAll("table").forEach((tbl) => {
-  tbl.querySelectorAll("td, th").forEach((c) => {
+   tbl.querySelectorAll("td, th").forEach((c) => {
     c.style.fontSize = "18px"; 
     c.style.lineHeight = "1.6"; 
     c.style.padding = "10px 8px";
@@ -580,7 +584,7 @@ pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
         const h = Math.min(slotH, (w * hMM) / wMM);
         const dx = margin.left + (usableW - w) / 2;
         pdf.addImage(chartCanvas.toDataURL("image/png"), "PNG", dx, y, w, h);
-        y += h + 12;
+        y += h + 20;
         drawFooter(page);
       } catch (e) {
         console.warn("⚠️ Falha anual:", stay.stayName, e);
