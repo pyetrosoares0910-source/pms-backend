@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://www.staycore.com.br",
+  "https://staycore.com.br",
   "https://www.staycore.com.br",
   /\.vercel\.app$/, // 👈 aceita QUALQUER domínio *.vercel.app
 ];
