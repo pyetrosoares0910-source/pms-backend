@@ -335,34 +335,6 @@ const maidsTomorrow = useMemo(() => {
 
       </div>
 
-      
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-  <StatCard
-    title="Maior ocupação"
-    value={maiorOcupacao ? `${maiorOcupacao.label} (${maiorOcupacao.ocupacao}%)` : "-"}
-    icon="🏆"
-    color="success"
-  />
-  <StatCard
-    title="Menor ocupação"
-    value={menorOcupacao ? `${menorOcupacao.label} (${menorOcupacao.ocupacao}%)` : "-"}
-    icon="⚠️"
-    color="error"
-  />
-  <StatCard
-    title="Média de diárias"
-    value={mediaDiariasReserva}
-    icon="📆"
-    color="info"
-  />
-  <StatCard
-    title="Diárias limpeza"
-    value={diariasLimpeza}
-    icon="🧽"
-    color="secondary"
-  />
-</div>
-
 
 {/* ==== PROGRESSO DE MANUTENÇÃO ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
