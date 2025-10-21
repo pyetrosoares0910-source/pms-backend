@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const STAY_ORDER = [
   "Internacional Stay (Urussuí)",
@@ -449,7 +449,7 @@ const generatePDF = async () => {
       let canvas;
       try {
         canvas = await html2canvas(wrapper, {
-          scale: 2,
+          scale: 1.4,
           useCORS: true,
           backgroundColor: "#ffffff",
           logging: false,
@@ -504,8 +504,6 @@ const generatePDF = async () => {
 
         newPage(stay.stayName);
 
-        newPage(stay.stayName);
-
           // Subtítulo ajustado
           pdf.setFont("helvetica", "bold");
           pdf.setFontSize(12);
@@ -529,7 +527,7 @@ pdf.setTextColor(25, 46, 91);
 pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
 
 
-        pdf.autoTable({
+        autoTable(pdf, {
           startY: resumoY,
           head: [["Indicador", "Valor"]],
           body: [
