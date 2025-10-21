@@ -108,32 +108,72 @@ useEffect(() => {
 
   // === KPIs principais ===
   const kpis = useMemo(() => {
-    const activeToday = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" &&
-        dayjs.utc(r.checkinDate).isSameOrBefore(today) &&
-        dayjs.utc(r.checkoutDate).isAfter(today)
-    ).length;
+  const activeToday = reservations.filter(
+    (r) =>
+      r.status !== "cancelada" &&
+      dayjs.utc(r.checkinDate).isSameOrBefore(today) &&
+      dayjs.utc(r.checkoutDate).isAfter(today)
+  ).length;
 
-    const checkinsToday = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" && dayjs.utc(r.checkinDate).isSame(today, "day")
-    ).length;
+  const checkinsToday = reservations.filter(
+    (r) =>
+      r.status !== "cancelada" &&
+      dayjs.utc(r.checkinDate).isSame(today, "day")
+  ).length;
 
-    const checkoutsToday = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" && dayjs.utc(r.checkoutDate).isSame(today, "day")
-    ).length;
+  const checkoutsToday = reservations.filter(
+    (r) =>
+      r.status !== "cancelada" &&
+      dayjs.utc(r.checkoutDate).isSame(today, "day")
+  ).length;
 
-    const nightsInMonth = reservations.reduce((sum, r) => {
-      if (r.status === "cancelada") return sum;
-      const ci = dayjs(r.checkinDate);
-      const co = dayjs(r.checkoutDate);
-      return sum + overlapDays(ci, co, mStart, mEnd);
-    }, 0);
+  const nightsInMonth = reservations.reduce((sum, r) => {
+    if (r.status === "cancelada") return sum;
+    const ci = dayjs(r.checkinDate);
+    const co = dayjs(r.checkoutDate);
+    return sum + overlapDays(ci, co, mStart, mEnd);
+  }, 0);
 
-    return { activeToday, checkinsToday, checkoutsToday, nightsInMonth };
-  }, [reservations, today, mStart, mEnd]);
+  const totalReservas = reservations.length;
+  const mediaDiariasReserva =
+    totalReservas > 0 ? (nightsInMonth / totalReservas).toFixed(1) : "-";
+
+  const maiorOcupacao =
+    occupancy.rows?.length > 0
+      ? occupancy.rows.reduce((a, b) =>
+          a.ocupacao > b.ocupacao ? a : b
+        )
+      : null;
+
+  const menorOcupacao =
+    occupancy.rows?.length > 0
+      ? occupancy.rows.reduce((a, b) =>
+          a.ocupacao < b.ocupacao ? a : b
+        )
+      : null;
+
+  const diariasLimpeza = tasks.length;
+
+  const topEfficiency =
+    occupancy.rows
+      ?.slice()
+      .sort((a, b) => b.ocupacao - a.ocupacao)
+      .slice(0, 10) || [];
+
+  return {
+    activeToday,
+    checkinsToday,
+    checkoutsToday,
+    nightsInMonth,
+    totalReservas,
+    mediaDiariasReserva,
+    maiorOcupacao,
+    menorOcupacao,
+    diariasLimpeza,
+    topEfficiency,
+  };
+}, [reservations, today, mStart, mEnd, occupancy.rows, tasks]);
+
 
   // === Ocupação por empreendimento ===
   const occupancy = useMemo(() => {
@@ -268,25 +308,100 @@ const maidsTomorrow = useMemo(() => {
         <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
       </div>
 
-      {/* ==== PROGRESSO DE MANUTENÇÃO ==== */}
-      <div className="card bg-white shadow-md border border-gray-100 p-5">
-        <h2 className="font-semibold text-neutral mb-3">🛠️ Progresso da Manutenção</h2>
-        <div className="flex flex-wrap items-center justify-between text-sm text-gray-600 mb-3">
-          <span>Total: {maintenanceStats.total}</span>
-          <span>Pendentes: {maintenanceStats.pend}</span>
-          <span>Em andamento: {maintenanceStats.prog}</span>
-          <span>Concluídas: {maintenanceStats.done}</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-3">
-          <div
-            className="bg-emerald-500 h-3 rounded-full transition-all"
-            style={{ width: `${maintenanceStats.pctDone}%` }}
-          ></div>
-        </div>
-        <p className="text-xs text-right text-gray-500 mt-1">
-          {maintenanceStats.pctDone}% concluído
-        </p>
-      </div>
+      
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  <StatCard
+    title="Maior ocupação"
+    value={maiorOcupacao ? `${maiorOcupacao.label} (${maiorOcupacao.ocupacao}%)` : "-"}
+    icon="🏆"
+    color="success"
+  />
+  <StatCard
+    title="Menor ocupação"
+    value={menorOcupacao ? `${menorOcupacao.label} (${menorOcupacao.ocupacao}%)` : "-"}
+    icon="⚠️"
+    color="error"
+  />
+  <StatCard
+    title="Média de diárias"
+    value={mediaDiariasReserva}
+    icon="📆"
+    color="info"
+  />
+  <StatCard
+    title="Diárias limpeza"
+    value={diariasLimpeza}
+    icon="🧽"
+    color="secondary"
+  />
+</div>
+
+
+{/* ==== PROGRESSO DE MANUTENÇÃO ==== */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  {/* Donut de Manutenção */}
+  <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center">
+    <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
+    <PieChart width={180} height={180}>
+      <Pie
+        data={[
+          { name: "Concluídas", value: maintenanceStats.done },
+          { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
+        ]}
+        dataKey="value"
+        innerRadius={60}
+        outerRadius={80}
+        paddingAngle={3}
+        stroke="none"
+      >
+        <Cell fill="#22c55e" />
+        <Cell fill="#e5e7eb" />
+      </Pie>
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={22}
+        fontWeight="bold"
+      >
+        {maintenanceStats.pctDone}%
+      </text>
+    </PieChart>
+    <p className="text-sm text-gray-500 mt-2">
+      {maintenanceStats.done} concluídas de {maintenanceStats.total}
+    </p>
+  </div>
+
+  {/* Top Eficiência */}
+  <div className="card bg-white shadow-md border border-gray-100 p-6">
+    <h2 className="font-semibold text-neutral mb-4">📊 Top 10 Acomodações com Melhor Eficiência</h2>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        data={topEfficiency}
+        layout="vertical"
+        margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+        <XAxis
+          type="number"
+          domain={[0, 100]}
+          tickFormatter={(v) => `${v}%`}
+          tick={{ fill: "#6b7280", fontSize: 12 }}
+        />
+        <YAxis
+          dataKey="label"
+          type="category"
+          width={100}
+          tick={{ fill: "#6b7280", fontSize: 12 }}
+        />
+        <RechartsTooltip formatter={(v) => `${v}%`} />
+        <Bar dataKey="ocupacao" fill="#3B82F6" radius={[0, 6, 6, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
 
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
