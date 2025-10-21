@@ -171,65 +171,71 @@ if (startDate && endDate) {
                   </tr>
                 </thead>
                 <tbody>
-                  {dayTasks.length > 0 ? (
-                    dayTasks.map((t, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3 border">{t.stay}</td>
-                        <td className="px-4 py-3 border">{t.rooms}</td>
-                        <td className="px-4 py-3 border">
-                          <select
-                            value={t.maidId || ""}
-                            onChange={async (e) => {
-                              const maidId = e.target.value
-                                ? parseInt(e.target.value, 10)
-                                : null;
+  {dayTasks.length > 0 ? (
+    [...dayTasks]
+      .sort((a, b) => {
+        if (a.stay < b.stay) return -1;
+        if (a.stay > b.stay) return 1;
+        if (a.rooms < b.rooms) return -1;
+        if (a.rooms > b.rooms) return 1;
+        return 0;
+      })
+      .map((t, idx) => (
+        <tr key={idx} className="hover:bg-gray-50 transition">
+          <td className="px-4 py-3 border">{t.stay}</td>
+          <td className="px-4 py-3 border">{t.rooms}</td>
+          <td className="px-4 py-3 border">
+            <select
+              value={t.maidId || ""}
+              onChange={async (e) => {
+                const maidId = e.target.value
+                  ? parseInt(e.target.value, 10)
+                  : null;
 
-                              await api(`/tasks/${t.id}/assign`, {
-                                method: "PUT",
-                                body: JSON.stringify({ maidId }),
-                              });
+                await api(`/tasks/${t.id}/assign`, {
+                  method: "PUT",
+                  body: JSON.stringify({ maidId }),
+                });
 
-                              setTasks((prev) =>
-                                prev.map((task) =>
-                                  task.id === t.id
-                                    ? {
-                                        ...task,
-                                        maid:
-                                          maids.find((m) => m.id === maidId)
-                                            ?.name || null,
-                                        maidId,
-                                      }
-                                    : task
-                                )
-                              );
-                            }}
-                            className="select select-sm w-full border-gray-300 rounded-lg"
-                          >
-                            <option value="">-- Selecionar --</option>
-                            {maids
-                              .filter((m) =>
-                                m.available?.includes(d.format("ddd"))
-                              )
-                              .map((m) => (
-                                <option key={m.id} value={m.id}>
-                                  {m.name}
-                                </option>
-                              ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="3"
-                        className="px-4 py-5 text-center text-gray-400"
-                      >
-                        Nenhuma tarefa para este dia
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
+                setTasks((prev) =>
+                  prev.map((task) =>
+                    task.id === t.id
+                      ? {
+                          ...task,
+                          maid:
+                            maids.find((m) => m.id === maidId)?.name || null,
+                          maidId,
+                        }
+                      : task
+                  )
+                );
+              }}
+              className="select select-sm w-full border-gray-300 rounded-lg"
+            >
+              <option value="">-- Selecionar --</option>
+              {maids
+                .filter((m) => m.available?.includes(d.format("ddd")))
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          </td>
+        </tr>
+      ))
+  ) : (
+    <tr>
+      <td
+        colSpan="3"
+        className="px-4 py-5 text-center text-gray-400"
+      >
+        Nenhuma tarefa para este dia
+      </td>
+    </tr>
+  )}
+</tbody>
+
               </table>
             </div>
           );
