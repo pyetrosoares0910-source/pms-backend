@@ -282,7 +282,7 @@ ${html}
 
 const generatePDF = async () => {
   try {
-    // ✅ Aplica patch temporário só na captura
+    // ✅ Patch temporário para OKLCH
     if (window.html2canvas && !window.__patched_oklch_fix__) {
       const origParseColor = window.html2canvas.utils?.parseColor;
       window.__patched_oklch_fix__ = true;
@@ -303,8 +303,6 @@ const generatePDF = async () => {
     if (!reportRef.current) return;
     setGenerating(true);
 
-
-
     const PX_TO_MM = 0.264583;
     const toMM = (px) => px * PX_TO_MM;
 
@@ -323,7 +321,10 @@ const generatePDF = async () => {
       });
     const logoImg = await loadLogo("/logo_vz.png");
 
-    const periodLabel = `${dayjs().month(selectedMonth - 1).format("MMMM").toUpperCase()} / ${selectedYear}`;
+    const periodLabel = `${dayjs()
+      .month(selectedMonth - 1)
+      .format("MMMM")
+      .toUpperCase()} / ${selectedYear}`;
     const generatedAt = dayjs().format("DD/MM/YYYY HH:mm");
 
     const drawHeader = (titleLine = null) => {
@@ -359,91 +360,103 @@ const generatePDF = async () => {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
       pdf.setTextColor(140);
-      pdf.text(`Página ${n}`, pageWidth - margin.right, pageHeight - 8, { align: "right" });
+      pdf.text(`Página ${n}`, pageWidth - margin.right, pageHeight - 8, {
+        align: "right",
+      });
     };
 
     const captureElement = async (el) => {
-  if (!el) throw new Error("Elemento nulo ao capturar.");
+      if (!el) throw new Error("Elemento nulo ao capturar.");
 
-  // Clona o conteúdo isoladamente
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "fixed";
-  wrapper.style.left = "-9999px";
-  wrapper.style.top = "0";
-  wrapper.style.width = "1100px";
-  wrapper.style.background = "#fff";
-  document.body.appendChild(wrapper);
-  const clone = el.cloneNode(true);
-  wrapper.appendChild(clone);
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "fixed";
+      wrapper.style.left = "-9999px";
+      wrapper.style.top = "0";
+      wrapper.style.width = "1100px";
+      wrapper.style.background = "#fff";
+      document.body.appendChild(wrapper);
+      const clone = el.cloneNode(true);
+      wrapper.appendChild(clone);
 
-  // 🔹 1. Neutraliza qualquer cor OKLCH() em estilos CSS inline
-  // 🔹 Neutraliza só dentro do clone, sem afetar o site real
-clone.querySelectorAll("*").forEach((node) => {
-  const style = window.getComputedStyle(node);
-  for (const prop of ["color", "backgroundColor", "borderColor"]) {
-    const val = style.getPropertyValue(prop);
-    if (val && val.includes("oklch")) {
-      node.style.setProperty(prop, prop === "backgroundColor" ? "#ffffff" : "#111827", "important");
-    }
-  }
-});
+      // 🔹 Aumenta fonte e altura das tabelas
+      clone.querySelectorAll("table").forEach((tbl) => {
+        tbl.style.fontSize = "14px";
+        tbl.querySelectorAll("td, th").forEach((c) => {
+          c.style.padding = "10px 6px";
+        });
+      });
 
-
-  // 🔹 2. Limpa SVGs — remove gradientes e atributos com oklch()
-  wrapper.querySelectorAll("svg").forEach((svg) => {
-    svg.querySelectorAll("*").forEach((el) => {
-      for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
-        const val = el.getAttribute(attr);
-        if (typeof val === "string" && val.includes("oklch")) {
-          // substitui qualquer cor oklch por branco
-          el.setAttribute(attr, "#ffffff");
+      // 🔹 Neutraliza cores OKLCH
+      clone.querySelectorAll("*").forEach((node) => {
+        const style = window.getComputedStyle(node);
+        for (const prop of ["color", "backgroundColor", "borderColor"]) {
+          const val = style.getPropertyValue(prop);
+          if (val && val.includes("oklch")) {
+            node.style.setProperty(
+              prop,
+              prop === "backgroundColor" ? "#ffffff" : "#111827",
+              "important"
+            );
+          }
         }
-      }
-    });
-  });
+      });
 
-  // 🔹 3. Bloqueia tentativas de setar fillStyle/oklch dentro do canvas
-  const originalCreateElement = document.createElement;
-  document.createElement = function (tagName, options) {
-    const element = originalCreateElement.call(this, tagName, options);
-    if (tagName?.toLowerCase() === "canvas") {
-      const ctx = element.getContext("2d");
-      if (ctx) {
-        const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), "fillStyle");
-        if (desc) {
-          Object.defineProperty(ctx, "fillStyle", {
-            set(value) {
-              if (typeof value === "string" && value.includes("oklch")) value = "#ffffff";
-              desc.set.call(this, value);
-            },
-            get() {
-              return desc.get.call(this);
-            },
-            configurable: true,
-          });
+      // 🔹 Limpa SVGs
+      wrapper.querySelectorAll("svg").forEach((svg) => {
+        svg.querySelectorAll("*").forEach((el) => {
+          for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
+            const val = el.getAttribute(attr);
+            if (typeof val === "string" && val.includes("oklch")) {
+              el.setAttribute(attr, "#ffffff");
+            }
+          }
+        });
+      });
+
+      // 🔹 Bloqueia fillStyle OKLCH em canvas
+      const originalCreateElement = document.createElement;
+      document.createElement = function (tagName, options) {
+        const element = originalCreateElement.call(this, tagName, options);
+        if (tagName?.toLowerCase() === "canvas") {
+          const ctx = element.getContext("2d");
+          if (ctx) {
+            const desc = Object.getOwnPropertyDescriptor(
+              Object.getPrototypeOf(ctx),
+              "fillStyle"
+            );
+            if (desc) {
+              Object.defineProperty(ctx, "fillStyle", {
+                set(value) {
+                  if (typeof value === "string" && value.includes("oklch"))
+                    value = "#ffffff";
+                  desc.set.call(this, value);
+                },
+                get() {
+                  return desc.get.call(this);
+                },
+                configurable: true,
+              });
+            }
+          }
         }
+        return element;
+      };
+
+      let canvas;
+      try {
+        canvas = await html2canvas(wrapper, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+      } finally {
+        document.createElement = originalCreateElement;
+        document.body.removeChild(wrapper);
       }
-    }
-    return element;
-  };
 
-  // 🔹 4. Renderiza para canvas
-  let canvas;
-  try {
-    canvas = await html2canvas(wrapper, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-    });
-  } finally {
-    document.createElement = originalCreateElement;
-    document.body.removeChild(wrapper);
-  }
-
-  return canvas;
-};
-
+      return canvas;
+    };
 
     const normalize = (s) =>
       s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -484,15 +497,44 @@ clone.querySelectorAll("*").forEach((node) => {
         if (!tableEl || !chartEl) continue;
 
         newPage(stay.stayName);
+
+        // Subtítulo
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.setTextColor(25, 46, 91);
+        pdf.text("Relatório Mensal — Ocupação por Unidade", margin.left, margin.top - 2);
+
         const usableW = pageWidth - margin.left - margin.right;
-        const tableCanvas = await captureElement(tableEl);
         const chartCanvas = await captureElement(chartEl);
+        const chartHeight = addImageCentered(chartCanvas, margin.top + 5, usableW);
 
-        const tableY = margin.top;
-        const chartY = margin.top + (pageHeight - margin.top - margin.bottom) / 2 + 4;
-
+        const tableCanvas = await captureElement(tableEl);
+        const tableY = margin.top + chartHeight + 12;
         addImageCentered(tableCanvas, tableY, usableW);
-        addImageCentered(chartCanvas, chartY, usableW * 0.98);
+
+        // Mini tabela de resumo no rodapé
+        const resumoY = pageHeight - margin.bottom - 35;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(25, 46, 91);
+        pdf.text(`📊 Resumo — ${stay.stayName}`, margin.left, resumoY - 4);
+
+        pdf.autoTable({
+          startY: resumoY,
+          head: [["Indicador", "Valor"]],
+          body: [
+            ["Total de diárias", stay.totalDiarias ?? "-"],
+            ["Total de reservas", stay.totalReservas ?? "-"],
+            ["Ocupação média (%)", `${stay.ocupacaoMedia ?? "-"}%`],
+          ],
+          theme: "grid",
+          styles: { fontSize: 9, halign: "center" },
+          headStyles: { fillColor: [25, 46, 91], textColor: 255 },
+          margin: { left: margin.left, right: margin.right },
+          tableWidth: usableW * 0.6,
+          columnStyles: { 0: { halign: "left" }, 1: { halign: "right" } },
+        });
+
         drawFooter(page);
       } catch (e) {
         console.warn("⚠️ Falha ao gerar página de", stay.stayName, e);
@@ -537,7 +579,9 @@ clone.querySelectorAll("*").forEach((node) => {
       }
     }
 
-    pdf.save(`Relatorio_Desempenho_${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`);
+    pdf.save(
+      `Relatorio_Desempenho_${selectedYear}-${String(selectedMonth).padStart(2, "0")}.pdf`
+    );
   } catch (err) {
     console.error("❌ Erro ao gerar PDF:", err);
     alert("Falha ao gerar PDF. Veja o console para detalhes.");
@@ -545,7 +589,6 @@ clone.querySelectorAll("*").forEach((node) => {
     setGenerating(false);
   }
 };
-
 
 
   /* ========== Render ========== */
