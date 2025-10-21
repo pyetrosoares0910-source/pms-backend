@@ -106,6 +106,52 @@ useEffect(() => {
   const today = dayjs().startOf("day");
   const { start: mStart, end: mEnd, daysInMonth } = monthBounds();
 
+  // === Ocupação por empreendimento ===
+  const occupancy = useMemo(() => {
+    const roomsByStay = {};
+    rooms.forEach((r) => {
+      const stayId = r.stay?.id || "none";
+      if (!roomsByStay[stayId])
+        roomsByStay[stayId] = { stayId, stayName: r.stay?.name, rooms: [] };
+      roomsByStay[stayId].rooms.push(r.id);
+    });
+
+    const occRows = Object.values(roomsByStay).map((group) => {
+      const roomSet = new Set(group.rooms);
+      let occupiedNights = 0;
+      reservations
+        .filter((r) => r.status !== "cancelada" && roomSet.has(r.roomId))
+        .forEach((r) => {
+          occupiedNights += overlapDays(
+            r.checkinDate,
+            r.checkoutDate,
+            mStart,
+            mEnd
+          );
+        });
+
+      const capacity = group.rooms.length * daysInMonth;
+      const pct =
+        capacity > 0 ? Math.round((occupiedNights / capacity) * 100) : 0;
+
+      return {
+        stayId: group.stayId,
+        name: group.stayName,
+        label: abbrevStay(group.stayName),
+        ocupacao: pct,
+      };
+    });
+
+    const avg =
+      occRows.length > 0
+        ? Math.round(
+            occRows.reduce((sum, r) => sum + r.ocupacao, 0) / occRows.length
+          )
+        : 0;
+
+    return { rows: occRows, avg };
+  }, [rooms, reservations, mStart, mEnd, daysInMonth]);
+
   // === KPIs principais ===
   const kpis = useMemo(() => {
   const activeToday = reservations.filter(
@@ -177,51 +223,6 @@ useEffect(() => {
 }, [reservations, today, mStart, mEnd, occupancy.rows, tasks]);
 
 
-  // === Ocupação por empreendimento ===
-  const occupancy = useMemo(() => {
-    const roomsByStay = {};
-    rooms.forEach((r) => {
-      const stayId = r.stay?.id || "none";
-      if (!roomsByStay[stayId])
-        roomsByStay[stayId] = { stayId, stayName: r.stay?.name, rooms: [] };
-      roomsByStay[stayId].rooms.push(r.id);
-    });
-
-    const occRows = Object.values(roomsByStay).map((group) => {
-      const roomSet = new Set(group.rooms);
-      let occupiedNights = 0;
-      reservations
-        .filter((r) => r.status !== "cancelada" && roomSet.has(r.roomId))
-        .forEach((r) => {
-          occupiedNights += overlapDays(
-            r.checkinDate,
-            r.checkoutDate,
-            mStart,
-            mEnd
-          );
-        });
-
-      const capacity = group.rooms.length * daysInMonth;
-      const pct =
-        capacity > 0 ? Math.round((occupiedNights / capacity) * 100) : 0;
-
-      return {
-        stayId: group.stayId,
-        name: group.stayName,
-        label: abbrevStay(group.stayName),
-        ocupacao: pct,
-      };
-    });
-
-    const avg =
-      occRows.length > 0
-        ? Math.round(
-            occRows.reduce((sum, r) => sum + r.ocupacao, 0) / occRows.length
-          )
-        : 0;
-
-    return { rows: occRows, avg };
-  }, [rooms, reservations, mStart, mEnd, daysInMonth]);
 
   // === Eventos (Limpeza) ===
   const cleaningEvents = useMemo(() => {
