@@ -380,9 +380,9 @@ const generatePDF = async () => {
 
       // 🔹 Aumenta fonte e altura das tabelas
       clone.querySelectorAll("table").forEach((tbl) => {
-        tbl.style.fontSize = "14px";
+        tbl.style.fontSize = "18px";
         tbl.querySelectorAll("td, th").forEach((c) => {
-          c.style.padding = "10px 6px";
+          c.style.padding = "12px 8px";
         });
       });
 
@@ -498,26 +498,30 @@ const generatePDF = async () => {
 
         newPage(stay.stayName);
 
-        // Subtítulo
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-        pdf.setTextColor(25, 46, 91);
-        pdf.text("Relatório Mensal — Ocupação por Unidade", margin.left, margin.top - 2);
+        newPage(stay.stayName);
+
+          // Subtítulo ajustado
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(12);
+          pdf.setTextColor(25, 46, 91);
+          pdf.text("Relatório Mensal — Ocupação por Unidade", margin.left, margin.top + 6);
+
 
         const usableW = pageWidth - margin.left - margin.right;
         const chartCanvas = await captureElement(chartEl);
-        const chartHeight = addImageCentered(chartCanvas, margin.top + 5, usableW);
+        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW);
 
         const tableCanvas = await captureElement(tableEl);
         const tableY = margin.top + chartHeight + 12;
         addImageCentered(tableCanvas, tableY, usableW);
 
         // Mini tabela de resumo no rodapé
-        const resumoY = pageHeight - margin.bottom - 35;
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
-        pdf.setTextColor(25, 46, 91);
-        pdf.text(`📊 Resumo — ${stay.stayName}`, margin.left, resumoY - 4);
+const resumoY = pageHeight - margin.bottom - 35;
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(10);
+pdf.setTextColor(25, 46, 91);
+pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 4);
+
 
         pdf.autoTable({
           startY: resumoY,
