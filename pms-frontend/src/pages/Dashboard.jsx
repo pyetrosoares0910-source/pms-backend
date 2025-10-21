@@ -305,10 +305,34 @@ const maidsTomorrow = useMemo(() => {
 
       {/* ==== KPIs PRINCIPAIS ==== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
-        <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
-        <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
-        <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
+        <StatCard
+  title="Maior ocupação"
+  value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label} (${kpis.maiorOcupacao.ocupacao}%)` : "-"}
+  icon="🏆"
+  color="success"
+/>
+
+<StatCard
+  title="Menor ocupação"
+  value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label} (${kpis.menorOcupacao.ocupacao}%)` : "-"}
+  icon="⚠️"
+  color="error"
+/>
+
+<StatCard
+  title="Média de diárias"
+  value={kpis.mediaDiariasReserva}
+  icon="📆"
+  color="info"
+/>
+
+<StatCard
+  title="Diárias limpeza"
+  value={kpis.diariasLimpeza}
+  icon="🧽"
+  color="secondary"
+/>
+
       </div>
 
       
