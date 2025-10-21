@@ -504,7 +504,7 @@ const drawOccupancyCards = (pdf, stay, startY, usableW) => {
   const rooms = stay.rooms || [];
   const cardsPerRow = 5; // número de cards por linha
   const cardWidth = (usableW - (cardsPerRow - 1) * 6) / cardsPerRow;
-  const cardHeight = 26;
+  const cardHeight = 22;
   const gap = 6;
   const marginLeft = margin.left;
   const marginTop = startY;
@@ -521,9 +521,8 @@ const drawOccupancyCards = (pdf, stay, startY, usableW) => {
     const occ = Number(room.ocupacao) || 0;
 
     // Define cor de fundo de acordo com ocupação
-    let fillColor = [108, 141, 180]; // azul padrão (estilo seu exemplo)
-    if (occ >= 80) fillColor = [34, 197, 94];     // verde
-    else if (occ >= 60) fillColor = [234, 179, 8]; // amarelo
+    let fillColor = [108, 141, 180]; // azul 
+    if (occ >= 50) fillColor = [108, 141, 180];     
     else fillColor = [239, 68, 68];                // vermelho
 
     // Card base arredondado
@@ -568,7 +567,7 @@ for (const stay of monthlyData.stays) {
 
     const usableW = pageWidth - margin.left - margin.right;
     const chartCanvas = await captureElement(chartEl);
-    const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.25);
+    const chartHeight = addImageCentered(chartCanvas, margin.top + 7, usableW * 1.25);
 
     // 🟦 Cards de ocupação (substitui tabela)
     const cardsY = margin.top + chartHeight + 12;
