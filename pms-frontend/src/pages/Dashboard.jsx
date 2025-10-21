@@ -405,7 +405,7 @@ const maidsTomorrow = useMemo(() => {
     <h2 className="font-semibold text-neutral mb-4">📊 Top 10 Acomodações com Melhor Eficiência</h2>
     <ResponsiveContainer width="100%" height={300}>
       <BarChart
-        data={topEfficiency}
+        data={kpis.topEfficiency}
         layout="vertical"
         margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
       >
