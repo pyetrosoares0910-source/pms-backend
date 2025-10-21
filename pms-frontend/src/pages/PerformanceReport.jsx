@@ -653,8 +653,8 @@ for (const stay of monthlyData.stays) {
     newPage("Desempenho Anual");
     let y = margin.top + 2;
     const usableW = pageWidth - margin.left - margin.right;
-    const chartHeight = addImageCentered(chartCanvas, y, usableW * 1.2);
-y += chartHeight + 8;
+    const slotH = 95; // h max
+
 
 
     for (const stay of annualData.stays) {
