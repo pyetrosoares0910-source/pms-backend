@@ -497,12 +497,9 @@ const generatePDF = async () => {
 };
 
 
-    // ===============================
-// Desenha cards de ocupação por unidade
-// ===============================
 const drawOccupancyCards = (pdf, stay, startY, usableW) => {
   const rooms = stay.rooms || [];
-  const cardsPerRow = 5; // número de cards por linha
+  const cardsPerRow = 5; 
   const cardWidth = (usableW - (cardsPerRow - 1) * 6) / cardsPerRow;
   const cardHeight = 22;
   const gap = 6;
@@ -567,10 +564,10 @@ for (const stay of monthlyData.stays) {
 
     const usableW = pageWidth - margin.left - margin.right;
     const chartCanvas = await captureElement(chartEl);
-    const chartHeight = addImageCentered(chartCanvas, margin.top + 7, usableW * 1.25);
+    const chartHeight = addImageCentered(chartCanvas, margin.top + 4, usableW * 1.25);
 
     // 🟦 Cards de ocupação (substitui tabela)
-    const cardsY = margin.top + chartHeight + 12;
+    const cardsY = margin.top + chartHeight + 9;
     const cardsHeight = drawOccupancyCards(pdf, stay, cardsY, usableW);
 
     // 🟨 Mini tabela de resumo no rodapé
@@ -579,7 +576,7 @@ for (const stay of monthlyData.stays) {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10.5);
     pdf.setTextColor(25, 46, 91);
-    pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
+    pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 10);
 
     // Linha divisória sutil
     pdf.setDrawColor(220);
