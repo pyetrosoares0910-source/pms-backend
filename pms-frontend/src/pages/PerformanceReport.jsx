@@ -497,107 +497,161 @@ const generatePDF = async () => {
 };
 
 
-    // ===== Mensal =====
-    for (const stay of monthlyData.stays) {
-      try {
-        const block = findBlock("monthly", stay.stayName);
-        if (!block) continue;
+    // ===============================
+// Desenha cards de ocupação por unidade
+// ===============================
+const drawOccupancyCards = (pdf, stay, startY, usableW) => {
+  const rooms = stay.rooms || [];
+  const cardsPerRow = 5; // número de cards por linha
+  const cardWidth = (usableW - (cardsPerRow - 1) * 6) / cardsPerRow;
+  const cardHeight = 26;
+  const gap = 6;
+  const marginLeft = margin.left;
+  const marginTop = startY;
 
-        const tableEl = block.querySelector("table");
-        const chartEl = block.querySelector(".recharts-wrapper");
-        if (!tableEl || !chartEl) continue;
+  pdf.setFont("helvetica", "bold");
 
-        newPage(stay.stayName);
+  rooms.forEach((room, idx) => {
+    const row = Math.floor(idx / cardsPerRow);
+    const col = idx % cardsPerRow;
 
-          // Subtítulo ajustado
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(12);
-          pdf.setTextColor(25, 46, 91);
-          pdf.text("Relatório Mensal — Ocupação por Unidade", margin.left, margin.top + 6);
+    const x = marginLeft + col * (cardWidth + gap);
+    const y = marginTop + row * (cardHeight + gap);
 
+    const occ = Number(room.ocupacao) || 0;
 
-        const usableW = pageWidth - margin.left - margin.right;
-        const chartCanvas = await captureElement(chartEl);
-        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.25);
+    // Define cor de fundo de acordo com ocupação
+    let fillColor = [108, 141, 180]; // azul padrão (estilo seu exemplo)
+    if (occ >= 80) fillColor = [34, 197, 94];     // verde
+    else if (occ >= 60) fillColor = [234, 179, 8]; // amarelo
+    else fillColor = [239, 68, 68];                // vermelho
 
-        const tableCanvas = await captureElement(tableEl);
-        const tableY = margin.top + chartHeight + 12;
-        addImageCentered(tableCanvas, tableY, usableW);
+    // Card base arredondado
+    pdf.setFillColor(...fillColor);
+    pdf.setDrawColor(...fillColor);
+    pdf.roundedRect(x, y, cardWidth, cardHeight, 3, 3, "F");
 
-        // Mini tabela de resumo no rodapé
-const resumoY = pageHeight - margin.bottom - 42;
-pdf.setFont("helvetica", "bold");
-pdf.setFontSize(11);
-pdf.setTextColor(25, 46, 91);
-pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
+    // Nome da unidade
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(8.5);
+    pdf.text(room.name || room.title || `Unidade ${idx + 1}`, x + cardWidth / 2, y + 9, {
+      align: "center",
+    });
 
-// Prepara dados calculados
-const totalDiarias = stay.totalDiarias ?? 0;
-const totalReservas = stay.totalReservas ?? 0;
-const ocupacaoMedia = stay.ocupacaoMedia ?? 0;
+    // Ocupação
+    pdf.setFontSize(14);
+    pdf.text(`${occ}%`, x + cardWidth / 2, y + cardHeight / 1.45, {
+      align: "center",
+    });
+  });
 
-const mediaDiariasReserva = totalReservas
-  ? (totalDiarias / totalReservas).toFixed(1)
-  : "-";
+  const totalRows = Math.ceil(rooms.length / cardsPerRow);
+  return totalRows * (cardHeight + gap);
+};
 
-const unidadeMaisOcupada = stay.rooms?.length
-  ? (() => {
-      const top = stay.rooms.reduce((a, b) =>
-        (a.ocupacao ?? 0) > (b.ocupacao ?? 0) ? a : b
-      );
-      return `${top.name || top.title || "—"} (${top.ocupacao ?? 0}%)`;
-    })()
-  : "-";
+// ===== Mensal =====
+for (const stay of monthlyData.stays) {
+  try {
+    const block = findBlock("monthly", stay.stayName);
+    if (!block) continue;
 
-const unidadeMenosOcupada = stay.rooms?.length
-  ? (() => {
-      const low = stay.rooms.reduce((a, b) =>
-        (a.ocupacao ?? 0) < (b.ocupacao ?? 0) ? a : b
-      );
-      return `${low.name || low.title || "—"} (${low.ocupacao ?? 0}%)`;
-    })()
-  : "-";
+    const chartEl = block.querySelector(".recharts-wrapper");
+    if (!chartEl) continue;
 
-// Taxa de eficiência = (total de reservas * média de diárias) / (capacidade total do mês)
-const diasNoMes = dayjs(`${selectedYear}-${selectedMonth}-01`).daysInMonth();
-const capacidadeTotal = (stay.rooms?.length ?? 0) * diasNoMes;
-const eficiencia = capacidadeTotal
-  ? ((totalDiarias / capacidadeTotal) * 100).toFixed(1)
-  : "-";
+    newPage(stay.stayName);
 
-autoTable(pdf, {
-  startY: resumoY,
-  // 🔹 Sem cabeçalho azul — só linhas suaves
-  theme: "plain",
-  body: [
-    ["Total de diárias", totalDiarias],
-    ["Total de reservas", totalReservas],
-    ["Ocupação média (%)", `${ocupacaoMedia}%`],
-    ["Média de diárias por reserva", mediaDiariasReserva],
-    ["Unidade mais ocupada", unidadeMaisOcupada],
-    ["Unidade menos ocupada", unidadeMenosOcupada],
-    ["Taxa de eficiência (reservas × capacidade)", `${eficiencia}%`],
-  ],
-  styles: {
-    fontSize: 9.5,
-    cellPadding: 1.2,
-    lineColor: [200, 200, 200],
-    lineWidth: 0.2,
-    textColor: [33, 33, 33],
-  },
-  alternateRowStyles: { fillColor: [245, 247, 250] },
-  margin: { left: margin.left, right: margin.right },
-  tableWidth: usableW * 0.72,
-  columnStyles: {
-    0: { halign: "left", cellWidth: usableW * 0.42 },
-    1: { halign: "right" },
-  },
-});
+    // Subtítulo ajustado
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.setTextColor(25, 46, 91);
+    pdf.text("Relatório Mensal — Ocupação por Unidade", margin.left, margin.top + 6);
 
-      } catch (e) {
-        console.warn("⚠️ Falha ao gerar página de", stay.stayName, e);
-      }
-    }
+    const usableW = pageWidth - margin.left - margin.right;
+    const chartCanvas = await captureElement(chartEl);
+    const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.25);
+
+    // 🟦 Cards de ocupação (substitui tabela)
+    const cardsY = margin.top + chartHeight + 12;
+    const cardsHeight = drawOccupancyCards(pdf, stay, cardsY, usableW);
+
+    // 🟨 Mini tabela de resumo no rodapé
+    const resumoY = pageHeight - margin.bottom - 40;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(25, 46, 91);
+    pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
+
+    // Linha divisória sutil
+    pdf.setDrawColor(220);
+    pdf.setLineWidth(0.2);
+    pdf.line(margin.left, resumoY - 4, margin.left + usableW * 0.7, resumoY - 4);
+
+    // Indicadores calculados
+    const totalDiarias = stay.totalDiarias ?? 0;
+    const totalReservas = stay.totalReservas ?? 0;
+    const ocupacaoMedia = stay.ocupacaoMedia ?? 0;
+
+    const mediaDiariasReserva =
+      totalReservas > 0 ? (totalDiarias / totalReservas).toFixed(1) : "-";
+
+    const unidadeMaisOcupada = stay.rooms?.length
+      ? (() => {
+          const top = stay.rooms.reduce((a, b) =>
+            (a.ocupacao ?? 0) > (b.ocupacao ?? 0) ? a : b
+          );
+          return `${top.name || top.title || "—"} (${top.ocupacao ?? 0}%)`;
+        })()
+      : "-";
+
+    const unidadeMenosOcupada = stay.rooms?.length
+      ? (() => {
+          const low = stay.rooms.reduce((a, b) =>
+            (a.ocupacao ?? 0) < (b.ocupacao ?? 0) ? a : b
+          );
+          return `${low.name || low.title || "—"} (${low.ocupacao ?? 0}%)`;
+        })()
+      : "-";
+
+    const diasNoMes = dayjs(`${selectedYear}-${selectedMonth}-01`).daysInMonth();
+    const capacidadeTotal = (stay.rooms?.length ?? 0) * diasNoMes;
+    const eficiencia =
+      capacidadeTotal > 0 ? ((totalDiarias / capacidadeTotal) * 100).toFixed(1) : "-";
+
+    autoTable(pdf, {
+      startY: resumoY,
+      theme: "plain", // estilo limpo
+      body: [
+        ["Total de diárias", totalDiarias],
+        ["Total de reservas", totalReservas],
+        ["Ocupação média (%)", `${ocupacaoMedia}%`],
+        ["Média de diárias por reserva", mediaDiariasReserva],
+        ["Unidade mais ocupada", unidadeMaisOcupada],
+        ["Unidade menos ocupada", unidadeMenosOcupada],
+        ["Taxa de eficiência (reservas × capacidade)", `${eficiencia}%`],
+      ],
+      styles: {
+        fontSize: 9.5,
+        cellPadding: 1.4,
+        lineColor: [220, 220, 220],
+        lineWidth: 0.2,
+        textColor: [33, 33, 33],
+      },
+      alternateRowStyles: { fillColor: [247, 249, 252] },
+      margin: { left: margin.left, right: margin.right },
+      tableWidth: usableW * 0.7,
+      columnStyles: {
+        0: { halign: "left", cellWidth: usableW * 0.45 },
+        1: { halign: "right" },
+      },
+    });
+
+    drawFooter(page);
+  } catch (e) {
+    console.warn("⚠️ Falha ao gerar página de", stay.stayName, e);
+  }
+}
+
 
     // ===== Anual =====
     newPage("Desempenho Anual");
