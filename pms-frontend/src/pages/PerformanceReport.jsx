@@ -564,7 +564,7 @@ for (const stay of monthlyData.stays) {
 
     const usableW = pageWidth - margin.left - margin.right;
     const chartCanvas = await captureElement(chartEl);
-    const chartHeight = addImageCentered(chartCanvas, margin.top + 6, usableW * 1.25);
+    const chartHeight = addImageCentered(chartCanvas, margin.top + 8, usableW * 1.25);
 
     // 🟦 Cards de ocupação (substitui tabela)
     const cardsY = margin.top + chartHeight + 9;
