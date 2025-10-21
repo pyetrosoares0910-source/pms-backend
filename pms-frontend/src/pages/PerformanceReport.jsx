@@ -634,7 +634,21 @@ clone.querySelectorAll("*").forEach((node) => {
 
         <div className="flex flex-col space-y-8">
           {Array.isArray(monthlyData?.stays) &&
-  monthlyData.stays.map((stay) => (
+  monthlyData.stays
+    .sort((a, b) => {
+      const ordem = [
+        "Itaim Stay (Tabapuã)",
+        "JK Stay (Clodomiro)",
+        "Itaim Stay 2 (tabapuã)",
+        "Internacional Stay (Urussuí)",
+        "Iguatemi Stay A (Butantã)",
+        "Iguatemi Stay B (Butantã)",
+        "Estanconfor Vila Olímpia",
+      ];
+      return ordem.indexOf(a.stayName) - ordem.indexOf(b.stayName);
+    })
+    .map((stay) => (
+      
             <motion.div
               key={stay.stayName}
               initial={{ opacity: 0, y: 10 }}
@@ -718,9 +732,9 @@ clone.querySelectorAll("*").forEach((node) => {
     left: 15,
     bottom: 60,
   }}
-  barCategoryGap="20%" // 🔹 mais previsível
+  barCategoryGap="20%" 
   barGap={5}
-  barSize={(stay.rooms?.length ?? 0) <= 2 ? 90 : undefined} // 🔹 barra larga fixa
+  barSize={(stay.rooms?.length ?? 0) <= 2 ? 90 : undefined} 
 >
 
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
