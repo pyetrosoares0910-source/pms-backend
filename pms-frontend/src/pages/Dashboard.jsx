@@ -154,8 +154,13 @@ useEffect(() => {
 
   const diariasLimpeza = tasks.length;
 
-  const topEfficiency =
-  (occupancy?.rows?.slice()?.sort((a, b) => b.ocupacao - a.ocupacao)?.slice(0, 10)) || [];
+  const topEfficiency = (
+  (occupancy?.rows || [])
+    .slice()
+    .sort((a, b) => b.ocupacao - a.ocupacao)
+    .slice(0, 10)
+);
+
 
   return {
     activeToday,
