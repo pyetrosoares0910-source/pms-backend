@@ -368,103 +368,104 @@ const generatePDF = async () => {
     };
 
     const captureElement = async (el) => {
-      if (!el) throw new Error("Elemento nulo ao capturar.");
+  if (!el) throw new Error("Elemento nulo ao capturar.");
 
-      const wrapper = document.createElement("div");
-      wrapper.style.position = "fixed";
-      wrapper.style.left = "-9999px";
-      wrapper.style.top = "0";
-      wrapper.style.width = "1100px";
-      wrapper.style.background = "#fff";
-      document.body.appendChild(wrapper);
-      const clone = el.cloneNode(true);
-      wrapper.appendChild(clone);
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-9999px";
+  wrapper.style.top = "0";
+  wrapper.style.width = "1100px";
+  wrapper.style.background = "#fff";
+  document.body.appendChild(wrapper);
+  const clone = el.cloneNode(true);
+  wrapper.appendChild(clone);
 
-      clone.style.transform = "scale(1.35)";
-      clone.style.transformOrigin = "top left";
-      
-      wrapper.style.width = "calc(1100px * 1.35)";
-      // 🔹 Aumenta fonte e altura das tabelas
-      clone.querySelectorAll("table").forEach((tbl) => {
-   tbl.querySelectorAll("td, th").forEach((c) => {
-    c.style.fontSize = "18px"; 
-    c.style.lineHeight = "1.6"; 
-    c.style.padding = "10px 8px";
+  // 🔹 Amplia apenas tabelas, sem mexer no layout global
+  clone.querySelectorAll("table").forEach((tbl) => {
+    tbl.style.transform = "scale(1.3)";
+    tbl.style.transformOrigin = "top left";
+    tbl.style.width = "calc(100% / 1.3)"; // corrige o overflow após o scale
+
+    // Ajusta fonte e padding visualmente
+    tbl.querySelectorAll("td, th").forEach((c) => {
+      c.style.fontSize = "20px";
+      c.style.lineHeight = "1.8";
+      c.style.padding = "12px 10px";
+    });
   });
-});
 
-
-      // 🔹 Neutraliza cores OKLCH
-      clone.querySelectorAll("*").forEach((node) => {
-        const style = window.getComputedStyle(node);
-        for (const prop of ["color", "backgroundColor", "borderColor"]) {
-          const val = style.getPropertyValue(prop);
-          if (val && val.includes("oklch")) {
-            node.style.setProperty(
-              prop,
-              prop === "backgroundColor" ? "#ffffff" : "#111827",
-              "important"
-            );
-          }
-        }
-      });
-
-      // 🔹 Limpa SVGs
-      wrapper.querySelectorAll("svg").forEach((svg) => {
-        svg.querySelectorAll("*").forEach((el) => {
-          for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
-            const val = el.getAttribute(attr);
-            if (typeof val === "string" && val.includes("oklch")) {
-              el.setAttribute(attr, "#ffffff");
-            }
-          }
-        });
-      });
-
-      // 🔹 Bloqueia fillStyle OKLCH em canvas
-      const originalCreateElement = document.createElement;
-      document.createElement = function (tagName, options) {
-        const element = originalCreateElement.call(this, tagName, options);
-        if (tagName?.toLowerCase() === "canvas") {
-          const ctx = element.getContext("2d");
-          if (ctx) {
-            const desc = Object.getOwnPropertyDescriptor(
-              Object.getPrototypeOf(ctx),
-              "fillStyle"
-            );
-            if (desc) {
-              Object.defineProperty(ctx, "fillStyle", {
-                set(value) {
-                  if (typeof value === "string" && value.includes("oklch"))
-                    value = "#ffffff";
-                  desc.set.call(this, value);
-                },
-                get() {
-                  return desc.get.call(this);
-                },
-                configurable: true,
-              });
-            }
-          }
-        }
-        return element;
-      };
-
-      let canvas;
-      try {
-        canvas = await html2canvas(wrapper, {
-          scale: 1.4,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-        });
-      } finally {
-        document.createElement = originalCreateElement;
-        document.body.removeChild(wrapper);
+  // 🔹 Neutraliza cores OKLCH
+  clone.querySelectorAll("*").forEach((node) => {
+    const style = window.getComputedStyle(node);
+    for (const prop of ["color", "backgroundColor", "borderColor"]) {
+      const val = style.getPropertyValue(prop);
+      if (val && val.includes("oklch")) {
+        node.style.setProperty(
+          prop,
+          prop === "backgroundColor" ? "#ffffff" : "#111827",
+          "important"
+        );
       }
+    }
+  });
 
-      return canvas;
-    };
+  // 🔹 Limpa SVGs
+  wrapper.querySelectorAll("svg").forEach((svg) => {
+    svg.querySelectorAll("*").forEach((el) => {
+      for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
+        const val = el.getAttribute(attr);
+        if (typeof val === "string" && val.includes("oklch")) {
+          el.setAttribute(attr, "#ffffff");
+        }
+      }
+    });
+  });
+
+  // 🔹 Bloqueia fillStyle OKLCH em canvas
+  const originalCreateElement = document.createElement;
+  document.createElement = function (tagName, options) {
+    const element = originalCreateElement.call(this, tagName, options);
+    if (tagName?.toLowerCase() === "canvas") {
+      const ctx = element.getContext("2d");
+      if (ctx) {
+        const desc = Object.getOwnPropertyDescriptor(
+          Object.getPrototypeOf(ctx),
+          "fillStyle"
+        );
+        if (desc) {
+          Object.defineProperty(ctx, "fillStyle", {
+            set(value) {
+              if (typeof value === "string" && value.includes("oklch"))
+                value = "#ffffff";
+              desc.set.call(this, value);
+            },
+            get() {
+              return desc.get.call(this);
+            },
+            configurable: true,
+          });
+        }
+      }
+    }
+    return element;
+  };
+
+  let canvas;
+  try {
+    canvas = await html2canvas(wrapper, {
+      scale: 1.4,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+  } finally {
+    document.createElement = originalCreateElement;
+    document.body.removeChild(wrapper);
+  }
+
+  return canvas;
+};
+
 
     const normalize = (s) =>
       s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -524,30 +525,75 @@ const generatePDF = async () => {
         addImageCentered(tableCanvas, tableY, usableW);
 
         // Mini tabela de resumo no rodapé
-const resumoY = pageHeight - margin.bottom - 35;
+const resumoY = pageHeight - margin.bottom - 42;
 pdf.setFont("helvetica", "bold");
-pdf.setFontSize(10);
+pdf.setFontSize(11);
 pdf.setTextColor(25, 46, 91);
 pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
 
+// Prepara dados calculados
+const totalDiarias = stay.totalDiarias ?? 0;
+const totalReservas = stay.totalReservas ?? 0;
+const ocupacaoMedia = stay.ocupacaoMedia ?? 0;
 
-        autoTable(pdf, {
-          startY: resumoY,
-          head: [["Indicador", "Valor"]],
-          body: [
-            ["Total de diárias", stay.totalDiarias ?? "-"],
-            ["Total de reservas", stay.totalReservas ?? "-"],
-            ["Ocupação média (%)", `${stay.ocupacaoMedia ?? "-"}%`],
-          ],
-          theme: "grid",
-          styles: { fontSize: 9, halign: "center" },
-          headStyles: { fillColor: [25, 46, 91], textColor: 255 },
-          margin: { left: margin.left, right: margin.right },
-          tableWidth: usableW * 0.6,
-          columnStyles: { 0: { halign: "left" }, 1: { halign: "right" } },
-        });
+const mediaDiariasReserva = totalReservas
+  ? (totalDiarias / totalReservas).toFixed(1)
+  : "-";
 
-        drawFooter(page);
+const unidadeMaisOcupada = stay.rooms?.length
+  ? (() => {
+      const top = stay.rooms.reduce((a, b) =>
+        (a.ocupacao ?? 0) > (b.ocupacao ?? 0) ? a : b
+      );
+      return `${top.name || top.title || "—"} (${top.ocupacao ?? 0}%)`;
+    })()
+  : "-";
+
+const unidadeMenosOcupada = stay.rooms?.length
+  ? (() => {
+      const low = stay.rooms.reduce((a, b) =>
+        (a.ocupacao ?? 0) < (b.ocupacao ?? 0) ? a : b
+      );
+      return `${low.name || low.title || "—"} (${low.ocupacao ?? 0}%)`;
+    })()
+  : "-";
+
+// Taxa de eficiência = (total de reservas * média de diárias) / (capacidade total do mês)
+const diasNoMes = dayjs(`${selectedYear}-${selectedMonth}-01`).daysInMonth();
+const capacidadeTotal = (stay.rooms?.length ?? 0) * diasNoMes;
+const eficiencia = capacidadeTotal
+  ? ((totalDiarias / capacidadeTotal) * 100).toFixed(1)
+  : "-";
+
+autoTable(pdf, {
+  startY: resumoY,
+  // 🔹 Sem cabeçalho azul — só linhas suaves
+  theme: "plain",
+  body: [
+    ["Total de diárias", totalDiarias],
+    ["Total de reservas", totalReservas],
+    ["Ocupação média (%)", `${ocupacaoMedia}%`],
+    ["Média de diárias por reserva", mediaDiariasReserva],
+    ["Unidade mais ocupada", unidadeMaisOcupada],
+    ["Unidade menos ocupada", unidadeMenosOcupada],
+    ["Taxa de eficiência (reservas × capacidade)", `${eficiencia}%`],
+  ],
+  styles: {
+    fontSize: 9.5,
+    cellPadding: 1.2,
+    lineColor: [200, 200, 200],
+    lineWidth: 0.2,
+    textColor: [33, 33, 33],
+  },
+  alternateRowStyles: { fillColor: [245, 247, 250] },
+  margin: { left: margin.left, right: margin.right },
+  tableWidth: usableW * 0.72,
+  columnStyles: {
+    0: { halign: "left", cellWidth: usableW * 0.42 },
+    1: { halign: "right" },
+  },
+});
+
       } catch (e) {
         console.warn("⚠️ Falha ao gerar página de", stay.stayName, e);
       }
@@ -584,7 +630,7 @@ pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
         const h = Math.min(slotH, (w * hMM) / wMM);
         const dx = margin.left + (usableW - w) / 2;
         pdf.addImage(chartCanvas.toDataURL("image/png"), "PNG", dx, y, w, h);
-        y += h + 20;
+        y += h + 4;
         drawFooter(page);
       } catch (e) {
         console.warn("⚠️ Falha anual:", stay.stayName, e);
