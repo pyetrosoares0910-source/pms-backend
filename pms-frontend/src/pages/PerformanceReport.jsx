@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
 
 const STAY_ORDER = [
   "Internacional Stay (Urussuí)",
@@ -308,8 +308,7 @@ const generatePDF = async () => {
     const toMM = (px) => px * PX_TO_MM;
 
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-    autoTable(pdf);
-    
+
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = { top: 42, left: 15, right: 15, bottom: 20 };
