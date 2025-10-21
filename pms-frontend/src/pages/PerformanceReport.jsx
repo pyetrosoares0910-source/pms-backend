@@ -380,7 +380,7 @@ const generatePDF = async () => {
 
       // 🔹 Aumenta fonte e altura das tabelas
       clone.querySelectorAll("table").forEach((tbl) => {
-        tbl.style.fontSize = "18px";
+        tbl.style.fontSize = "26px";
         tbl.querySelectorAll("td, th").forEach((c) => {
           c.style.padding = "12px 8px";
         });
@@ -509,7 +509,7 @@ const generatePDF = async () => {
 
         const usableW = pageWidth - margin.left - margin.right;
         const chartCanvas = await captureElement(chartEl);
-        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW);
+        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.15);
 
         const tableCanvas = await captureElement(tableEl);
         const tableY = margin.top + chartHeight + 12;
@@ -520,7 +520,7 @@ const resumoY = pageHeight - margin.bottom - 35;
 pdf.setFont("helvetica", "bold");
 pdf.setFontSize(10);
 pdf.setTextColor(25, 46, 91);
-pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 4);
+pdf.text(`Resumo — ${stay.stayName}`, margin.left, resumoY - 6);
 
 
         pdf.autoTable({
