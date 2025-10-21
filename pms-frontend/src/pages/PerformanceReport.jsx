@@ -564,14 +564,14 @@ for (const stay of monthlyData.stays) {
 
     const usableW = pageWidth - margin.left - margin.right;
     const chartCanvas = await captureElement(chartEl);
-    const chartHeight = addImageCentered(chartCanvas, margin.top + 4, usableW * 1.25);
+    const chartHeight = addImageCentered(chartCanvas, margin.top + 5, usableW * 1.25);
 
     // 🟦 Cards de ocupação (substitui tabela)
     const cardsY = margin.top + chartHeight + 9;
     const cardsHeight = drawOccupancyCards(pdf, stay, cardsY, usableW);
 
     // 🟨 Mini tabela de resumo no rodapé
-    const resumoY = pageHeight - margin.bottom - 40;
+    const resumoY = pageHeight - margin.bottom - 60;
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10.5);
