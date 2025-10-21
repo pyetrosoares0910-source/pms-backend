@@ -11,6 +11,9 @@ import {
   Tooltip as RechartsTooltip,
   CartesianGrid,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import dayjs from "dayjs";
 import { useApi } from "../lib/api";
