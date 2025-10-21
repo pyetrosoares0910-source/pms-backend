@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 
 const STAY_ORDER = [
   "Internacional Stay (Urussuí)",
@@ -307,6 +308,8 @@ const generatePDF = async () => {
     const toMM = (px) => px * PX_TO_MM;
 
     const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    autoTable(pdf);
+    
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = { top: 42, left: 15, right: 15, bottom: 20 };
@@ -380,11 +383,13 @@ const generatePDF = async () => {
 
       // 🔹 Aumenta fonte e altura das tabelas
       clone.querySelectorAll("table").forEach((tbl) => {
-        tbl.style.fontSize = "26px";
-        tbl.querySelectorAll("td, th").forEach((c) => {
-          c.style.padding = "12px 8px";
-        });
-      });
+  tbl.querySelectorAll("td, th").forEach((c) => {
+    c.style.fontSize = "18px"; 
+    c.style.lineHeight = "1.6"; 
+    c.style.padding = "10px 8px";
+  });
+});
+
 
       // 🔹 Neutraliza cores OKLCH
       clone.querySelectorAll("*").forEach((node) => {
@@ -479,12 +484,14 @@ const generatePDF = async () => {
     let page = 1;
     let first = true;
     const newPage = (title) => {
-      if (!first) {
-        pdf.addPage();
-        page++;
-      } else first = false;
-      drawHeader(title);
-    };
+  if (!first) {
+    pdf.addPage();
+    page++;
+  }
+  drawHeader(title);
+  first = false;
+};
+
 
     // ===== Mensal =====
     for (const stay of monthlyData.stays) {
@@ -509,7 +516,7 @@ const generatePDF = async () => {
 
         const usableW = pageWidth - margin.left - margin.right;
         const chartCanvas = await captureElement(chartEl);
-        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.15);
+        const chartHeight = addImageCentered(chartCanvas, margin.top + 10, usableW * 1.25);
 
         const tableCanvas = await captureElement(tableEl);
         const tableY = margin.top + chartHeight + 12;
