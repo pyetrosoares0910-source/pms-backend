@@ -374,35 +374,47 @@ const maidsTomorrow = useMemo(() => {
   <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
     {/* 🥇🥈🥉 TOP 3 VISUAL */}
     <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-      {kpis.topEfficiency.slice(0, 3).map((item, i) => {
-        const colors = [
-          "from-yellow-400 to-yellow-300", // 🥇
-          "from-gray-300 to-gray-200",     // 🥈
-          "from-amber-700 to-amber-600",   // 🥉
-        ];
-        const size = i === 0 ? "w-26 h-26" : "w-22 h-22";
-        const numColor =
-          i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
+  {kpis.topEfficiency.slice(0, 3).map((item, i) => {
+    const colors = [
+      "from-yellow-400 to-yellow-300", // 🥇
+      "from-gray-300 to-gray-200",     // 🥈
+      "from-amber-700 to-amber-600",   // 🥉
+    ];
+    const numColor =
+      i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
 
-        return (
-          <div key={i} className="relative flex flex-col items-center">
-            <div className={`bg-gradient-to-br ${colors[i]} rounded-full p-[3px] shadow-md`}>
-              <div className={`bg-white rounded-full overflow-hidden ${size} flex items-center justify-center`}>
-                <img
-                  src={item.image || "/placeholder.jpg"}
-                  alt={item.label}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col items-center mt-2 text-sm font-medium text-gray-600 leading-tight">
-              <span className="font-semibold text-neutral">{item.label}</span>
-              <span className={`${numColor} text-xs font-bold`}>{i + 1}º</span>
-            </div>
+    const height = i === 0 ? "h-24" : "h-20";
+    const width = "w-40";
+    const radius = "rounded-3xl";
+
+    return (
+      <div key={i} className="relative flex flex-col items-center">
+        {/* Moldura com brilho animado */}
+        <div
+          className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+        >
+          {/* Reflexo de brilho que se move */}
+          <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          
+          <div
+            className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+          >
+            <img
+              src={item.image || "/placeholder.jpg"}
+              alt={item.label}
+              className="w-full h-full object-cover"
+            />
           </div>
-        );
-      })}
-    </div>
+        </div>
+
+        {/* Nome e posição */}
+        <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
+        <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
+      </div>
+    );
+  })}
+</div>
+
 
     {/* 📊 GRÁFICO TOP 10 */}
     <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
