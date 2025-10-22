@@ -377,7 +377,7 @@ const maidsTomorrow = useMemo(() => {
         <BarChart
           data={kpis.topEfficiency}
           layout="vertical"
-          barCategoryGap={4} // 🧩 espaço entre as barras reduzido
+          barCategoryGap={6} // 🧩 espaço entre as barras reduzido
           margin={{ top: 10, right: 40, left: 0, bottom: 5 }}
         >
           <CartesianGrid
@@ -390,7 +390,7 @@ const maidsTomorrow = useMemo(() => {
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#334155", fontSize: 11 }}
+            tick={{ fill: "#334155", fontSize: 12 }}
             axisLine={false}
           />
 
@@ -409,9 +409,9 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar
             dataKey="ocupacao"
-            fill="#0c4a6e" // sky-950 vibe
+            fill="rgba(10, 88, 133, 1)" 
             radius={[0, 6, 6, 0]}
-            barSize={18}
+            barSize={21}
             isAnimationActive={false}
           >
             {/* label da esquerda: nome da acomodação */}
