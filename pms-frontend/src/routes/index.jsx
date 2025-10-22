@@ -20,7 +20,6 @@ import Maids from "../pages/Maids";
 import CleaningReport from "../pages/CleaningReport";
 import PerformanceReport from "../pages/PerformanceReport";
 import MaintenanceCalendar from "../pages/MaintenanceCalendar";
-import PlasmicPage from "../components/PlasmicPage";
 import { useParams } from "react-router-dom";
 
 const router = createBrowserRouter([
@@ -49,7 +48,6 @@ const router = createBrowserRouter([
           { path: "/cleaning-report", element: <CleaningReport /> },
           { path: "/performance-report", element: <PerformanceReport />,},
           { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
-          { path: "/plasmic/:pageName", element: <PlasmicPageWrapper /> },
         ],
       },
     ],
@@ -58,7 +56,3 @@ const router = createBrowserRouter([
 
 export default router;
 
-function PlasmicPageWrapper() {
-  const { pageName } = useParams();
-  return <PlasmicPage pageName={pageName} />;
-}
