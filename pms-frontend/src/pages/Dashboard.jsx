@@ -366,22 +366,22 @@ const maidsTomorrow = useMemo(() => {
 <div className="lg:col-span-2 flex flex-col gap-6">
 
   {/* === TOP EFICIÊNCIA === */}
-<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col relative">
-  {/* título centralizado sem absolute */}
-  <h2 className="font-semibold text-neutral text-lg text-center tracking-tight mt-6 mb-4">
+<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+  <h2 className="font-semibold text-neutral text-lg text-center tracking-tight mt-6 mb-2">
     📊 Top 10 – Acomodações com Melhor Eficiência
   </h2>
 
-  <div className="card-body px-6 pb-8 flex flex-col lg:flex-row items-center justify-center gap-8">
+  <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
     {/* 🥇🥈🥉 TOP 3 VISUAL */}
     <div className="flex flex-col items-center justify-center gap-6 w-full lg:w-[30%]">
       {kpis.topEfficiency.slice(0, 3).map((item, i) => {
         const colors = [
-          "from-yellow-400 to-yellow-300",  // 🥇
-          "from-gray-300 to-gray-200",      // 🥈
-          "from-amber-700 to-amber-600",    // 🥉
+          "from-yellow-400 to-yellow-300", // 🥇
+          "from-gray-300 to-gray-200",     // 🥈
+          "from-amber-700 to-amber-600",   // 🥉
         ];
-        const size = i === 0 ? "w-24 h-24" : i === 1 ? "w-20 h-20" : "w-18 h-18";
+        // Apenas o 1º maior
+        const size = i === 0 ? "w-24 h-24" : "w-20 h-20";
         const numColor =
           i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
 
@@ -396,8 +396,10 @@ const maidsTomorrow = useMemo(() => {
                 />
               </div>
             </div>
-            <div className={`absolute -bottom-3 text-sm font-bold ${numColor}`}>
-              {i + 1}º
+            {/* Nome e posição centralizados abaixo */}
+            <div className="flex flex-col items-center mt-2 text-sm font-medium text-gray-600 leading-tight">
+              <span className="font-semibold text-neutral">{item.label}</span>
+              <span className={`${numColor} text-xs font-bold`}>{i + 1}º</span>
             </div>
           </div>
         );
@@ -405,18 +407,19 @@ const maidsTomorrow = useMemo(() => {
     </div>
 
     {/* 📊 GRÁFICO TOP 10 */}
-    <div className="w-full lg:w-[70%] flex items-center justify-center">
-      <ResponsiveContainer width="100%" height={300}>
+    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-center">
+      <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={kpis.topEfficiency.map((item, index) => ({
             ...item,
             posicao: index + 1,
           }))}
           layout="vertical"
-          barCategoryGap={6}
-          margin={{ top: 10, right: 25, left: 40, bottom: 5 }}
+          barCategoryGap={4}
+          margin={{ top: 5, right: 20, left: 100, bottom: 0 }}
         >
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="2 2" vertical={false} />
+          <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
+
           <XAxis
             type="number"
             domain={[0, 100]}
@@ -426,21 +429,21 @@ const maidsTomorrow = useMemo(() => {
             tickLine={false}
           />
 
-          {/* eixo Y fixo, ordenado */}
+          {/* Eixo Y – labels à esquerda e ordenação correta */}
           <YAxis
             type="category"
             dataKey="label"
             axisLine={false}
             tickLine={false}
+            width={150}
             tick={({ x, y, payload }) => {
-              const index = kpis.topEfficiency.findIndex(
-                (d) => d.label === payload.value
-              );
+              const index = kpis.topEfficiency.findIndex((d) => d.label === payload.value);
               return (
                 <text
-                  x={x}
+                  x={x - 10}
                   y={y + 5}
-                  fill="#475569"
+                  textAnchor="end"
+                  fill="#334155"
                   fontSize={12}
                   fontWeight={500}
                 >
@@ -448,7 +451,6 @@ const maidsTomorrow = useMemo(() => {
                 </text>
               );
             }}
-            width={130}
           />
 
           <RechartsTooltip
@@ -465,8 +467,8 @@ const maidsTomorrow = useMemo(() => {
           <Bar
             dataKey="ocupacao"
             radius={[0, 6, 6, 0]}
-            barSize={18}
-            isAnimationActive={false} // 🔇 sem piscar
+            barSize={20}
+            isAnimationActive={false}
           >
             {/* Cores especiais para top 3 */}
             {kpis.topEfficiency.map((_, index) => {
@@ -477,18 +479,7 @@ const maidsTomorrow = useMemo(() => {
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
 
-            {/* Label dentro da barra */}
-            <LabelList
-              dataKey="label"
-              position="insideLeft"
-              style={{
-                fill: "#f1f5f9",
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            />
-
-            {/* Percentual à direita */}
+            {/* Porcentagem à direita */}
             <LabelList
               dataKey="ocupacao"
               position="right"
