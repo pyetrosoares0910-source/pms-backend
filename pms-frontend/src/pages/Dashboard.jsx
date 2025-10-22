@@ -365,7 +365,7 @@ const maidsTomorrow = useMemo(() => {
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
   <div className="lg:col-span-2 flex flex-col gap-6">
 
-    {/* === TOP EFICIÊNCIA === */}
+   {/* === TOP EFICIÊNCIA === */}
 <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
   <div className="card-body px-8 py-6 flex flex-col justify-center">
     <h2 className="font-semibold text-neutral text-lg mb-6 text-center tracking-tight">
@@ -373,11 +373,12 @@ const maidsTomorrow = useMemo(() => {
     </h2>
 
     <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="92%" height={400}>
+      <ResponsiveContainer width="95%" height={280}>
         <BarChart
           data={kpis.topEfficiency}
           layout="vertical"
-          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+          barCategoryGap={8} // 💡 reduz espaço entre as barras
+          margin={{ top: 5, right: 25, left: 0, bottom: 5 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -385,12 +386,11 @@ const maidsTomorrow = useMemo(() => {
             vertical={false}
           />
 
-          {/* removido eixo Y (nomes estarão nas labels) */}
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#334155", fontSize: 12 }}
+            tick={{ fill: "#334155", fontSize: 11 }}
             axisLine={false}
           />
 
@@ -406,19 +406,18 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar
             dataKey="ocupacao"
-            fill="#0c4a6e" // sky-950
+            fill="#082f49" // sky-950
             radius={[0, 6, 6, 0]}
-            barSize={22}
-            isAnimationActive={true}
-            animationDuration={800}
+            barSize={18}
+            isAnimationActive={false} // 💡 evita piscadas
           >
             <LabelList
               dataKey="label"
               position="insideLeft"
               style={{
-                fill: "#f1f5f9", // texto branco-acinzentado
-                fontSize: 12,
-                fontWeight: 600,
+                fill: "#f1f5f9",
+                fontSize: 11,
+                fontWeight: 500,
               }}
               offset={10}
             />
@@ -427,8 +426,8 @@ const maidsTomorrow = useMemo(() => {
               position="right"
               formatter={(v) => `${v}%`}
               style={{
-                fill: "#0f172a",
-                fontSize: 12,
+                fill: "#082f49",
+                fontSize: 11,
                 fontWeight: 600,
               }}
             />
@@ -438,6 +437,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
 
 
