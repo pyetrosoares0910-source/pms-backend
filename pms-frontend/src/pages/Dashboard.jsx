@@ -184,8 +184,17 @@ useEffect(() => {
   }, 0);
 
   const totalReservas = reservations.length;
+
+  const reservasNoMes = reservations.filter((r) => {
+  if (r.status === "cancelada") return false;
+  const ci = dayjs(r.checkinDate);
+  const co = dayjs(r.checkoutDate);
+  return overlapDays(ci, co, mStart, mEnd) > 0;
+}).length;
+
   const mediaDiariasReserva =
-    totalReservas > 0 ? (nightsInMonth / totalReservas).toFixed(1) : "-";
+  reservasNoMes > 0 ? (nightsInMonth / reservasNoMes).toFixed(1) : "-";
+
 
   const maiorOcupacao =
     occupancy.rows?.length > 0
@@ -203,12 +212,38 @@ useEffect(() => {
 
   const diariasLimpeza = tasks.length;
 
-  const topEfficiency = (
-  (occupancy?.rows || [])
-    .slice()
-    .sort((a, b) => b.ocupacao - a.ocupacao)
-    .slice(0, 10)
-);
+  const topEfficiency = (() => {
+  const roomMap = {};
+
+  // percorre todas as reservas válidas no mês
+  reservations.forEach((r) => {
+    if (r.status === "cancelada") return;
+    const ci = dayjs(r.checkinDate);
+    const co = dayjs(r.checkoutDate);
+
+    const overlap = overlapDays(ci, co, mStart, mEnd);
+    if (overlap <= 0) return;
+
+    // acumula diárias ocupadas por quarto
+    if (!roomMap[r.roomId]) {
+      roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
+    }
+    roomMap[r.roomId].noites += overlap;
+  });
+
+  // converte para lista com taxa de ocupação e nome do quarto
+  const roomList = Object.values(roomMap).map((r) => {
+    const room = rooms.find((rm) => rm.id === r.roomId);
+    return {
+      label: room?.title || `#${r.roomId}`,
+      ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
+    };
+  });
+
+  // top 10 ordenado
+  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
+})();
+
 
 
   return {
@@ -306,37 +341,62 @@ const maidsTomorrow = useMemo(() => {
     <div className="p-6 space-y-8 bg-base-100 min-h-screen">
       <h1 className="text-3xl font-bold text-neutral">Dashboard</h1>
 
-      {/* ==== KPIs PRINCIPAIS ==== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-  title="Maior ocupação"
-  value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label} (${kpis.maiorOcupacao.ocupacao}%)` : "-"}
-  icon="🏆"
-  color="success"
-/>
+      {/* ==== KPIs PRINCIPAIS (originais) ==== */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  <StatCard
+    title="Reservas ativas (hoje)"
+    value={kpis.activeToday}
+    icon="📖"
+    color="primary"
+  />
+  <StatCard
+    title="Check-ins (hoje)"
+    value={kpis.checkinsToday}
+    icon="🛎️"
+    color="accent"
+  />
+  <StatCard
+    title="Check-outs (hoje)"
+    value={kpis.checkoutsToday}
+    icon="🧳"
+    color="info"
+  />
+  <StatCard
+    title="Diárias no mês"
+    value={kpis.nightsInMonth}
+    icon="🗓️"
+    color="secondary"
+  />
+</div>
 
-<StatCard
-  title="Menor ocupação"
-  value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label} (${kpis.menorOcupacao.ocupacao}%)` : "-"}
-  icon="⚠️"
-  color="error"
-/>
+{/* ==== NOVOS KPIS (adicionados) ==== */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
+  <StatCard
+    title="Maior ocupação"
+    value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label}` : "-"}
+    icon="🏆"
+    color="success"
+  />
+  <StatCard
+    title="Menor ocupação"
+    value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label}` : "-"}
+    icon="⚠️"
+    color="error"
+  />
+  <StatCard
+    title="Média de diárias"
+    value={kpis.mediaDiariasReserva}
+    icon="📆"
+    color="info"
+  />
+  <StatCard
+    title="Diárias limpeza"
+    value={kpis.diariasLimpeza}
+    icon="🧽"
+    color="secondary"
+  />
+</div>
 
-<StatCard
-  title="Média de diárias"
-  value={kpis.mediaDiariasReserva}
-  icon="📆"
-  color="info"
-/>
-
-<StatCard
-  title="Diárias limpeza"
-  value={kpis.diariasLimpeza}
-  icon="🧽"
-  color="secondary"
-/>
-
-      </div>
 
 
 {/* ==== PROGRESSO DE MANUTENÇÃO ==== */}
