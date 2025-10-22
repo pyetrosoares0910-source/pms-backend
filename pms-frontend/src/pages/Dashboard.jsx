@@ -14,6 +14,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  LabelList,
 } from "recharts";
 import dayjs from "dayjs";
 import { useApi } from "../lib/api";
