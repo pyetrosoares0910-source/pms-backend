@@ -360,43 +360,44 @@ const maidsTomorrow = useMemo(() => {
     <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? kpis.menorOcupacao.label : "-"} icon="⚠️" color="error" />
   </div>
 
-  {/* === TOP EFICIÊNCIA === */}
-  <div className="lg:col-span-2">
-    <div className="card bg-white shadow-md border border-gray-100 h-full">
-      <div className="card-body p-6">
-        <h2 className="font-semibold text-neutral mb-4">
+  {/* === COLUNA DIREITA (Top 10 + Donut) === */}
+  <div className="lg:col-span-2 flex flex-col gap-6">
+    {/* TOP EFICIÊNCIA */}
+    <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+      <div className="card-body p-6 flex flex-col justify-center">
+        <h2 className="font-semibold text-neutral mb-4 text-center">
           📊 Top 10 Acomodações com Melhor Eficiência
         </h2>
-        <ResponsiveContainer width="100%" height={420}>
-          <BarChart
-            data={kpis.topEfficiency}
-            layout="vertical"
-            margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis
-              type="number"
-              domain={[0, 100]}
-              tickFormatter={(v) => `${v}%`}
-              tick={{ fill: "#6b7280", fontSize: 12 }}
-            />
-            <YAxis
-              dataKey="label"
-              type="category"
-              width={120}
-              tick={{ fill: "#6b7280", fontSize: 12 }}
-            />
-            <RechartsTooltip formatter={(v) => `${v}%`} />
-            <Bar dataKey="ocupacao" fill="#3B82F6" radius={[0, 6, 6, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex-grow flex items-center justify-center">
+          <ResponsiveContainer width="95%" height={380}>
+            <BarChart
+              data={kpis.topEfficiency}
+              layout="vertical"
+              margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis
+                type="number"
+                domain={[0, 100]}
+                tickFormatter={(v) => `${v}%`}
+                tick={{ fill: "#6b7280", fontSize: 12 }}
+              />
+              <YAxis
+                dataKey="label"
+                type="category"
+                width={120}
+                tick={{ fill: "#6b7280", fontSize: 12 }}
+              />
+              <RechartsTooltip formatter={(v) => `${v}%`} />
+              <Bar dataKey="ocupacao" fill="#3B82F6" radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
-  </div>
 
-  {/* === DONUT DE MANUTENÇÃO === */}
-  <div className="lg:col-span-2 flex items-center justify-center">
-    <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center w-full">
+    {/* DONUT MANUTENÇÃO */}
+    <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col items-center justify-center p-6">
       <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
       <PieChart width={160} height={160}>
         <Pie
@@ -431,6 +432,7 @@ const maidsTomorrow = useMemo(() => {
   </div>
 
 </div>
+
 
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
