@@ -25,6 +25,7 @@
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "puppeteer": "^24.23.0",
     "rrule": "^2.8.1",
     "uuid": "^13.0.0"
