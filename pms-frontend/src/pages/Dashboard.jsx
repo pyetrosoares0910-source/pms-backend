@@ -185,6 +185,22 @@ useEffect(() => {
 
   const totalReservas = reservations.length;
 
+  const reservasMes = reservations.filter((r) => {
+  if (!r.checkinDate || !r.checkoutDate) return false;
+  const ci = dayjs(r.checkinDate);
+  const co = dayjs(r.checkoutDate);
+  return (
+    r.status !== "cancelada" &&
+    (ci.isBetween(mStart, mEnd, null, "[]") || co.isBetween(mStart, mEnd, null, "[]"))
+  );
+}).length;
+
+  const eficienciaLimpeza =
+  tasks.length && maids.length
+    ? (tasks.length / maids.length).toFixed(1)
+    : "-";
+
+
   const reservasNoMes = reservations.filter((r) => {
   if (r.status === "cancelada") return false;
   const ci = dayjs(r.checkinDate);
@@ -251,7 +267,9 @@ useEffect(() => {
     checkinsToday,
     checkoutsToday,
     nightsInMonth,
+    reservasMes,
     totalReservas,
+    eficienciaLimpeza,
     mediaDiariasReserva,
     maiorOcupacao,
     menorOcupacao,
@@ -350,21 +368,12 @@ const maidsTomorrow = useMemo(() => {
     <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
     <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
     <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
-    <StatCard title="Reservas no mês" value={kpis.totalReservas} icon="🧾" color="primary" />
+    <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" color="primary" />
     <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? kpis.maiorOcupacao.label : "-"} icon="🏆" color="success" />
     <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
     <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? kpis.menorOcupacao.label : "-"} icon="⚠️" color="error" />
     <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
-    <StatCard 
-      title="Eficiência de limpeza"
-      value={
-        kpis.diariasLimpeza && kpis.maids?.length
-          ? (kpis.diariasLimpeza / kpis.maids.length).toFixed(1)
-          : "-"
-      }
-      icon="🧽"
-      color="success"
-    />
+    <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" color="success"/>
   </div>
 
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
@@ -441,19 +450,17 @@ const maidsTomorrow = useMemo(() => {
         </p>
       </div>
 
-      {/* Eficiência Geral */}
-      <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
-        <h2 className="font-semibold text-neutral mb-2">🏅 Eficiência das Acomodações</h2>
-        <p className="text-3xl font-bold text-primary mb-1">
-          {Math.round(
-            (kpis.topEfficiency.reduce((sum, s) => sum + s.ocupacao, 0) /
-              kpis.topEfficiency.length) || 0
-          )}%
-        </p>
-        <p className="text-sm text-gray-500">
-          Ocupação média das 10 melhores acomodações no mês
-        </p>
-      </div>
+      {/* Total de Reservas Impactante */}
+<div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
+  <h2 className="font-semibold text-neutral mb-2">🏅 Total de Reservas </h2>
+  <p className="text-3xl font-bold text-primary mb-1">
+    {kpis.reservasMes + 1963}
+  </p>
+  <p className="text-sm text-gray-500">
+    Inclui {kpis.reservasMes} reservas atuais + 1.963 do PMS anterior
+  </p>
+</div>
+
 
     </div>
   </div>
