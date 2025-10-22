@@ -159,6 +159,8 @@ useEffect(() => {
 
   // === KPIs principais ===
   const kpis = useMemo(() => {
+  const { start: mStart, end: mEnd } = monthBounds();
+
   const activeToday = reservations.filter(
     (r) =>
       r.status !== "cancelada" &&
@@ -188,92 +190,67 @@ useEffect(() => {
   const totalReservas = reservations.length;
 
   const reservasMes = reservations.filter((r) => {
-  if (!r.checkinDate || !r.checkoutDate) return false;
-  const ci = dayjs(r.checkinDate);
-  const co = dayjs(r.checkoutDate);
-  return (
-    r.status !== "cancelada" &&
-    (ci.isBetween(mStart, mEnd, null, "[]") ||
-      co.isBetween(mStart, mEnd, null, "[]"))
+    if (!r.checkinDate || !r.checkoutDate) return false;
+    const ci = dayjs(r.checkinDate);
+    const co = dayjs(r.checkoutDate);
+    return (
+      r.status !== "cancelada" &&
+      (ci.isBetween(mStart, mEnd, null, "[]") ||
+        co.isBetween(mStart, mEnd, null, "[]"))
+    );
+  }).length;
+
+  const tasksMonth = tasks.filter((t) =>
+    dayjs(t.date).isBetween(mStart, mEnd, "day", "[]")
   );
-}).length;
 
+  const maidsActiveMonth = new Set(tasksMonth.map((t) => t.maid).filter(Boolean));
 
-  const { start: mStart, end: mEnd } = monthBounds();
-
-const tasksMonth = tasks.filter((t) =>
-  dayjs(t.date).isBetween(mStart, mEnd, "day", "[]")
-);
-
-const maidsActiveMonth = new Set(tasksMonth.map((t) => t.maid).filter(Boolean));
-
-const eficienciaLimpeza =
-  maidsActiveMonth.size > 0
-    ? (tasksMonth.length / maidsActiveMonth.size).toFixed(1)
-    : "-";
-
-
-
-  const reservasNoMes = reservations.filter((r) => {
-  if (r.status === "cancelada") return false;
-  const ci = dayjs(r.checkinDate);
-  const co = dayjs(r.checkoutDate);
-  return overlapDays(ci, co, mStart, mEnd) > 0;
-}).length;
+  const eficienciaLimpeza =
+    maidsActiveMonth.size > 0
+      ? (tasksMonth.length / maidsActiveMonth.size).toFixed(1)
+      : "-";
 
   const mediaDiariasReserva =
-  reservasNoMes > 0 ? (nightsInMonth / reservasNoMes).toFixed(1) : "-";
-
+    reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
 
   const maiorOcupacao =
     occupancy.rows?.length > 0
-      ? occupancy.rows.reduce((a, b) =>
-          a.ocupacao > b.ocupacao ? a : b
-        )
+      ? occupancy.rows.reduce((a, b) => (a.ocupacao > b.ocupacao ? a : b))
       : null;
 
   const menorOcupacao =
     occupancy.rows?.length > 0
-      ? occupancy.rows.reduce((a, b) =>
-          a.ocupacao < b.ocupacao ? a : b
-        )
+      ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
       : null;
 
   const diariasLimpeza = tasks.length;
 
   const topEfficiency = (() => {
-  const roomMap = {};
+    const roomMap = {};
+    reservations.forEach((r) => {
+      if (r.status === "cancelada") return;
+      const ci = dayjs(r.checkinDate);
+      const co = dayjs(r.checkoutDate);
+      const overlap = overlapDays(ci, co, mStart, mEnd);
+      if (overlap <= 0) return;
 
-  // percorre todas as reservas válidas no mês
-  reservations.forEach((r) => {
-    if (r.status === "cancelada") return;
-    const ci = dayjs(r.checkinDate);
-    const co = dayjs(r.checkoutDate);
+      if (!roomMap[r.roomId]) {
+        roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
+      }
+      roomMap[r.roomId].noites += overlap;
+    });
 
-    const overlap = overlapDays(ci, co, mStart, mEnd);
-    if (overlap <= 0) return;
+    const roomList = Object.values(roomMap).map((r) => {
+      const room = rooms.find((rm) => rm.id === r.roomId);
+      return {
+        label: room?.title || `#${r.roomId}`,
+        ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
+      };
+    });
 
-    // acumula diárias ocupadas por quarto
-    if (!roomMap[r.roomId]) {
-      roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
-    }
-    roomMap[r.roomId].noites += overlap;
-  });
-
-  // converte para lista com taxa de ocupação e nome do quarto
-  const roomList = Object.values(roomMap).map((r) => {
-    const room = rooms.find((rm) => rm.id === r.roomId);
-    return {
-      label: room?.title || `#${r.roomId}`,
-      ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
-    };
-  });
-
-  // top 10 ordenado
-  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
-})();
-
-
+    return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
+  })();
 
   return {
     activeToday,
@@ -289,7 +266,8 @@ const eficienciaLimpeza =
     diariasLimpeza,
     topEfficiency,
   };
-}, [reservations, today, mStart, mEnd, occupancy.rows, tasks]);
+}, [reservations, today, occupancy.rows, tasks, rooms]);
+
 
 
 
