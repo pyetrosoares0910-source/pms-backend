@@ -345,47 +345,47 @@ const maidsTomorrow = useMemo(() => {
 
 
 
-{/* ==== GRID PRINCIPAL DO TOPO ==== */}
-<div className="grid grid-cols-1 lg:grid-cols-4 gap-6 auto-rows-min">
+{/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
+<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
   {/* === 8 CARDS === */}
-  <div className="lg:col-span-2 lg:row-span-3 space-y-6">
-    {/* Linha 1 */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
-      <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
-    </div>
-    {/* Linha 2 */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
-      <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
-    </div>
-    {/* Linha 3 */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Média de diárias por Reserva " value={kpis.mediaDiariasReserva} icon="📆" color="info" />
-      <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label}` : "-"} icon="🏆" color="success" />
-    </div>
-    {/* Linha 4 */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
-      <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label}` : "-"} icon="⚠️" color="error" />
-    </div>
+  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
+    <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
+    <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
+    <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
+    <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
+    <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
+    <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? kpis.maiorOcupacao.label : "-"} icon="🏆" color="success" />
+    <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
+    <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? kpis.menorOcupacao.label : "-"} icon="⚠️" color="error" />
   </div>
 
-  {/* === TOP EFICIÊNCIA (lado direito, ocupa 3 linhas de altura) === */}
-  <div className="lg:col-span-2 lg:row-span-3">
+  {/* === TOP EFICIÊNCIA === */}
+  <div className="lg:col-span-2">
     <div className="card bg-white shadow-md border border-gray-100 h-full">
       <div className="card-body p-6">
-        <h2 className="font-semibold text-neutral mb-4">📊 Top 10 Acomodações com Melhor Eficiência</h2>
-        <ResponsiveContainer width="100%" height={750}>
+        <h2 className="font-semibold text-neutral mb-4">
+          📊 Top 10 Acomodações com Melhor Eficiência
+        </h2>
+        <ResponsiveContainer width="100%" height={420}>
           <BarChart
             data={kpis.topEfficiency}
             layout="vertical"
             margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: "#6b7280", fontSize: 12 }} />
-            <YAxis dataKey="label" type="category" width={120} tick={{ fill: "#6b7280", fontSize: 12 }} />
+            <XAxis
+              type="number"
+              domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fill: "#6b7280", fontSize: 12 }}
+            />
+            <YAxis
+              dataKey="label"
+              type="category"
+              width={120}
+              tick={{ fill: "#6b7280", fontSize: 12 }}
+            />
             <RechartsTooltip formatter={(v) => `${v}%`} />
             <Bar dataKey="ocupacao" fill="#3B82F6" radius={[0, 6, 6, 0]} />
           </BarChart>
@@ -394,19 +394,19 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 
-  {/* === DONUT DE MANUTENÇÃO (embaixo) === */}
-  <div className="lg:col-span-2 lg:row-span-1 flex items-center justify-center">
+  {/* === DONUT DE MANUTENÇÃO === */}
+  <div className="lg:col-span-2 flex items-center justify-center">
     <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center w-full">
       <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
-      <PieChart width={180} height={180}>
+      <PieChart width={160} height={160}>
         <Pie
           data={[
             { name: "Concluídas", value: maintenanceStats.done },
             { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
           ]}
           dataKey="value"
-          innerRadius={60}
-          outerRadius={80}
+          innerRadius={55}
+          outerRadius={75}
           paddingAngle={3}
           stroke="none"
         >
@@ -418,7 +418,7 @@ const maidsTomorrow = useMemo(() => {
           y="50%"
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={22}
+          fontSize={20}
           fontWeight="bold"
         >
           {maintenanceStats.pctDone}%
@@ -431,7 +431,6 @@ const maidsTomorrow = useMemo(() => {
   </div>
 
 </div>
-
 
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
