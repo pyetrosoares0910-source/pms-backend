@@ -373,12 +373,12 @@ const maidsTomorrow = useMemo(() => {
     </h2>
 
     <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="95%" height={280}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={kpis.topEfficiency}
           layout="vertical"
-          barCategoryGap={8} // 💡 reduz espaço entre as barras
-          margin={{ top: 5, right: 25, left: 0, bottom: 5 }}
+          barCategoryGap={4} // 🧩 espaço entre as barras reduzido
+          margin={{ top: 10, right: 40, left: 0, bottom: 5 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -394,6 +394,9 @@ const maidsTomorrow = useMemo(() => {
             axisLine={false}
           />
 
+          {/* 🚫 YAxis totalmente oculto */}
+          <YAxis type="category" dataKey="label" hide />
+
           <RechartsTooltip
             formatter={(v) => `${v}%`}
             contentStyle={{
@@ -406,21 +409,22 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar
             dataKey="ocupacao"
-            fill="#082f49" // sky-950
+            fill="#0c4a6e" // sky-950 vibe
             radius={[0, 6, 6, 0]}
             barSize={18}
-            isAnimationActive={false} // 💡 evita piscadas
+            isAnimationActive={false}
           >
+            {/* label da esquerda: nome da acomodação */}
             <LabelList
               dataKey="label"
               position="insideLeft"
               style={{
                 fill: "#f1f5f9",
                 fontSize: 11,
-                fontWeight: 500,
+                fontWeight: 600,
               }}
-              offset={10}
             />
+            {/* label da direita: porcentagem */}
             <LabelList
               dataKey="ocupacao"
               position="right"
@@ -428,7 +432,7 @@ const maidsTomorrow = useMemo(() => {
               style={{
                 fill: "#082f49",
                 fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             />
           </Bar>
@@ -437,6 +441,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
 
 
