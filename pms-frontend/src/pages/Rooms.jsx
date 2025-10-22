@@ -110,6 +110,24 @@ export default function Rooms() {
     }
   };
 
+  // Upload da imagem (nova função)
+  const handleImageUpload = async (id, file) => {
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      await api.post(`/rooms/${id}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      fetchRoomsAndStays();
+    } catch (err) {
+      console.error("Erro ao enviar imagem:", err);
+      alert("Erro ao enviar imagem.");
+    }
+  };
+
   if (loading) return <p>Carregando...</p>;
 
   return (
@@ -196,6 +214,7 @@ export default function Rooms() {
       <table className="w-full bg-white shadow rounded">
         <thead>
           <tr className="bg-gray-200">
+            <th className="p-2 text-left">Imagem</th>
             <th className="p-2 text-left">Título</th>
             <th className="p-2 text-left">Categoria</th>
             <th className="p-2 text-left">Posição</th>
@@ -210,6 +229,19 @@ export default function Rooms() {
             <tr key={room.id} className="border-t">
               {editId === room.id ? (
                 <>
+                  {/* Imagem */}
+                  <td className="p-2 text-center">
+                    {room.imageUrl ? (
+                      <img
+                        src={room.imageUrl}
+                        alt={room.title}
+                        className="w-20 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm">Sem imagem</span>
+                    )}
+                  </td>
+
                   <td className="p-2">
                     <input
                       className="border p-1 rounded w-full"
@@ -273,7 +305,7 @@ export default function Rooms() {
                       }
                     />
                   </td>
-                  <td className="p-2 flex gap-2 justify-center">
+                  <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleUpdate(room.id)}
                       className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
@@ -290,6 +322,28 @@ export default function Rooms() {
                 </>
               ) : (
                 <>
+                  {/* Imagem com upload */}
+                  <td className="p-2 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      <img
+                        src={room.imageUrl || "/placeholder.jpg"}
+                        alt={room.title}
+                        className="w-20 h-16 object-cover rounded border border-gray-200"
+                      />
+                      <label className="text-xs text-sky-700 hover:underline cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) =>
+                            handleImageUpload(room.id, e.target.files[0])
+                          }
+                        />
+                        Atualizar
+                      </label>
+                    </div>
+                  </td>
+
                   <td className="p-2">{room.title}</td>
                   <td className="p-2">{room.category}</td>
                   <td className="p-2">{room.position}</td>
@@ -298,16 +352,16 @@ export default function Rooms() {
                   <td className="p-2 text-center">
                     {room.active ? "✅" : "❌"}
                   </td>
-                  <td className="p-2 flex gap-2 justify-center">
+                  <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleEdit(room)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 w-24"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(room.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-24"
                     >
                       Excluir
                     </button>
@@ -318,7 +372,7 @@ export default function Rooms() {
           ))}
           {rooms.length === 0 && (
             <tr>
-              <td colSpan="7" className="p-4 text-center text-gray-500">
+              <td colSpan="8" className="p-4 text-center text-gray-500">
                 Nenhuma UH cadastrada.
               </td>
             </tr>

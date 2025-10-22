@@ -1,5 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
+
+
 
 // GET /rooms
 exports.getAllRooms = async (req, res) => {
@@ -112,3 +117,36 @@ exports.deleteRoom = async (req, res) => {
     res.status(500).json({ error: "Erro interno ao deletar quarto." });
   }
 };
+
+// save local image
+
+const uploadDir = path.join(__dirname, "../uploads/rooms");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) =>
+    cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, "_")}`),
+});
+
+exports.uploadRoomImage = [
+  multer({ storage }).single("image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+
+      const imageUrl = `/uploads/rooms/${req.file.filename}`;
+
+      const room = await prisma.room.update({
+        where: { id: parseInt(id) },
+        data: { imageUrl },
+      });
+
+      res.json({ message: "Imagem atualizada com sucesso!", room });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Erro ao salvar imagem" });
+    }
+  },
+];

@@ -223,30 +223,32 @@ const kpis = useMemo(() => {
 
   // === TOP EFICIÊNCIA (QUARTOS) ===
   const topEfficiency = (() => {
-    const roomMap = {};
-    reservations.forEach((r) => {
-      if (r.status === "cancelada") return;
-      const ci = dayjs(r.checkinDate);
-      const co = dayjs(r.checkoutDate);
-      const overlap = overlapDays(ci, co, mStart, mEnd);
-      if (overlap <= 0) return;
+  const roomMap = {};
+  reservations.forEach((r) => {
+    if (r.status === "cancelada") return;
+    const ci = dayjs(r.checkinDate);
+    const co = dayjs(r.checkoutDate);
+    const overlap = overlapDays(ci, co, mStart, mEnd);
+    if (overlap <= 0) return;
 
-      if (!roomMap[r.roomId]) {
-        roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
-      }
-      roomMap[r.roomId].noites += overlap;
-    });
+    if (!roomMap[r.roomId]) {
+      roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
+    }
+    roomMap[r.roomId].noites += overlap;
+  });
 
-    const roomList = Object.values(roomMap).map((r) => {
-      const room = rooms.find((rm) => rm.id === r.roomId);
-      return {
-        label: room?.title || `#${r.roomId}`,
-        ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
-      };
-    });
+  const roomList = Object.values(roomMap).map((r) => {
+    const room = rooms.find((rm) => rm.id === r.roomId);
+    return {
+      label: room?.title || `#${r.roomId}`,
+      image: room?.imageUrl || "/placeholder.jpg", // 🧠 adiciona imagem real aqui
+      ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
+    };
+  });
 
-    return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
-  })();
+  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
+})();
+
 
   // === RETORNO FINAL ===
   return {
@@ -426,7 +428,7 @@ const maidsTomorrow = useMemo(() => {
           }))}
           layout="vertical"
           barCategoryGap={4}
-          margin={{ top: 5, right: 25, left: 10, bottom: 0 }} // 🔧 puxado bem mais pra esquerda
+          margin={{ top: 5, right: 25, left: 10, bottom: 0 }} 
         >
           <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
 
