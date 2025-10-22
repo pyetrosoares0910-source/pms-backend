@@ -380,7 +380,6 @@ const maidsTomorrow = useMemo(() => {
           "from-gray-300 to-gray-200",     // 🥈
           "from-amber-700 to-amber-600",   // 🥉
         ];
-        // Apenas o 1º maior
         const size = i === 0 ? "w-24 h-24" : "w-20 h-20";
         const numColor =
           i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
@@ -396,7 +395,6 @@ const maidsTomorrow = useMemo(() => {
                 />
               </div>
             </div>
-            {/* Nome e posição centralizados abaixo */}
             <div className="flex flex-col items-center mt-2 text-sm font-medium text-gray-600 leading-tight">
               <span className="font-semibold text-neutral">{item.label}</span>
               <span className={`${numColor} text-xs font-bold`}>{i + 1}º</span>
@@ -407,16 +405,16 @@ const maidsTomorrow = useMemo(() => {
     </div>
 
     {/* 📊 GRÁFICO TOP 10 */}
-    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-center">
+    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
       <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={kpis.topEfficiency.map((item, index) => ({
             ...item,
-            posicao: index + 1,
+            posicao: `${index + 1}º`,
           }))}
           layout="vertical"
           barCategoryGap={4}
-          margin={{ top: 5, right: 20, left: 100, bottom: 0 }}
+          margin={{ top: 5, right: 25, left: 10, bottom: 0 }} // 🔧 puxado bem mais pra esquerda
         >
           <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
 
@@ -429,28 +427,14 @@ const maidsTomorrow = useMemo(() => {
             tickLine={false}
           />
 
-          {/* Eixo Y – labels à esquerda e ordenação correta */}
+          {/* Eixo Y – apenas as posições */}
           <YAxis
             type="category"
-            dataKey="label"
+            dataKey="posicao"
             axisLine={false}
             tickLine={false}
-            width={150}
-            tick={({ x, y, payload }) => {
-              const index = kpis.topEfficiency.findIndex((d) => d.label === payload.value);
-              return (
-                <text
-                  x={x - 10}
-                  y={y + 5}
-                  textAnchor="end"
-                  fill="#334155"
-                  fontSize={12}
-                  fontWeight={500}
-                >
-                  {`${index + 1}º — ${payload.value}`}
-                </text>
-              );
-            }}
+            width={40}
+            tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}
           />
 
           <RechartsTooltip
@@ -467,7 +451,7 @@ const maidsTomorrow = useMemo(() => {
           <Bar
             dataKey="ocupacao"
             radius={[0, 6, 6, 0]}
-            barSize={20}
+            barSize={22}
             isAnimationActive={false}
           >
             {/* Cores especiais para top 3 */}
@@ -479,7 +463,18 @@ const maidsTomorrow = useMemo(() => {
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
 
-            {/* Porcentagem à direita */}
+            {/* Nome da acomodação dentro da barra */}
+            <LabelList
+              dataKey="label"
+              position="insideLeft"
+              style={{
+                fill: "#ffffff",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            />
+
+            {/* Percentual à direita */}
             <LabelList
               dataKey="ocupacao"
               position="right"
