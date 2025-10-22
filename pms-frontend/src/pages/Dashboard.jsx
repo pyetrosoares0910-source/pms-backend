@@ -377,8 +377,8 @@ const maidsTomorrow = useMemo(() => {
         <BarChart
           data={kpis.topEfficiency}
           layout="vertical"
-          barCategoryGap={6} // 🧩 espaço entre as barras reduzido
-          margin={{ top: 10, right: 40, left: 0, bottom: 5 }}
+          barCategoryGap={8}
+          margin={{ top: 15, right: 40, left: 0, bottom: 5 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -411,7 +411,7 @@ const maidsTomorrow = useMemo(() => {
             dataKey="ocupacao"
             fill="rgba(10, 88, 133, 1)" 
             radius={[0, 6, 6, 0]}
-            barSize={21}
+            barSize={23}
             isAnimationActive={false}
           >
             {/* label da esquerda: nome da acomodação */}
@@ -420,7 +420,7 @@ const maidsTomorrow = useMemo(() => {
               position="insideLeft"
               style={{
                 fill: "#f1f5f9",
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
               }}
             />
@@ -431,7 +431,7 @@ const maidsTomorrow = useMemo(() => {
               formatter={(v) => `${v}%`}
               style={{
                 fill: "#082f49",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
               }}
             />
