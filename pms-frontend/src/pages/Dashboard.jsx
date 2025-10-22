@@ -367,20 +367,20 @@ const maidsTomorrow = useMemo(() => {
 
   {/* === TOP EFICIÊNCIA === */}
 <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-  <h2 className="font-semibold text-neutral text-lg text-center tracking-tight mt-6 mb-2">
-    📊 Top 10 – Acomodações com Melhor Eficiência
+  <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
+    📊 Acomodações com Melhor Eficiência
   </h2>
 
   <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
     {/* 🥇🥈🥉 TOP 3 VISUAL */}
-    <div className="flex flex-col items-center justify-center gap-6 w-full lg:w-[30%]">
+    <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
       {kpis.topEfficiency.slice(0, 3).map((item, i) => {
         const colors = [
           "from-yellow-400 to-yellow-300", // 🥇
           "from-gray-300 to-gray-200",     // 🥈
           "from-amber-700 to-amber-600",   // 🥉
         ];
-        const size = i === 0 ? "w-24 h-24" : "w-20 h-20";
+        const size = i === 0 ? "w-26 h-26" : "w-22 h-22";
         const numColor =
           i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
 
