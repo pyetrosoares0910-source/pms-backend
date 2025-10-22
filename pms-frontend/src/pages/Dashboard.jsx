@@ -21,11 +21,13 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
+import isBetween from "dayjs/plugin/isBetween";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(minMax);
 dayjs.extend(utc);
+dayjs.extend(isBetween);
 
 const today = dayjs.utc().startOf("day");
 const ymd = (d) => dayjs(d).format("YYYY-MM-DD");
@@ -191,9 +193,11 @@ useEffect(() => {
   const co = dayjs(r.checkoutDate);
   return (
     r.status !== "cancelada" &&
-    (ci.isBetween(mStart, mEnd, null, "[]") || co.isBetween(mStart, mEnd, null, "[]"))
+    (ci.isBetween(mStart, mEnd, null, "[]") ||
+      co.isBetween(mStart, mEnd, null, "[]"))
   );
 }).length;
+
 
   const eficienciaLimpeza =
   tasks.length && maids.length
