@@ -363,60 +363,94 @@ const maidsTomorrow = useMemo(() => {
   </div>
 
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
-  <div className="lg:col-span-2 flex flex-col gap-6">
+<div className="lg:col-span-2 flex flex-col gap-6">
 
-   {/* === TOP EFICIÊNCIA === */}
-<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-  <div className="card-body px-8 py-6 flex flex-col justify-center">
-    <h2 className="font-semibold text-neutral text-lg mb-6 text-center tracking-tight">
-      📊 Top 10 - Acomodações com Melhor Eficiência
-    </h2>
+  {/* === TOP EFICIÊNCIA === */}
+<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col relative">
+  {/* título centralizado sem absolute */}
+  <h2 className="font-semibold text-neutral text-lg text-center tracking-tight mt-6 mb-4">
+    📊 Top 10 – Acomodações com Melhor Eficiência
+  </h2>
 
-    <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="100%" height={340}>
+  <div className="card-body px-6 pb-8 flex flex-col lg:flex-row items-center justify-center gap-8">
+    {/* 🥇🥈🥉 TOP 3 VISUAL */}
+    <div className="flex flex-col items-center justify-center gap-6 w-full lg:w-[30%]">
+      {kpis.topEfficiency.slice(0, 3).map((item, i) => {
+        const colors = [
+          "from-yellow-400 to-yellow-300",  // 🥇
+          "from-gray-300 to-gray-200",      // 🥈
+          "from-amber-700 to-amber-600",    // 🥉
+        ];
+        const size = i === 0 ? "w-24 h-24" : i === 1 ? "w-20 h-20" : "w-18 h-18";
+        const numColor =
+          i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
+
+        return (
+          <div key={i} className="relative flex flex-col items-center">
+            <div className={`bg-gradient-to-br ${colors[i]} rounded-full p-[3px] shadow-md`}>
+              <div className={`bg-white rounded-full overflow-hidden ${size} flex items-center justify-center`}>
+                <img
+                  src={item.image || "/placeholder.jpg"}
+                  alt={item.label}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <div className={`absolute -bottom-3 text-sm font-bold ${numColor}`}>
+              {i + 1}º
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* 📊 GRÁFICO TOP 10 */}
+    <div className="w-full lg:w-[70%] flex items-center justify-center">
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart
           data={kpis.topEfficiency.map((item, index) => ({
             ...item,
             posicao: index + 1,
           }))}
           layout="vertical"
-          barCategoryGap={8}
-          margin={{ top: 30, right: 25, left: -10, bottom: 10 }} // 🔽 move o gráfico para baixo e puxa um pouco pra esquerda
+          barCategoryGap={6}
+          margin={{ top: 10, right: 25, left: 40, bottom: 5 }}
         >
-          {/* Grid sutil */}
           <CartesianGrid stroke="#e2e8f0" strokeDasharray="2 2" vertical={false} />
-
-          {/* Eixo X */}
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
             tick={{ fill: "#64748b", fontSize: 12 }}
-            axisLine={{ stroke: "#e2e8f0" }}
-            tickLine={{ stroke: "#e2e8f0" }}
+            axisLine={false}
+            tickLine={false}
           />
 
-          {/* Eixo Y com posição + nome */}
+          {/* eixo Y fixo, ordenado */}
           <YAxis
             type="category"
             dataKey="label"
-            axisLine={{ stroke: "#e2e8f0" }}
-            tickLine={{ stroke: "#e2e8f0" }}
-            tick={({ x, y, payload, index }) => (
-              <text
-                x={x}
-                y={y + 5}
-                fill="#475569"
-                fontSize={12}
-                fontWeight={500}
-              >
-                {`${index + 1}º — ${payload.value}`}
-              </text>
-            )}
-            width={150}
+            axisLine={false}
+            tickLine={false}
+            tick={({ x, y, payload }) => {
+              const index = kpis.topEfficiency.findIndex(
+                (d) => d.label === payload.value
+              );
+              return (
+                <text
+                  x={x}
+                  y={y + 5}
+                  fill="#475569"
+                  fontSize={12}
+                  fontWeight={500}
+                >
+                  {`${index + 1}º — ${payload.value}`}
+                </text>
+              );
+            }}
+            width={130}
           />
 
-          {/* Tooltip */}
           <RechartsTooltip
             formatter={(v) => `${v}%`}
             contentStyle={{
@@ -428,26 +462,22 @@ const maidsTomorrow = useMemo(() => {
             }}
           />
 
-          {/* Barras com cor dinâmica */}
           <Bar
             dataKey="ocupacao"
             radius={[0, 6, 6, 0]}
-            barSize={22}
-            isAnimationActive={true}
-            animationBegin={200}
-            animationDuration={700}
-            fillOpacity={0.95}
+            barSize={18}
+            isAnimationActive={false} // 🔇 sem piscar
           >
-            {/* Cor especial para top 3 */}
-            {kpis.topEfficiency.map((entry, index) => {
-              let color = "#0f4c81"; // padrão
-              if (index === 0) color = "#eab308"; // 🥇 dourado
-              else if (index === 1) color = "#94a3b8"; // 🥈 prata
-              else if (index === 2) color = "#b45309"; // 🥉 bronze
+            {/* Cores especiais para top 3 */}
+            {kpis.topEfficiency.map((_, index) => {
+              let color = "#0f4c81";
+              if (index === 0) color = "#eab308";
+              else if (index === 1) color = "#94a3b8";
+              else if (index === 2) color = "#b45309";
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
 
-            {/* Nome dentro da barra */}
+            {/* Label dentro da barra */}
             <LabelList
               dataKey="label"
               position="insideLeft"
@@ -458,7 +488,7 @@ const maidsTomorrow = useMemo(() => {
               }}
             />
 
-            {/* Porcentagem à direita */}
+            {/* Percentual à direita */}
             <LabelList
               dataKey="ocupacao"
               position="right"
@@ -475,6 +505,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
 
 
