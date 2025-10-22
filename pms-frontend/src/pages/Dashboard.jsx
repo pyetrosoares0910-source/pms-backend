@@ -341,35 +341,43 @@ const maidsTomorrow = useMemo(() => {
     <div className="p-6 space-y-8 bg-base-100 min-h-screen">
       <h1 className="text-3xl font-bold text-neutral">Dashboard</h1>
 
-    
-
-
-
 {/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-  {/* === 8 CARDS === */}
+  {/* === 10 CARDS === */}
   <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
     <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
     <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
     <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
     <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
-    <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
+    <StatCard title="Reservas no mês" value={kpis.totalReservas} icon="🧾" color="primary" />
     <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? kpis.maiorOcupacao.label : "-"} icon="🏆" color="success" />
-    <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
+    <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
     <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? kpis.menorOcupacao.label : "-"} icon="⚠️" color="error" />
+    <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
+    <StatCard 
+      title="Eficiência de limpeza"
+      value={
+        kpis.diariasLimpeza && kpis.maids?.length
+          ? (kpis.diariasLimpeza / kpis.maids.length).toFixed(1)
+          : "-"
+      }
+      icon="🧽"
+      color="success"
+    />
   </div>
 
-  {/* === COLUNA DIREITA (Top 10 + Donut) === */}
+  {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
   <div className="lg:col-span-2 flex flex-col gap-6">
-    {/* TOP EFICIÊNCIA */}
+
+    {/* === TOP EFICIÊNCIA === */}
     <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
       <div className="card-body p-6 flex flex-col justify-center">
         <h2 className="font-semibold text-neutral mb-4 text-center">
           📊 Top 10 Acomodações com Melhor Eficiência
         </h2>
         <div className="flex-grow flex items-center justify-center">
-          <ResponsiveContainer width="95%" height={380}>
+          <ResponsiveContainer width="95%" height={360}>
             <BarChart
               data={kpis.topEfficiency}
               layout="vertical"
@@ -396,44 +404,60 @@ const maidsTomorrow = useMemo(() => {
       </div>
     </div>
 
-    {/* DONUT MANUTENÇÃO */}
-    <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col items-center justify-center p-6">
-      <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
-      <PieChart width={160} height={160}>
-        <Pie
-          data={[
-            { name: "Concluídas", value: maintenanceStats.done },
-            { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
-          ]}
-          dataKey="value"
-          innerRadius={55}
-          outerRadius={75}
-          paddingAngle={3}
-          stroke="none"
-        >
-          <Cell fill="#22c55e" />
-          <Cell fill="#e5e7eb" />
-        </Pie>
-        <text
-          x="50%"
-          y="50%"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={20}
-          fontWeight="bold"
-        >
-          {maintenanceStats.pctDone}%
-        </text>
-      </PieChart>
-      <p className="text-sm text-gray-500 mt-2">
-        {maintenanceStats.done} concluídas de {maintenanceStats.total}
-      </p>
+    {/* === BLOCO DIVIDIDO (Manutenção + Eficiência Geral) === */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      {/* Donut Manutenção */}
+      <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center w-full">
+        <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
+        <PieChart width={160} height={160}>
+          <Pie
+            data={[
+              { name: "Concluídas", value: maintenanceStats.done },
+              { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
+            ]}
+            dataKey="value"
+            innerRadius={55}
+            outerRadius={75}
+            paddingAngle={3}
+            stroke="none"
+          >
+            <Cell fill="#22c55e" />
+            <Cell fill="#e5e7eb" />
+          </Pie>
+          <text
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={20}
+            fontWeight="bold"
+          >
+            {maintenanceStats.pctDone}%
+          </text>
+        </PieChart>
+        <p className="text-sm text-gray-500 mt-2">
+          {maintenanceStats.done} concluídas de {maintenanceStats.total}
+        </p>
+      </div>
+
+      {/* Eficiência Geral */}
+      <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
+        <h2 className="font-semibold text-neutral mb-2">🏅 Eficiência das Acomodações</h2>
+        <p className="text-3xl font-bold text-primary mb-1">
+          {Math.round(
+            (kpis.topEfficiency.reduce((sum, s) => sum + s.ocupacao, 0) /
+              kpis.topEfficiency.length) || 0
+          )}%
+        </p>
+        <p className="text-sm text-gray-500">
+          Ocupação média das 10 melhores acomodações no mês
+        </p>
+      </div>
+
     </div>
   </div>
-
 </div>
-
-
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ocupação */}
