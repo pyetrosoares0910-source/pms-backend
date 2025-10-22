@@ -366,26 +366,26 @@ const maidsTomorrow = useMemo(() => {
   <div className="lg:col-span-2 flex flex-col gap-6">
 
    {/* === TOP EFICIÊNCIA === */}
-<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+<div className="card bg-white shadow-sm border border-gray-100 flex-1 flex flex-col">
   <div className="card-body px-8 py-6 flex flex-col justify-center">
-    <h2 className="font-semibold text-neutral text-lg mb-6 text-center tracking-tight">
-      📊 Top 10 Acomodações com Melhor Eficiência
+    <h2 className="font-semibold text-neutral text-lg mb-5 text-center tracking-tight">
+      📊 Top 10 - Acomodações com Melhor Eficiência
     </h2>
 
     <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={320}>
         <BarChart
           data={kpis.topEfficiency.map((item, index) => ({
             ...item,
-            posicao: index + 1, // 🔢 adiciona posição automaticamente
+            posicao: index + 1, // 🧩 adiciona posição automática
           }))}
           layout="vertical"
-          barCategoryGap={2}
-          margin={{ top: 15, right: 40, left: 0, bottom: 5 }}
+          barCategoryGap={6}
+          margin={{ top: 10, right: 25, left: 20, bottom: 5 }}
         >
           <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#e2e8f0"
+            strokeDasharray="2 2"
+            stroke="#f1f5f9"
             vertical={false}
           />
 
@@ -393,64 +393,65 @@ const maidsTomorrow = useMemo(() => {
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#334155", fontSize: 12 }}
+            tick={{ fill: "#64748b", fontSize: 11 }}
             axisLine={false}
+            tickLine={false}
           />
 
-          {/* 🚫 YAxis oculto */}
-          <YAxis type="category" dataKey="label" hide />
+          {/* 🧭 Eixo Y com posição + nome */}
+          <YAxis
+            type="category"
+            dataKey="label"
+            axisLine={false}
+            tickLine={false}
+            tick={({ x, y, payload }) => {
+              const item = kpis.topEfficiency.find(
+                (d) => d.label === payload.value
+              );
+              const index = kpis.topEfficiency.indexOf(item);
+              return (
+                <text
+                  x={x}
+                  y={y + 5}
+                  textAnchor="start"
+                  fill="#475569"
+                  fontSize={12}
+                  fontWeight={500}
+                >
+                  {`${index + 1}º — ${payload.value}`}
+                </text>
+              );
+            }}
+            width={140}
+          />
 
           <RechartsTooltip
             formatter={(v) => `${v}%`}
             contentStyle={{
-              backgroundColor: "#f9fafb",
+              backgroundColor: "#ffffff",
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
               color: "#0f172a",
+              fontSize: 12,
             }}
           />
 
           <Bar
             dataKey="ocupacao"
-            fill="rgba(10, 88, 133, 1)"
+            fill="#0f4c81"
             radius={[0, 6, 6, 0]}
-            barSize={23}
-            isAnimationActive={false}
+            barSize={18}
+            isAnimationActive={true}
           >
-            {/* 🔢 posição do ranking */}
-            <LabelList
-              dataKey="posicao"
-              position="left"
-              offset={-12}
-              formatter={(v) => `${v}º`}
-              style={{
-                fill: "#334155",
-                fontSize: 12,
-                fontWeight: 700,
-                textAnchor: "end",
-              }}
-            />
-
-            {/* 🏠 nome da acomodação */}
-            <LabelList
-              dataKey="label"
-              position="insideLeft"
-              style={{
-                fill: "#f1f5f9",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            />
-
-            {/* 📊 porcentagem à direita */}
+            {/* 📊 label de porcentagem dentro da barra */}
             <LabelList
               dataKey="ocupacao"
-              position="right"
+              position="insideRight"
               formatter={(v) => `${v}%`}
               style={{
-                fill: "#082f49",
-                fontSize: 12,
-                fontWeight: 700,
+                fill: "#f1f5f9",
+                fontSize: 11,
+                fontWeight: 600,
               }}
             />
           </Bar>
@@ -459,6 +460,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
 
 
@@ -684,7 +686,7 @@ function CalendarCard({ title, events, emptyText }) {
         </h2>
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
+          initialView="dayGridWeek"
           locale="pt-br"
           events={events}
           height={500}
