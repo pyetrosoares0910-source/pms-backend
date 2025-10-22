@@ -375,9 +375,12 @@ const maidsTomorrow = useMemo(() => {
     <div className="flex-grow flex items-center justify-center">
       <ResponsiveContainer width="100%" height={300}>
         <BarChart
-          data={kpis.topEfficiency}
+          data={kpis.topEfficiency.map((item, index) => ({
+            ...item,
+            posicao: index + 1, // 🔢 adiciona posição automaticamente
+          }))}
           layout="vertical"
-          barCategoryGap={8}
+          barCategoryGap={2}
           margin={{ top: 15, right: 40, left: 0, bottom: 5 }}
         >
           <CartesianGrid
@@ -394,7 +397,7 @@ const maidsTomorrow = useMemo(() => {
             axisLine={false}
           />
 
-          {/* 🚫 YAxis totalmente oculto */}
+          {/* 🚫 YAxis oculto */}
           <YAxis type="category" dataKey="label" hide />
 
           <RechartsTooltip
@@ -409,12 +412,26 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar
             dataKey="ocupacao"
-            fill="rgba(10, 88, 133, 1)" 
+            fill="rgba(10, 88, 133, 1)"
             radius={[0, 6, 6, 0]}
             barSize={23}
             isAnimationActive={false}
           >
-            {/* label da esquerda: nome da acomodação */}
+            {/* 🔢 posição do ranking */}
+            <LabelList
+              dataKey="posicao"
+              position="left"
+              offset={-12}
+              formatter={(v) => `${v}º`}
+              style={{
+                fill: "#334155",
+                fontSize: 12,
+                fontWeight: 700,
+                textAnchor: "end",
+              }}
+            />
+
+            {/* 🏠 nome da acomodação */}
             <LabelList
               dataKey="label"
               position="insideLeft"
@@ -424,7 +441,8 @@ const maidsTomorrow = useMemo(() => {
                 fontWeight: 600,
               }}
             />
-            {/* label da direita: porcentagem */}
+
+            {/* 📊 porcentagem à direita */}
             <LabelList
               dataKey="ocupacao"
               position="right"
@@ -441,6 +459,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
 
 
