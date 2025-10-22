@@ -362,13 +362,13 @@ const maidsTomorrow = useMemo(() => {
     </div>
     {/* Linha 3 */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label} (${kpis.maiorOcupacao.ocupacao}%)` : "-"} icon="🏆" color="success" />
-      <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label} (${kpis.menorOcupacao.ocupacao}%)` : "-"} icon="⚠️" color="error" />
+      <StatCard title="Média de diárias por Reserva " value={kpis.mediaDiariasReserva} icon="📆" color="info" />
+      <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label}` : "-"} icon="🏆" color="success" />
     </div>
     {/* Linha 4 */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <StatCard title="Média de diárias" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
-      <StatCard title="Diárias limpeza" value={kpis.diariasLimpeza} icon="🧽" color="secondary" />
+      <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
+      <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label}` : "-"} icon="⚠️" color="error" />
     </div>
   </div>
 
@@ -447,7 +447,7 @@ const maidsTomorrow = useMemo(() => {
             <ResponsiveContainer width="100%" height={350}>
   <BarChart
     data={occupancy.rows}
-    barSize={55} // 💪 barras mais gordinhas
+    barSize={55} 
     margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
   >
     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
