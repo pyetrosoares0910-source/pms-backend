@@ -200,16 +200,11 @@ useEffect(() => {
     );
   }).length;
 
-  const tasksMonth = tasks.filter((t) =>
-    dayjs(t.date).isBetween(mStart, mEnd, "day", "[]")
-  );
-
-  const maidsActiveMonth = new Set(tasksMonth.map((t) => t.maid).filter(Boolean));
-
   const eficienciaLimpeza =
-    maidsActiveMonth.size > 0
-      ? (tasksMonth.length / maidsActiveMonth.size).toFixed(1)
-      : "-";
+  kpis?.diariasLimpeza > 0
+    ? (reservasMes / diariasLimpeza).toFixed(1)
+    : "-";
+
 
   const mediaDiariasReserva =
     reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
@@ -371,38 +366,62 @@ const maidsTomorrow = useMemo(() => {
   <div className="lg:col-span-2 flex flex-col gap-6">
 
     {/* === TOP EFICIÊNCIA === */}
-    <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-      <div className="card-body p-6 flex flex-col justify-center">
-        <h2 className="font-semibold text-neutral mb-4 text-center">
-          📊 Top 10 Acomodações com Melhor Eficiência
-        </h2>
-        <div className="flex-grow flex items-center justify-center">
-          <ResponsiveContainer width="95%" height={360}>
-            <BarChart
-              data={kpis.topEfficiency}
-              layout="vertical"
-              margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                tickFormatter={(v) => `${v}%`}
-                tick={{ fill: "#6b7280", fontSize: 12 }}
-              />
-              <YAxis
-                dataKey="label"
-                type="category"
-                width={120}
-                tick={{ fill: "#6b7280", fontSize: 12 }}
-              />
-              <RechartsTooltip formatter={(v) => `${v}%`} />
-              <Bar dataKey="ocupacao" fill="#3B82F6" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+  <div className="card-body px-8 py-6 flex flex-col justify-center">
+    <h2 className="font-semibold text-neutral text-lg mb-6 text-center tracking-tight">
+      📊 Top 10 Acomodações com Melhor Eficiência
+    </h2>
+
+    <div className="flex-grow flex items-center justify-center">
+      <ResponsiveContainer width="90%" height={380}>
+        <BarChart
+          data={kpis.topEfficiency}
+          layout="vertical"
+          margin={{ top: 20, right: 30, left: 60, bottom: 10 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e2e8f0"
+            vertical={false}
+          />
+          <XAxis
+            type="number"
+            domain={[0, 100]}
+            tickFormatter={(v) => `${v}%`}
+            tick={{ fill: "#334155", fontSize: 12, fontWeight: 500 }}
+            axisLine={false}
+          />
+          <YAxis
+            dataKey="label"
+            type="category"
+            width={120}
+            tick={{ fill: "#334155", fontSize: 13, fontWeight: 500 }}
+            axisLine={false}
+            tickMargin={8}
+          />
+          <RechartsTooltip
+            formatter={(v) => `${v}%`}
+            contentStyle={{
+              backgroundColor: "#f9fafb",
+              borderRadius: "8px",
+              border: "1px solid #e2e8f0",
+              color: "#0f172a",
+            }}
+          />
+          <Bar
+            dataKey="ocupacao"
+            fill="#0c4a6e" // sky-950
+            radius={[0, 6, 6, 0]}
+            barSize={20}
+            isAnimationActive={true}
+            animationDuration={900}
+          />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
+  </div>
+</div>
+
 
     {/* === BLOCO DIVIDIDO (Manutenção + Eficiência Geral) === */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
