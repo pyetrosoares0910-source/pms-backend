@@ -158,9 +158,10 @@ useEffect(() => {
   }, [rooms, reservations, mStart, mEnd, daysInMonth]);
 
   // === KPIs principais ===
-  const kpis = useMemo(() => {
+const kpis = useMemo(() => {
   const { start: mStart, end: mEnd } = monthBounds();
 
+  // === RESERVAS HOJE ===
   const activeToday = reservations.filter(
     (r) =>
       r.status !== "cancelada" &&
@@ -180,6 +181,7 @@ useEffect(() => {
       dayjs.utc(r.checkoutDate).isSame(today, "day")
   ).length;
 
+  // === CÁLCULOS MENSAIS ===
   const nightsInMonth = reservations.reduce((sum, r) => {
     if (r.status === "cancelada") return sum;
     const ci = dayjs(r.checkinDate);
@@ -200,11 +202,10 @@ useEffect(() => {
     );
   }).length;
 
-  const eficienciaLimpeza =
-  kpis?.diariasLimpeza > 0
-    ? (reservasMes / diariasLimpeza).toFixed(1)
-    : "-";
+  const diariasLimpeza = tasks.length;
 
+  const eficienciaLimpeza =
+    diariasLimpeza > 0 ? (reservasMes / diariasLimpeza).toFixed(1) : "-";
 
   const mediaDiariasReserva =
     reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
@@ -219,8 +220,7 @@ useEffect(() => {
       ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
       : null;
 
-  const diariasLimpeza = tasks.length;
-
+  // === TOP EFICIÊNCIA (QUARTOS) ===
   const topEfficiency = (() => {
     const roomMap = {};
     reservations.forEach((r) => {
@@ -247,6 +247,7 @@ useEffect(() => {
     return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
   })();
 
+  // === RETORNO FINAL ===
   return {
     activeToday,
     checkinsToday,
@@ -262,8 +263,6 @@ useEffect(() => {
     topEfficiency,
   };
 }, [reservations, today, occupancy.rows, tasks, rooms]);
-
-
 
 
   // === Eventos (Limpeza) ===
@@ -373,32 +372,27 @@ const maidsTomorrow = useMemo(() => {
     </h2>
 
     <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="90%" height={380}>
+      <ResponsiveContainer width="92%" height={400}>
         <BarChart
           data={kpis.topEfficiency}
           layout="vertical"
-          margin={{ top: 20, right: 30, left: 60, bottom: 10 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="#e2e8f0"
             vertical={false}
           />
+
+          {/* removido eixo Y (nomes estarão nas labels) */}
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#334155", fontSize: 12, fontWeight: 500 }}
+            tick={{ fill: "#334155", fontSize: 12 }}
             axisLine={false}
           />
-          <YAxis
-            dataKey="label"
-            type="category"
-            width={120}
-            tick={{ fill: "#334155", fontSize: 13, fontWeight: 500 }}
-            axisLine={false}
-            tickMargin={8}
-          />
+
           <RechartsTooltip
             formatter={(v) => `${v}%`}
             contentStyle={{
@@ -408,19 +402,42 @@ const maidsTomorrow = useMemo(() => {
               color: "#0f172a",
             }}
           />
+
           <Bar
             dataKey="ocupacao"
             fill="#0c4a6e" // sky-950
             radius={[0, 6, 6, 0]}
-            barSize={20}
+            barSize={22}
             isAnimationActive={true}
-            animationDuration={900}
-          />
+            animationDuration={800}
+          >
+            <LabelList
+              dataKey="label"
+              position="insideLeft"
+              style={{
+                fill: "#f1f5f9", // texto branco-acinzentado
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+              offset={10}
+            />
+            <LabelList
+              dataKey="ocupacao"
+              position="right"
+              formatter={(v) => `${v}%`}
+              style={{
+                fill: "#0f172a",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
   </div>
 </div>
+
 
 
     {/* === BLOCO DIVIDIDO (Manutenção + Eficiência Geral) === */}
