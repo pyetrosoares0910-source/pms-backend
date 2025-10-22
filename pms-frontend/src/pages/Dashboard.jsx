@@ -199,10 +199,19 @@ useEffect(() => {
 }).length;
 
 
-  const eficienciaLimpeza =
-  tasks.length && maids.length
-    ? (tasks.length / maids.length).toFixed(1)
+  const { start: mStart, end: mEnd } = monthBounds();
+
+const tasksMonth = tasks.filter((t) =>
+  dayjs(t.date).isBetween(mStart, mEnd, "day", "[]")
+);
+
+const maidsActiveMonth = new Set(tasksMonth.map((t) => t.maid).filter(Boolean));
+
+const eficienciaLimpeza =
+  maidsActiveMonth.size > 0
+    ? (tasksMonth.length / maidsActiveMonth.size).toFixed(1)
     : "-";
+
 
 
   const reservasNoMes = reservations.filter((r) => {
@@ -456,15 +465,16 @@ const maidsTomorrow = useMemo(() => {
 
       {/* Total de Reservas Impactante */}
 <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
-  <h2 className="font-semibold text-neutral mb-2">🏅 Total de Reservas </h2>
-  <p className="text-3xl font-bold text-primary mb-1">
-    {kpis.reservasMes + 1963}
+  <h2 className="font-semibold text-neutral mb-3 text-lg">
+    🏅 Total de Reservas
+  </h2>
+  <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
+    {kpis.totalReservas + 1963}
   </p>
   <p className="text-sm text-gray-500">
-    Inclui {kpis.reservasMes} reservas atuais + 1.963 do PMS anterior
+    Inclui 1.963 reservas do PMS anterior
   </p>
 </div>
-
 
     </div>
   </div>
