@@ -341,61 +341,7 @@ const maidsTomorrow = useMemo(() => {
     <div className="p-6 space-y-8 bg-base-100 min-h-screen">
       <h1 className="text-3xl font-bold text-neutral">Dashboard</h1>
 
-      {/* ==== KPIs PRINCIPAIS (originais) ==== */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-  <StatCard
-    title="Reservas ativas (hoje)"
-    value={kpis.activeToday}
-    icon="📖"
-    color="primary"
-  />
-  <StatCard
-    title="Check-ins (hoje)"
-    value={kpis.checkinsToday}
-    icon="🛎️"
-    color="accent"
-  />
-  <StatCard
-    title="Check-outs (hoje)"
-    value={kpis.checkoutsToday}
-    icon="🧳"
-    color="info"
-  />
-  <StatCard
-    title="Diárias no mês"
-    value={kpis.nightsInMonth}
-    icon="🗓️"
-    color="secondary"
-  />
-</div>
-
-{/* ==== NOVOS KPIS (adicionados) ==== */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
-  <StatCard
-    title="Maior ocupação"
-    value={kpis.maiorOcupacao ? `${kpis.maiorOcupacao.label}` : "-"}
-    icon="🏆"
-    color="success"
-  />
-  <StatCard
-    title="Menor ocupação"
-    value={kpis.menorOcupacao ? `${kpis.menorOcupacao.label}` : "-"}
-    icon="⚠️"
-    color="error"
-  />
-  <StatCard
-    title="Média de diárias"
-    value={kpis.mediaDiariasReserva}
-    icon="📆"
-    color="info"
-  />
-  <StatCard
-    title="Diárias limpeza"
-    value={kpis.diariasLimpeza}
-    icon="🧽"
-    color="secondary"
-  />
-</div>
+    
 
 
 
