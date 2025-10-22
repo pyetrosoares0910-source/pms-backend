@@ -366,65 +366,57 @@ const maidsTomorrow = useMemo(() => {
   <div className="lg:col-span-2 flex flex-col gap-6">
 
    {/* === TOP EFICIÊNCIA === */}
-<div className="card bg-white shadow-sm border border-gray-100 flex-1 flex flex-col">
+<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
   <div className="card-body px-8 py-6 flex flex-col justify-center">
-    <h2 className="font-semibold text-neutral text-lg mb-5 text-center tracking-tight">
+    <h2 className="font-semibold text-neutral text-lg mb-6 text-center tracking-tight">
       📊 Top 10 - Acomodações com Melhor Eficiência
     </h2>
 
     <div className="flex-grow flex items-center justify-center">
-      <ResponsiveContainer width="100%" height={320}>
+      <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={kpis.topEfficiency.map((item, index) => ({
             ...item,
-            posicao: index + 1, // 🧩 adiciona posição automática
+            posicao: index + 1,
           }))}
           layout="vertical"
-          barCategoryGap={6}
-          margin={{ top: 10, right: 25, left: 20, bottom: 5 }}
+          barCategoryGap={8}
+          margin={{ top: 30, right: 25, left: -10, bottom: 10 }} // 🔽 move o gráfico para baixo e puxa um pouco pra esquerda
         >
-          <CartesianGrid
-            strokeDasharray="2 2"
-            stroke="#f1f5f9"
-            vertical={false}
-          />
+          {/* Grid sutil */}
+          <CartesianGrid stroke="#e2e8f0" strokeDasharray="2 2" vertical={false} />
 
+          {/* Eixo X */}
           <XAxis
             type="number"
             domain={[0, 100]}
             tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#64748b", fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
+            tick={{ fill: "#64748b", fontSize: 12 }}
+            axisLine={{ stroke: "#e2e8f0" }}
+            tickLine={{ stroke: "#e2e8f0" }}
           />
 
-          {/* 🧭 Eixo Y com posição + nome */}
+          {/* Eixo Y com posição + nome */}
           <YAxis
             type="category"
             dataKey="label"
-            axisLine={false}
-            tickLine={false}
-            tick={({ x, y, payload }) => {
-              const item = kpis.topEfficiency.find(
-                (d) => d.label === payload.value
-              );
-              const index = kpis.topEfficiency.indexOf(item);
-              return (
-                <text
-                  x={x}
-                  y={y + 5}
-                  textAnchor="start"
-                  fill="#475569"
-                  fontSize={12}
-                  fontWeight={500}
-                >
-                  {`${index + 1}º — ${payload.value}`}
-                </text>
-              );
-            }}
-            width={140}
+            axisLine={{ stroke: "#e2e8f0" }}
+            tickLine={{ stroke: "#e2e8f0" }}
+            tick={({ x, y, payload, index }) => (
+              <text
+                x={x}
+                y={y + 5}
+                fill="#475569"
+                fontSize={12}
+                fontWeight={500}
+              >
+                {`${index + 1}º — ${payload.value}`}
+              </text>
+            )}
+            width={150}
           />
 
+          {/* Tooltip */}
           <RechartsTooltip
             formatter={(v) => `${v}%`}
             contentStyle={{
@@ -436,22 +428,45 @@ const maidsTomorrow = useMemo(() => {
             }}
           />
 
+          {/* Barras com cor dinâmica */}
           <Bar
             dataKey="ocupacao"
-            fill="#0f4c81"
             radius={[0, 6, 6, 0]}
-            barSize={18}
+            barSize={22}
             isAnimationActive={true}
+            animationBegin={200}
+            animationDuration={700}
+            fillOpacity={0.95}
           >
-            {/* 📊 label de porcentagem dentro da barra */}
+            {/* Cor especial para top 3 */}
+            {kpis.topEfficiency.map((entry, index) => {
+              let color = "#0f4c81"; // padrão
+              if (index === 0) color = "#eab308"; // 🥇 dourado
+              else if (index === 1) color = "#94a3b8"; // 🥈 prata
+              else if (index === 2) color = "#b45309"; // 🥉 bronze
+              return <Cell key={`cell-${index}`} fill={color} />;
+            })}
+
+            {/* Nome dentro da barra */}
             <LabelList
-              dataKey="ocupacao"
-              position="insideRight"
-              formatter={(v) => `${v}%`}
+              dataKey="label"
+              position="insideLeft"
               style={{
                 fill: "#f1f5f9",
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 600,
+              }}
+            />
+
+            {/* Porcentagem à direita */}
+            <LabelList
+              dataKey="ocupacao"
+              position="right"
+              formatter={(v) => `${v}%`}
+              style={{
+                fill: "#082f49",
+                fontSize: 12,
+                fontWeight: 700,
               }}
             />
           </Bar>
@@ -460,10 +475,6 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
-
-
-
-
 
 
 
