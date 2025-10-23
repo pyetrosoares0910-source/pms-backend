@@ -33,9 +33,9 @@ exports.getAllRooms = async (req, res) => {
   try {
     const rooms = await prisma.room.findMany({
       include: { stay: true },
-      orderBy: { title: "asc" },
     });
 
+    // 🧠 Corrige o caminho da imagem para URL completa
     const roomsWithFullImage = rooms.map((r) => ({
       ...r,
       imageUrl: r.imageUrl
@@ -45,8 +45,8 @@ exports.getAllRooms = async (req, res) => {
 
     res.json(roomsWithFullImage);
   } catch (err) {
-    console.error("❌ Erro interno ao listar quartos:", err);
-    res.status(500).json({ error: "Erro interno ao listar quartos.", details: err.message });
+    console.error("Erro ao listar quartos:", err);
+    res.status(500).json({ error: "Erro interno ao listar quartos." });
   }
 };
 
