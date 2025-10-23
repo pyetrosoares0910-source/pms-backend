@@ -7,20 +7,26 @@ const prisma = new PrismaClient();
 const BASE_URL = process.env.BASE_URL || "https://pms-backend-d3e1.onrender.com";
 
 /* ============================
-   📦 Configuração do Multer
+   📦 Configuração de Upload (Multer)
 ============================ */
+
+// 🧠 Garante que a pasta existe ANTES de configurar o multer
+const UPLOADS_DIR = path.join(__dirname, "../uploads");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  console.log("📁 Pasta /uploads criada com sucesso.");
+}
+
+// 🧩 Configuração do Multer
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, "../uploads");
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
-  },
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => {
     const uniqueName =
       Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
     cb(null, uniqueName);
   },
 });
+
 const upload = multer({ storage });
 exports.uploadMiddleware = upload.single("image");
 
@@ -35,7 +41,6 @@ exports.getAllRooms = async (req, res) => {
       include: { stay: true },
     });
 
-    // 🧠 Corrige o caminho da imagem para URL completa
     const roomsWithFullImage = rooms.map((r) => ({
       ...r,
       imageUrl: r.imageUrl
@@ -45,7 +50,7 @@ exports.getAllRooms = async (req, res) => {
 
     res.json(roomsWithFullImage);
   } catch (err) {
-    console.error("Erro ao listar quartos:", err);
+    console.error("❌ Erro ao listar quartos:", err);
     res.status(500).json({ error: "Erro interno ao listar quartos." });
   }
 };
@@ -90,12 +95,10 @@ exports.updateRoom = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
-
     const updated = await prisma.room.update({
       where: { id },
       data,
     });
-
     res.json(updated);
   } catch (err) {
     console.error("❌ Erro ao atualizar quarto:", err);
@@ -118,31 +121,33 @@ exports.deleteRoom = async (req, res) => {
 /* ============================
    📸 Upload de Imagem
 ============================ */
-exports.uploadRoomImage = async (req, res) => {
-  try {
-    const { id } = req.params;
+exports.uploadRoomImage = [
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!req.file)
+        return res.status(400).json({ error: "Nenhum arquivo enviado." });
 
-    if (!req.file)
-      return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      const imagePath = `/uploads/${req.file.filename}`;
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+      const updatedRoom = await prisma.room.update({
+        where: { id },
+        data: { imageUrl: imagePath },
+      });
 
-    const updatedRoom = await prisma.room.update({
-      where: { id },
-      data: { imageUrl },
-    });
+      console.log(`✅ Imagem salva: ${imagePath}`);
 
-    console.log(`✅ Imagem salva: ${imageUrl}`);
-
-    res.json({
-      message: "Imagem enviada com sucesso!",
-      room: {
-        ...updatedRoom,
-        imageUrl: `${BASE_URL}${imageUrl}`,
-      },
-    });
-  } catch (err) {
-    console.error("❌ Erro no upload da imagem:", err);
-    res.status(500).json({ error: "Erro interno ao enviar imagem", details: err.message });
-  }
-};
+      res.json({
+        message: "Imagem enviada com sucesso!",
+        room: {
+          ...updatedRoom,
+          imageUrl: `${BASE_URL}${imagePath}`,
+        },
+      });
+    } catch (err) {
+      console.error("❌ Erro no upload da imagem:", err);
+      res.status(500).json({ error: "Erro interno ao enviar imagem.", details: err.message });
+    }
+  },
+];
