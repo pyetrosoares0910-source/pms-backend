@@ -385,8 +385,8 @@ const maidsTomorrow = useMemo(() => {
     const numColor =
       i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
 
-    const height = i === 0 ? "h-24" : "h-21";
-    const width = "w-41";
+    const height = i === 0 ? "h-24" : "h-20";
+    const width = "w-40";
     const radius = "rounded-3xl";
 
     return (
