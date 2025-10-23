@@ -1,32 +1,25 @@
 const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+require("dotenv").config();
 
+const prisma = new PrismaClient();
 const BASE_URL = process.env.BASE_URL || "https://pms-backend-d3e1.onrender.com";
 
 /* ============================
-   📦 Configuração de Upload (Multer)
+   ☁️ Configuração do Cloudinary
 ============================ */
-
-// 🧠 Garante que a pasta existe ANTES de configurar o multer
-const UPLOADS_DIR = path.join(__dirname, "../uploads");
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-  console.log("📁 Pasta /uploads criada com sucesso.");
-}
-
-// 🧩 Configuração do Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
-    cb(null, uniqueName);
-  },
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+/* ============================
+   📦 Configuração do Multer (Buffer)
+============================ */
+const storage = multer.memoryStorage(); // usa memória temporária (sem salvar em disco)
 const upload = multer({ storage });
 exports.uploadMiddleware = upload.single("image");
 
@@ -37,14 +30,14 @@ exports.uploadMiddleware = upload.single("image");
 // 🟢 Listar todos
 exports.getAllRooms = async (req, res) => {
   try {
-    const rooms = await prisma.room.findMany({
-      include: { stay: true },
-    });
+    const rooms = await prisma.room.findMany({ include: { stay: true } });
 
     const roomsWithFullImage = rooms.map((r) => ({
       ...r,
       imageUrl: r.imageUrl
-        ? `${BASE_URL}${r.imageUrl.startsWith("/") ? "" : "/"}${r.imageUrl}`
+        ? r.imageUrl.startsWith("http")
+          ? r.imageUrl
+          : `${BASE_URL}${r.imageUrl}`
         : null,
     }));
 
@@ -69,7 +62,9 @@ exports.getRoomById = async (req, res) => {
     res.json({
       ...room,
       imageUrl: room.imageUrl
-        ? `${BASE_URL}${room.imageUrl.startsWith("/") ? "" : "/"}${room.imageUrl}`
+        ? room.imageUrl.startsWith("http")
+          ? room.imageUrl
+          : `${BASE_URL}${room.imageUrl}`
         : null,
     });
   } catch (err) {
@@ -119,35 +114,48 @@ exports.deleteRoom = async (req, res) => {
 };
 
 /* ============================
-   📸 Upload de Imagem
+   📸 Upload de Imagem (Cloudinary)
 ============================ */
 exports.uploadRoomImage = [
   upload.single("image"),
   async (req, res) => {
     try {
       const { id } = req.params;
-      if (!req.file)
+
+      if (!req.file) {
         return res.status(400).json({ error: "Nenhum arquivo enviado." });
+      }
 
-      const imagePath = `/uploads/${req.file.filename}`;
-
-      const updatedRoom = await prisma.room.update({
-        where: { id },
-        data: { imageUrl: imagePath },
+      // 🚀 Envia o buffer direto para o Cloudinary
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "staycore/rooms", resource_type: "image" },
+          (error, result) => (error ? reject(error) : resolve(result))
+        );
+        stream.end(req.file.buffer);
       });
 
-      console.log(`✅ Imagem salva: ${imagePath}`);
+      // 💾 Atualiza no banco com URL pública
+      const updatedRoom = await prisma.room.update({
+        where: { id },
+        data: { imageUrl: result.secure_url },
+      });
+
+      console.log("✅ Imagem enviada ao Cloudinary:", result.secure_url);
 
       res.json({
         message: "Imagem enviada com sucesso!",
         room: {
           ...updatedRoom,
-          imageUrl: `${BASE_URL}${imagePath}`,
+          imageUrl: result.secure_url,
         },
       });
     } catch (err) {
-      console.error("❌ Erro no upload da imagem:", err);
-      res.status(500).json({ error: "Erro interno ao enviar imagem.", details: err.message });
+      console.error("❌ Erro no upload da imagem (Cloudinary):", err);
+      res.status(500).json({
+        error: "Erro interno ao enviar imagem.",
+        details: err.message,
+      });
     }
   },
 ];

@@ -62,9 +62,8 @@ const taskRoutes = require("./routes/tasks");
 const maidRoutes = require("./routes/maids");
 const reportPdfRoutes = require("./routes/reportPdfRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-const path = require("path");
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
 app.use("/staff", staffRoutes);
