@@ -129,24 +129,27 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, "_")}`),
 });
 
-exports.uploadRoomImage = [
-  multer({ storage }).single("image"),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+exports.uploadRoomImage = async (req, res) => {
+  try {
+    console.log("🧩 Upload recebido:", req.params, req.file);
 
-      const imageUrl = `/uploads/rooms/${req.file.filename}`;
-
-      const room = await prisma.room.update({
-        where: { id: parseInt(id) },
-        data: { imageUrl },
-      });
-
-      res.json({ message: "Imagem atualizada com sucesso!", room });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Erro ao salvar imagem" });
+    const { id } = req.params;
+    if (!req.file) {
+      console.log("❌ Nenhum arquivo recebido!");
+      return res.status(400).json({ error: "Nenhum arquivo enviado" });
     }
-  },
-];
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+
+    const updated = await prisma.room.update({
+      where: { id },
+      data: { imageUrl },
+    });
+
+    console.log("✅ Imagem salva:", updated);
+    res.json({ message: "Imagem salva com sucesso", room: updated });
+  } catch (err) {
+    console.error("❌ Erro interno no upload:", err);
+    res.status(500).json({ error: "Erro interno no upload", details: err.message });
+  }
+};
