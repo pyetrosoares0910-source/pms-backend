@@ -16,6 +16,12 @@ exports.getAllRooms = async (req, res) => {
     { position: 'asc' },           // depois UH
   ],
 });
+
+const roomsWithFullImage = rooms.map((r) => ({
+      ...r,
+      imageUrl: r.imageUrl ? `${BASE_URL}${r.imageUrl}` : null,
+    }));
+
     res.json(rooms);
   } catch (error) {
     console.error("Erro ao listar quartos:", error);
