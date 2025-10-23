@@ -8,7 +8,6 @@ import {
   Wrench,
   Users,
   Puzzle,
-  ClipboardList,
   UsersRound,
   Building,
   Bed,
