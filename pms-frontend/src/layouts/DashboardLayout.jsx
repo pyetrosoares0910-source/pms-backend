@@ -116,7 +116,7 @@ export default function DashboardLayout() {
           <Item to="/map" icon={Map} showText={showText}>
             Mapa de Reservas
           </Item>
-          <Item to="/cleaning-schedule" icon={Brush} showText={showText}>
+          <Item to="/cleaning-schedule" icon={Puzzle} showText={showText}>
             Controle Limpeza
           </Item>
           <Item
@@ -132,7 +132,7 @@ export default function DashboardLayout() {
               Cadastros
             </div>
           )}
-          <Item to="/reservations" icon={CalendarDays} showText={showText}>
+          <Item to="/reservations" icon={FileText} showText={showText}>
             Reservas
           </Item>
           <Item to="/guests" icon={Users} showText={showText}>
@@ -147,7 +147,7 @@ export default function DashboardLayout() {
           <Item to="/staff" icon={UserCog} showText={showText}>
             Funcionários
           </Item>
-          <Item to="/maids" icon={Users} showText={showText}>
+          <Item to="/maids" icon={UsersRound} showText={showText}>
             Diaristas
           </Item>
           <Item to="/maintenance" icon={Wrench} showText={showText}>

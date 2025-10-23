@@ -2,12 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-  --tw-bg-opacity: 1;
-  --tw-text-opacity: 1;
-}
-
 
 
 @keyframes fadeInDelayed {
