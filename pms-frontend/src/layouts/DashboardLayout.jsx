@@ -7,6 +7,9 @@ import {
   Brush,
   Wrench,
   Users,
+  Puzzle,
+  Filetext,
+  UsersRound,
   Building,
   Bed,
   UserCog,
@@ -132,7 +135,7 @@ export default function DashboardLayout() {
               Cadastros
             </div>
           )}
-          <Item to="/reservations" icon={FileText} showText={showText}>
+          <Item to="/reservations" icon={Filetext} showText={showText}>
             Reservas
           </Item>
           <Item to="/guests" icon={Users} showText={showText}>
