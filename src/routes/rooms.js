@@ -28,6 +28,6 @@ router.get("/:id", roomController.getRoomById);
 router.post("/", validateRoom, handleValidation, roomController.createRoom);
 router.put("/:id", validateRoom, handleValidation, roomController.updateRoom);
 router.delete("/:id", roomController.deleteRoom);
-router.post("/:id/upload", upload.single("image"), roomController.uploadRoomImage);
+router.post("/:id/upload", roomController.uploadMiddleware, roomController.uploadRoomImage);
 
 module.exports = router;
