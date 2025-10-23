@@ -8,7 +8,7 @@ import {
   Wrench,
   Users,
   Puzzle,
-  Filetext,
+  ClipboardList,
   UsersRound,
   Building,
   Bed,
@@ -17,7 +17,8 @@ import {
   ChevronRight,
   CalendarDays,
   LogOut,
-  BarChart3, // ícone do relatório de desempenho
+  BarChart3,
+  ClipboardList, 
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
@@ -135,7 +136,7 @@ export default function DashboardLayout() {
               Cadastros
             </div>
           )}
-          <Item to="/reservations" icon={Filetext} showText={showText}>
+          <Item to="/reservations" icon={ClipboardList} showText={showText}>
             Reservas
           </Item>
           <Item to="/guests" icon={Users} showText={showText}>
