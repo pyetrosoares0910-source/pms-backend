@@ -25,6 +25,7 @@ export default function Maintenance() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ status: "", type: "", stayId: "" });
 
+  // CREATE modal
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -38,6 +39,12 @@ export default function Maintenance() {
     isRecurring: false,
     recurrence: { mode: "monthly_by_day", days: [], startDate: "" },
   });
+
+  // EDIT modal
+  const [selected, setSelected] = useState(null);
+  const [editStatus, setEditStatus] = useState("pendente");
+  const [editDate, setEditDate] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -56,6 +63,52 @@ export default function Maintenance() {
   async function reloadTasks() {
     const updated = await api("/maintenance?includeModels=true");
     setTasks(updated);
+  }
+
+  function openEdit(task) {
+    setSelected(task);
+    setEditStatus(task.status || "pendente");
+    // normaliza para yyyy-mm-dd se houver dueDate
+    const d =
+      task.dueDate
+        ? new Date(task.dueDate).toISOString().slice(0, 10)
+        : "";
+    setEditDate(d);
+  }
+
+  async function handleUpdate() {
+    if (!selected) return;
+    try {
+      await api(`/maintenance/${selected.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: editStatus,
+          // manda null se vazio pra limpar o prazo no backend (se você quiser manter vazio)
+          dueDate: editDate || null,
+        }),
+      });
+      setSelected(null);
+      await reloadTasks();
+    } catch (err) {
+      console.error("Erro ao atualizar tarefa:", err);
+      alert("Erro ao atualizar tarefa");
+    }
+  }
+
+  async function handleDelete() {
+    if (!selected) return;
+    if (!window.confirm("Tem certeza que deseja excluir esta atividade?")) return;
+    try {
+      setDeleting(true);
+      await api(`/maintenance/${selected.id}`, { method: "DELETE" });
+      setDeleting(false);
+      setSelected(null);
+      await reloadTasks();
+    } catch (err) {
+      setDeleting(false);
+      console.error("Erro ao excluir tarefa:", err);
+      alert("Erro ao excluir tarefa");
+    }
   }
 
   async function handleSubmit(e) {
@@ -117,60 +170,60 @@ export default function Maintenance() {
   );
 
   return (
-  <div className="p-4">
-    <div className="flex items-center justify-between mb-4">
-      <h1 className="text-xl font-semibold">Atividades</h1>
-      <button
-        onClick={() => setModalOpen(true)}
-        className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-      >
-        Adicionar tarefa
-      </button>
-    </div>
-
-    {/* === MINI DASHBOARD === */}
-    {!loading && (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        {/* Modelos recorrentes */}
-        <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-neutral-500">Modelos recorrentes</p>
-            <p className="text-xl font-semibold text-emerald-700">
-              {tasks.filter((t) => t.isRecurring).length}
-            </p>
-          </div>
-          <span className="text-emerald-600 text-2xl">🧩</span>
-        </div>
-
-        {/* Atividades ativas */}
-        <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-neutral-500">Atividades ativas</p>
-            <p className="text-xl font-semibold text-blue-600">
-              {
-                tasks.filter(
-                  (t) =>
-                    !t.isRecurring &&
-                    (t.status === "pendente" || t.status === "andamento")
-                ).length
-              }
-            </p>
-          </div>
-          <span className="text-blue-500 text-2xl">💭</span>
-        </div>
-
-        {/* Concluídas */}
-        <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-neutral-500">Concluídas</p>
-            <p className="text-xl font-semibold text-emerald-600">
-              {tasks.filter((t) => t.status === "concluido").length}
-            </p>
-          </div>
-          <span className="text-emerald-600 text-2xl">✅</span>
-        </div>
+    <div className="p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold">Atividades</h1>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+        >
+          Adicionar tarefa
+        </button>
       </div>
-    )}
+
+      {/* === MINI DASHBOARD === */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          {/* Modelos recorrentes */}
+          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-500">Modelos recorrentes</p>
+              <p className="text-xl font-semibold text-emerald-700">
+                {tasks.filter((t) => t.isRecurring).length}
+              </p>
+            </div>
+            <span className="text-emerald-600 text-2xl">🧩</span>
+          </div>
+
+          {/* Atividades ativas */}
+          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-500">Atividades ativas</p>
+              <p className="text-xl font-semibold text-blue-600">
+                {
+                  tasks.filter(
+                    (t) =>
+                      !t.isRecurring &&
+                      (t.status === "pendente" || t.status === "andamento")
+                  ).length
+                }
+              </p>
+            </div>
+            <span className="text-blue-500 text-2xl">💭</span>
+          </div>
+
+          {/* Concluídas */}
+          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-neutral-500">Concluídas</p>
+              <p className="text-xl font-semibold text-emerald-600">
+                {tasks.filter((t) => t.status === "concluido").length}
+              </p>
+            </div>
+            <span className="text-emerald-600 text-2xl">✅</span>
+          </div>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 mb-4 bg-white p-3 rounded shadow-sm">
@@ -253,14 +306,22 @@ export default function Maintenance() {
                       : "-"}
                   </td>
                   <td className="p-2 text-center">
-                    {t.isRecurring && (
+                    <div className="flex items-center justify-center gap-3">
                       <button
-                        onClick={() => handleGenerate(t.id)}
-                        className="text-emerald-700 hover:underline text-xs"
+                        onClick={() => openEdit(t)}
+                        className="text-blue-600 hover:underline text-xs"
                       >
-                        Gerar próximas
+                        Editar
                       </button>
-                    )}
+                      {t.isRecurring && (
+                        <button
+                          onClick={() => handleGenerate(t.id)}
+                          className="text-emerald-700 hover:underline text-xs"
+                        >
+                          Gerar próximas
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -436,6 +497,102 @@ export default function Maintenance() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal de edição rápida */}
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={`Editar tarefa`}
+      >
+        {selected && (
+          <div className="space-y-4 text-sm">
+            <div>
+              <strong className="block text-lg mb-1">{selected.title}</strong>
+              <p className="text-neutral-600 mb-2">
+                {selected.stay?.name || "-"}{" "}
+                {selected.room?.title ? `– ${selected.room?.title}` : ""}
+              </p>
+              <p className="text-neutral-500 mb-2">
+                {selected.type === "preventiva" ? "🗓 Preventiva" : "🧰 Corretiva"}
+              </p>
+
+              {/* Descrição (somente leitura, com fallback) */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium mb-1">Descrição</label>
+                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                  {selected.description || "Sem descrição"}
+                </p>
+              </div>
+
+              {/* Responsável (somente leitura, com fallback) */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium mb-1">Responsável</label>
+                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                  {selected.responsible || "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* Status editável */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              >
+                <option value="pendente">Pendente</option>
+                <option value="andamento">Em andamento</option>
+                <option value="concluido">Concluído</option>
+              </select>
+            </div>
+
+            {/* Data (prazo) com fallback */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Nova Data (prazo)
+              </label>
+              {editDate || selected.dueDate ? (
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              ) : (
+                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                  Sem prazo definido
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center mt-6">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                {deleting ? "Excluindo..." : "Excluir"}
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelected(null)}
+                  className="px-4 py-2 border rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

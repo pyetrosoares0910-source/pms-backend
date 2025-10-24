@@ -144,76 +144,101 @@ export default function MaintenanceCalendar() {
       )}
 
       {/* Modal de edição rápida */}
-      <Modal
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={`Editar tarefa`}
-      >
-        {selected && (
-          <div className="space-y-4 text-sm">
-            <div>
-              <strong className="block text-lg mb-1">{selected.title}</strong>
-              <p className="text-neutral-600 mb-2">
-                {selected.stay?.name || "-"}{" "}
-                {selected.room?.title ? `– ${selected.room?.title}` : ""}
-              </p>
-              <p className="text-neutral-500">
-                {selected.type === "preventiva" ? "🗓 Preventiva" : "🧰 Corretiva"}
-              </p>
-            </div>
+<Modal
+  open={!!selected}
+  onClose={() => setSelected(null)}
+  title={`Editar tarefa`}
+>
+  {selected && (
+    <div className="space-y-4 text-sm">
+      <div>
+        <strong className="block text-lg mb-1">{selected.title}</strong>
+        <p className="text-neutral-600 mb-2">
+          {selected.stay?.name || "-"}{" "}
+          {selected.room?.title ? `– ${selected.room?.title}` : ""}
+        </p>
+        <p className="text-neutral-500 mb-2">
+          {selected.type === "preventiva" ? "🗓 Preventiva" : "🧰 Corretiva"}
+        </p>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={editStatus}
-                onChange={(e) => setEditStatus(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="pendente">Pendente</option>
-                <option value="andamento">Em andamento</option>
-                <option value="concluido">Concluído</option>
-              </select>
-            </div>
+        {/* Descrição */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Descrição</label>
+          <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+            {selected.description || "Sem descrição"}
+          </p>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Nova Data (prazo)
-              </label>
-              <input
-                type="date"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-            </div>
+        {/* Responsável */}
+        <div className="mb-3">
+          <label className="block text-sm font-medium mb-1">Responsável</label>
+          <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+            {selected.responsible || "—"}
+          </p>
+        </div>
+      </div>
 
-            <div className="flex justify-between items-center mt-6">
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                {deleting ? "Excluindo..." : "Excluir"}
-              </button>
+      <div>
+        <label className="block text-sm font-medium mb-1">Status</label>
+        <select
+          value={editStatus}
+          onChange={(e) => setEditStatus(e.target.value)}
+          className="w-full border rounded-lg px-3 py-2"
+        >
+          <option value="pendente">Pendente</option>
+          <option value="andamento">Em andamento</option>
+          <option value="concluido">Concluído</option>
+        </select>
+      </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelected(null)}
-                  className="px-4 py-2 border rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
-                >
-                  Salvar
-                </button>
-              </div>
-            </div>
-          </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          Nova Data (prazo)
+        </label>
+        {editDate || selected.dueDate ? (
+          <input
+            type="date"
+            value={editDate}
+            onChange={(e) => setEditDate(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2"
+          />
+        ) : (
+          <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+            Sem prazo definido
+          </p>
         )}
-      </Modal>
+      </div>
+
+      <div className="flex justify-between items-center mt-6">
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          {deleting ? "Excluindo..." : "Excluir"}
+        </button>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSelected(null)}
+            className="px-4 py-2 border rounded-lg"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleUpdate}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</Modal>
+
+
+
     </div>
   );
 }
