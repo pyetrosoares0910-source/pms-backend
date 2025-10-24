@@ -66,15 +66,13 @@ export default function Maintenance() {
   }
 
   function openEdit(task) {
-    setSelected(task);
-    setEditStatus(task.status || "pendente");
-    // normaliza para yyyy-mm-dd se houver dueDate
-    const d =
-      task.dueDate
-        ? new Date(task.dueDate).toISOString().slice(0, 10)
-        : "";
-    setEditDate(d);
-  }
+  setSelected(task);
+  setEditStatus(task.status || "pendente");
+  // usa direto a string, sem converter pra UTC
+  const d = task.dueDate ? task.dueDate.slice(0, 10) : "";
+  setEditDate(d);
+}
+
 
   async function handleUpdate() {
     if (!selected) return;
@@ -116,8 +114,11 @@ export default function Maintenance() {
     try {
       await api("/maintenance", {
         method: "POST",
-        body: JSON.stringify(form),
-      });
+        body: JSON.stringify({
+        ...form,
+        dueDate: form.dueDate ? form.dueDate : null,
+      }),
+    });
       setModalOpen(false);
       setForm({
         title: "",
