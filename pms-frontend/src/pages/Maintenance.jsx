@@ -113,12 +113,21 @@ export default function Maintenance() {
     e.preventDefault();
     try {
       await api("/maintenance", {
-        method: "POST",
-        body: JSON.stringify({
-        ...form,
-        dueDate: form.dueDate ? form.dueDate : null,
-      }),
-    });
+  method: "POST",
+  body: JSON.stringify({
+    title: form.title,
+    description: form.description,
+    stayId: form.stayId || null,
+    roomId: form.roomId || null,
+    responsible: form.responsible,
+    status: form.status,
+    type: form.type,
+    dueDate: form.dueDate || null,
+    isRecurring: form.isRecurring,
+    recurrence: form.isRecurring ? form.recurrence : null,
+  }),
+});
+
       setModalOpen(false);
       setForm({
         title: "",
