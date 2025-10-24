@@ -78,7 +78,7 @@ export default function Maintenance() {
     if (!selected) return;
     try {
       await api(`/maintenance/${selected.id}`, {
-        method: "PATCH",
+        method: "PUT",
         body: JSON.stringify({
           status: editStatus,
           // manda null se vazio pra limpar o prazo no backend (se você quiser manter vazio)
@@ -301,11 +301,12 @@ export default function Maintenance() {
                   <td className="p-2 text-center capitalize">{t.type}</td>
                   <td className="p-2 text-center">
                     {t.dueDate
-                      ? new Date(t.dueDate).toLocaleDateString("pt-BR")
-                      : t.isRecurring
-                      ? "Modelo"
-                      : "-"}
-                  </td>
+                        ? t.dueDate.slice(0, 10).split("-").reverse().join("/") 
+                       : t.isRecurring
+                        ? "Modelo"
+                       : "-"}
+                        </td>
+
                   <td className="p-2 text-center">
                     <div className="flex items-center justify-center gap-3">
                       <button
