@@ -27,13 +27,14 @@ const [endDate, setEndDate] = useState(dayjs().endOf("month").format("YYYY-MM-DD
     const maidsRes = await api("/maids");
 
     const mapped = checkouts.map((t) => ({
-      id: t.id,
-      date: dayjs.utc(t.date).format("YYYY-MM-DD"),
-      stay: t.stay || "Sem Stay",
-      rooms: t.rooms || "Sem identificação",
-      maid: t.maid || null,
-      maidId: t.maidId || null,
-    }));
+  id: t.id,
+  date: dayjs(t.date).format("YYYY-MM-DD"),
+  stay: t.stay || "Sem Stay",
+  rooms: t.rooms || "Sem identificação",
+  maid: t.maid || null,
+  maidId: t.maidId || null,
+}));
+
 
     setTasks(mapped);
     setMaids(maidsRes);
