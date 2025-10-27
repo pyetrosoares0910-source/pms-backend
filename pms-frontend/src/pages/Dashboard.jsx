@@ -74,17 +74,17 @@ export default function Dashboard() {
 useEffect(() => {
   (async () => {
     try {
-      const start = dayjs().startOf("week").format("YYYY-MM-DD");
-      const end = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
+      const { start: monthStart, end: monthEnd } = monthBounds();
 
       const [rsv, rms, sts, checkouts, maidsRes, maint] = await Promise.all([
         api("/reservations"),
         api("/rooms"),
         api("/stays"),
-        api(`/tasks/checkouts?start=${start}&end=${end}`),
+        api(`/tasks/checkouts?start=${monthStart.format("YYYY-MM-DD")}&end=${monthEnd.format("YYYY-MM-DD")}`),
         api("/maids"),
         api("/maintenance"),
       ]);
+
 
 
       const mappedTasks = (checkouts || []).map((t) => ({
