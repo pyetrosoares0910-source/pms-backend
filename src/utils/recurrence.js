@@ -1,6 +1,5 @@
-import { createRequire } from "module";
+const { createRequire } = require("module");
 const require = createRequire(import.meta.url);
-
 const { RRule, RRuleSet } = require("rrule");
 const { zonedTimeToUtc } = require("date-fns-tz");
 
