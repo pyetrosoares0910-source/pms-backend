@@ -60,9 +60,15 @@ export default function MaintenanceCalendar() {
   }
 
   const events = tasks.map((t) => {
-  const raw = t.dueDate || t.createdAt;
-  const date = new Date(raw);
+  let raw = t.dueDate || t.createdAt;
 
+  //  se vier em formato ISO UTC, remove o 'Z' pra tratar como local
+  if (typeof raw === "string" && raw.endsWith("Z")) {
+    raw = raw.slice(0, -1);
+  }
+
+  // cria o Date como se fosse local e força meio-dia
+  const date = new Date(raw);
   date.setHours(12, 0, 0, 0);
 
   return {
@@ -75,6 +81,7 @@ export default function MaintenanceCalendar() {
     extendedProps: t,
   };
 });
+
 
 
   async function handleUpdate() {
