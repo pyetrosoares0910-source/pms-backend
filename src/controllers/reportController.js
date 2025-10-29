@@ -22,6 +22,7 @@ async function getMonthlyPerformance(req, res) {
       include: {
         rooms: {
           include: { reservations: true },
+          orderBy: { position: "asc" },
         },
       },
     });
@@ -148,6 +149,7 @@ async function getAnnualPerformance(req, res) {
           include: {
             reservations: true,
           },
+          orderBy: { position: "asc" },
         },
       },
     });
