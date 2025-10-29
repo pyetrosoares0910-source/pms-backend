@@ -1,7 +1,5 @@
-const { RRule, RRuleSet } = require("rrule");
-const { zonedTimeToUtc } = require("date-fns-tz");
-
-
+import { RRule, RRuleSet } from "rrule";
+import { zonedTimeToUtc } from "date-fns-tz";
 
 // Map dias da semana para rrule
 const WD = {
