@@ -289,15 +289,27 @@ const kpis = useMemo(() => {
 
   // === Eventos (Manutenção) ===
   const maintenanceEvents = useMemo(
-    () =>
-      (maintenance || []).map((t) => ({
+  () =>
+    (maintenance || []).map((t) => {
+      let raw = t.dueDate || t.createdAt;
+
+      if (typeof raw === "string" && raw.endsWith("Z")) {
+        raw = raw.slice(0, -1);
+      }
+
+      const date = new Date(raw);
+      date.setHours(12, 0, 0, 0); // garante meio-dia local
+
+      return {
         id: t.id,
         title: `${t.title}${t.responsible ? " – " + t.responsible : ""}`,
-        start: t.dueDate || t.createdAt,
+        start: date,
         allDay: true,
-      })),
-    [maintenance]
-  );
+      };
+    }),
+  [maintenance]
+);
+
 
   // === Progresso de manutenção ===
   const maintenanceStats = useMemo(() => {
