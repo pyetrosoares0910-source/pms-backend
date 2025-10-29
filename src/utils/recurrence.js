@@ -1,8 +1,7 @@
-const { createRequire } = require("module");
-const require = createRequire(import.meta.url);
+// recurrence.js — versão CommonJS
+
 const { RRule, RRuleSet } = require("rrule");
 const { zonedTimeToUtc } = require("date-fns-tz");
-
 
 // Map dias da semana para rrule
 const WD = {
@@ -20,7 +19,7 @@ const WD = {
  * Exemplo de recurrence:
  * { mode:"monthly_by_day", days:[28], startDate:"2025-10-01" }
  */
-export function buildRules(recurrence, timezone = "America/Sao_Paulo") {
+function buildRules(recurrence, timezone = "America/Sao_Paulo") {
   if (!recurrence?.mode) throw new Error("Recurrence inválida");
   const { startDate, until, count } = recurrence;
   const dtstart = zonedTimeToUtc(new Date(startDate), timezone);
@@ -91,9 +90,15 @@ export function buildRules(recurrence, timezone = "America/Sao_Paulo") {
  * @param {string} timezone
  * @returns {Date[]} lista de datas
  */
-export function generateOccurrences(recurrence, horizonEnd, timezone = "America/Sao_Paulo") {
+function generateOccurrences(recurrence, horizonEnd, timezone = "America/Sao_Paulo") {
   const set = buildRules(recurrence, timezone);
   const start = new Date(recurrence.startDate);
   const dates = set.between(start, horizonEnd, true);
   return dates;
 }
+
+// Exporta as funções (padrão CommonJS)
+module.exports = {
+  buildRules,
+  generateOccurrences,
+};
