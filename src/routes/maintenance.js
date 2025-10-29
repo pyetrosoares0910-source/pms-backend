@@ -4,11 +4,12 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { generateOccurrences } = require("../utils/recurrence");
 
-// 🔢 Função auxiliar para gerar código tipo MT-2025-0001
+// 🔢 Função auxiliar para gerar código unico
 async function generateMaintenanceCode() {
-  const total = await prisma.maintenanceTask.count();
   const year = new Date().getFullYear();
-  return `MT-${year}-${String(total + 1).padStart(4, "0")}`;
+  const stamp = Date.now().toString().slice(-6);
+  const random = Math.floor(Math.random() * 1000); 
+  return `MT-${year}-${stamp}-${random}`;
 }
 
 /* ============================================================

@@ -644,12 +644,12 @@ const maidsTomorrow = useMemo(() => {
       {/* ==== AGENDAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CalendarCard
-          title="🧹 Agenda de Limpeza"
+          title="🫧 Cronograma de Limpeza"
           events={cleaningEvents}
           emptyText="Sem diaristas programadas"
         />
         <CalendarCard
-          title="🛠️ Agenda de Atividades"
+          title="📒 Cronograma de Atividades"
           events={maintenanceEvents}
           emptyText="Sem tarefas de manutenção"
         />
