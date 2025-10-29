@@ -1,8 +1,6 @@
-import pkg from "rrule";
-import * as dfnsTz from "date-fns-tz";
+const { RRule, RRuleSet } = require("rrule");
+const { zonedTimeToUtc } = require("date-fns-tz");
 
-const { RRule, RRuleSet } = pkg;
-const { zonedTimeToUtc } = dfnsTz;
 
 
 // Map dias da semana para rrule
