@@ -59,15 +59,23 @@ export default function MaintenanceCalendar() {
     }
   }
 
-  const events = tasks.map((t) => ({
+  const events = tasks.map((t) => {
+  const raw = t.dueDate || t.createdAt;
+  const date = new Date(raw);
+
+  date.setHours(12, 0, 0, 0);
+
+  return {
     id: t.id,
     title: `${t.title}${t.responsible ? " - " + t.responsible : ""}`,
-    start: t.dueDate || t.createdAt,
+    start: date,
     backgroundColor: colorByStatus(t),
     borderColor: colorByStatus(t),
     textColor: t.status === "pendente" ? "black" : "white",
     extendedProps: t,
-  }));
+  };
+});
+
 
   async function handleUpdate() {
     if (!selected) return;
