@@ -26,7 +26,10 @@ exports.uploadMiddleware = upload.single("image");
 // 🟢 Listar todos
 exports.getAllRooms = async (req, res) => {
   try {
-    const rooms = await prisma.room.findMany({ include: { stay: true } });
+     const rooms = await prisma.room.findMany({
+      include: { stay: true },
+      orderBy: { position: "asc" }, 
+    });
 
     const roomsWithFullImage = rooms.map((r) => ({
       ...r,
