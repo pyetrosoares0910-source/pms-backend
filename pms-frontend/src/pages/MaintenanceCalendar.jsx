@@ -125,6 +125,7 @@ export default function MaintenanceCalendar() {
             initialView="dayGridMonth"
             locale={ptLocale}
             height="85vh"
+            timeZone="local"
             headerToolbar={{
               left: "prev,next today",
               center: "title",
