@@ -56,9 +56,18 @@ export default function RelatorioLimpeza() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const start = dayjs(month).tz("America/Sao_Paulo").startOf("month").format("YYYY-MM-DD");
-      const end = dayjs(month).tz("America/Sao_Paulo").endOf("month").format("YYYY-MM-DD");
+  let isMounted = true; // evita setState depois que o componente desmonta
+
+  const fetchData = async () => {
+    try {
+      const start = dayjs(month)
+        .tz("America/Sao_Paulo")
+        .startOf("month")
+        .format("YYYY-MM-DD");
+      const end = dayjs(month)
+        .tz("America/Sao_Paulo")
+        .endOf("month")
+        .format("YYYY-MM-DD");
 
       const [checkouts, maidsRes, statuses] = await Promise.all([
         api(`/tasks/checkouts?start=${start}&end=${end}`),
@@ -66,40 +75,55 @@ export default function RelatorioLimpeza() {
         api(`/payments/status?start=${start}&end=${end}`).catch(() => []), // caso ainda não exista no backend
       ]);
 
-      // monta statusMap inicial
+      if (!isMounted) return; // interrompe se o componente foi desmontado
+
+      // === Monta statusMap inicial ===
       const initialMap = new Map();
-      (statuses || []).forEach(s => {
+      (statuses || []).forEach((s) => {
         if (s?.maidId && s?.date && s?.status) {
           initialMap.set(keyStatus(s.maidId, s.date), s.status);
         }
       });
-      setStatusMap(prev => {
-  const merged = new Map(prev);
-  initialMap.forEach((v, k) => merged.set(k, v));
-  return merged;
-});
 
+      setStatusMap((prev) => {
+        const merged = new Map(prev);
+        initialMap.forEach((v, k) => merged.set(k, v));
+        return merged;
+      });
 
-      const mapped = checkouts.map((t) => {
+      // === Mapeia checkouts ===
+      const mapped = (checkouts || []).map((t) => {
         const maidInfo = maidsRes.find((m) => m.id === t.maidId) || null;
         return {
           id: t.id,
           maidId: t.maidId,
-          // CORREÇÃO: removido o .add(1,"day")
           date: dayjs.utc(t.date).format("YYYY-MM-DD"),
           stay: t.stay || "Sem Stay",
           rooms: t.rooms || "Sem identificação",
           maid: maidInfo
-            ? { name: maidInfo.name, pix: maidInfo.pixKey || "", banco: maidInfo.bank || "" }
+            ? {
+                name: maidInfo.name,
+                pix: maidInfo.pixKey || "",
+                banco: maidInfo.bank || "",
+              }
             : { name: "Sem diarista", pix: "", banco: "" },
         };
       });
 
       setTasks(mapped);
       setMaids(maidsRes);
-    };
-    fetchData();
-  }, [api, month]);
+    } catch (err) {
+      console.error("❌ Erro ao carregar dados do relatório de limpeza:", err);
+    }
+  };
+
+  fetchData();
+
+  return () => {
+    isMounted = false; // cleanup para evitar state updates após unmount
+  };
+}, [month]); //  roda apenas quando o mês muda
+
 
   const availableStays = [...new Set(tasks.map((t) => t.stay).filter(Boolean))];
 

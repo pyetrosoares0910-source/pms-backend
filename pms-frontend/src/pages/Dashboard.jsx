@@ -72,7 +72,9 @@ export default function Dashboard() {
  
   // === Carrega dados ===
 useEffect(() => {
-  (async () => {
+  let isMounted = true; // evita atualizar estado se o componente for desmontado
+
+  const fetchData = async () => {
     try {
       const start = dayjs().startOf("week").format("YYYY-MM-DD");
       const end = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
@@ -86,10 +88,13 @@ useEffect(() => {
         api("/maintenance"),
       ]);
 
+      if (!isMounted) return; // interrompe se o componente já desmontou
 
       const mappedTasks = (checkouts || []).map((t) => ({
         id: t.id,
-        date: dayjs.utc(t.date || t.checkoutDate || new Date()).format("YYYY-MM-DD"),
+        date: dayjs
+          .utc(t.date || t.checkoutDate || new Date())
+          .format("YYYY-MM-DD"),
         stay: t.stay || "Sem Stay",
         rooms: t.rooms || "Sem identificação",
         maid: t.maid || null,
@@ -105,8 +110,15 @@ useEffect(() => {
     } catch (err) {
       console.error("Erro ao carregar dashboard:", err);
     }
-  })();
-}, [api]);
+  };
+
+  fetchData();
+
+  return () => {
+    isMounted = false; // cleanup seguro
+  };
+}, []); 
+
 
 
   const today = dayjs().startOf("day");
