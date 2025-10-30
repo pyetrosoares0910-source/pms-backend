@@ -117,7 +117,7 @@ export default function Rooms() {
       const formData = new FormData();
       formData.append("image", file);
 
-      await api.post(`/rooms/${id}/upload`, formData);
+      await api.post(`/rooms/${id}/image`, formData);
 
 
       fetchRoomsAndStays();

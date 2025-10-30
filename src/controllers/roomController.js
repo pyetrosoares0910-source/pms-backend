@@ -5,13 +5,13 @@ const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 
 const prisma = new PrismaClient();
-const BASE_URL = process.env.BASE_URL || "https://pms-backend-d3e1.onrender.com";
 
 // ☁️ Configuração Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
 });
 
 // 📦 Multer (em memória)
@@ -26,21 +26,20 @@ exports.uploadMiddleware = upload.single("image");
 // 🟢 Listar todos
 exports.getAllRooms = async (req, res) => {
   try {
-     const rooms = await prisma.room.findMany({
+    const rooms = await prisma.room.findMany({
       include: { stay: true },
-      orderBy: { position: "asc" }, 
+      orderBy: { position: "asc" },
     });
 
-    const roomsWithFullImage = rooms.map((r) => ({
+    // Remove fallback local — só mantém URLs Cloudinary válidas
+    const cleanRooms = rooms.map((r) => ({
       ...r,
-      imageUrl: r.imageUrl
-        ? r.imageUrl.startsWith("http")
-          ? r.imageUrl
-          : `${BASE_URL}${r.imageUrl}`
+      imageUrl: r.imageUrl && r.imageUrl.startsWith("http")
+        ? r.imageUrl
         : null,
     }));
 
-    res.json(roomsWithFullImage);
+    res.json(cleanRooms);
   } catch (err) {
     console.error("❌ Erro ao listar quartos:", err);
     res.status(500).json({ error: "Erro interno ao listar quartos." });
@@ -56,14 +55,14 @@ exports.getRoomById = async (req, res) => {
       include: { stay: true },
     });
 
-    if (!room) return res.status(404).json({ error: "Room não encontrado" });
+    if (!room) {
+      return res.status(404).json({ error: "Room não encontrado" });
+    }
 
     res.json({
       ...room,
-      imageUrl: room.imageUrl
-        ? room.imageUrl.startsWith("http")
-          ? room.imageUrl
-          : `${BASE_URL}${room.imageUrl}`
+      imageUrl: room.imageUrl && room.imageUrl.startsWith("http")
+        ? room.imageUrl
         : null,
     });
   } catch (err) {
@@ -112,19 +111,23 @@ exports.deleteRoom = async (req, res) => {
   }
 };
 
-// 📤 Upload Room Image
+// 📤 Upload Room Image (Cloudinary)
 exports.uploadRoomImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum arquivo enviado" });
     }
 
-    // Converte o buffer em base64 para enviar ao Cloudinary
+    // Converte buffer para Base64
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
+    // Faz upload otimizado pro Cloudinary
     const result = await cloudinary.uploader.upload(fileBase64, {
       folder: "rooms",
       resource_type: "image",
+      transformation: [
+        { quality: "auto", fetch_format: "auto" }, // compressão e conversão automáticas
+      ],
     });
 
     // Atualiza no banco
@@ -133,9 +136,13 @@ exports.uploadRoomImage = async (req, res) => {
       data: { imageUrl: result.secure_url },
     });
 
-    res.json({ message: "Upload concluído com sucesso!", room });
+    res.json({
+      message: "Upload concluído com sucesso!",
+      imageUrl: result.secure_url,
+      room,
+    });
   } catch (error) {
     console.error("❌ Erro ao enviar imagem:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Falha no upload", details: error.message });
   }
 };
