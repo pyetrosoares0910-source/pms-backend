@@ -21,6 +21,10 @@ import CleaningReport from "../pages/CleaningReport";
 import PerformanceReport from "../pages/PerformanceReport";
 import MaintenanceCalendar from "../pages/MaintenanceCalendar";
 import { useParams } from "react-router-dom";
+import Products from "../pages/Products";
+import Inventory from "../pages/Inventory";
+import Purchases from "../pages/Purchases";
+import ConsumptionProfiles from "../pages/ConsumptionProfiles";
 
 const router = createBrowserRouter([
   {
@@ -48,6 +52,10 @@ const router = createBrowserRouter([
           { path: "/cleaning-report", element: <CleaningReport /> },
           { path: "/performance-report", element: <PerformanceReport />,},
           { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
+          { path: "/products", element: <Products /> },
+          { path: "/inventory", element: <Inventory /> },
+          { path: "/purchases", element: <Purchases /> },
+          { path: "/consumption", element: <ConsumptionProfiles /> },
         ],
       },
     ],
