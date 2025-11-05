@@ -23,7 +23,17 @@ export default function Products() {
 
   async function createProduct(e) {
     e.preventDefault();
-    await axios.post(`${API}/products`, { ...form, active: true });
+    await axios.post(`${API}/products`, {
+  ...form,
+  active: true,
+  packageSizeValue: form.packageSizeValue
+    ? parseInt(form.packageSizeValue)
+    : null,
+  defaultPrice: form.defaultPrice
+    ? parseFloat(form.defaultPrice)
+    : null,
+});
+
     setForm({
       name: "",
       category: "",

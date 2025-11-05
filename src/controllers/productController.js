@@ -18,10 +18,27 @@ async function listProducts(req, res) {
 }
 
 async function createProduct(req, res) {
-  const data = req.body;
-  const item = await prisma.product.create({ data });
-  res.status(201).json(item);
+  const data = req.body; 
+
+  const parsedData = {
+    ...data,
+    packageSizeValue: data.packageSizeValue
+      ? parseInt(data.packageSizeValue)
+      : null,
+    defaultPrice: data.defaultPrice
+      ? parseFloat(data.defaultPrice)
+      : null,
+  };
+
+  try {
+    const item = await prisma.product.create({ data: parsedData });
+    res.status(201).json(item);
+  } catch (error) {
+    console.error("❌ Erro ao criar produto:", error);
+    res.status(500).json({ error: "Erro ao criar produto" });
+  }
 }
+
 
 async function getProduct(req, res) {
   const item = await prisma.product.findUnique({ where: { id: String(req.params.id) } });
