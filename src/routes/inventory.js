@@ -6,7 +6,8 @@ const {
   createOrUpdateInventory,
   patchInventory,
   createPurchase,
-  applyCheckout
+  applyCheckout,
+  listPurchases
 } = require("../controllers/inventoryController.js");
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const router = express.Router();
 router.get("/inventory", getInventory);
 router.post("/inventory", createOrUpdateInventory);
 router.patch("/inventory/:id", patchInventory);
+router.get("/purchases", listPurchases);
 router.post("/purchases", createPurchase);
 router.post("/inventory/apply-checkout", applyCheckout);
 

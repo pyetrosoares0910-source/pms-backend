@@ -101,6 +101,35 @@ async function createPurchase(req, res) {
   res.status(201).json(out);
 }
 
+async function listPurchases(req, res) {
+  try {
+    const { stayId, productId, from, to } = req.query;
+    const where = {};
+
+    if (stayId) where.stayId = stayId;
+    if (productId) where.productId = productId;
+    if (from || to) {
+      where.purchaseDate = {};
+      if (from) where.purchaseDate.gte = new Date(from);
+      if (to) where.purchaseDate.lte = new Date(to);
+    }
+
+    const purchases = await prisma.purchase.findMany({
+      where,
+      include: {
+        product: true,
+        stay: true,
+      },
+      orderBy: { purchaseDate: "desc" },
+    });
+
+    res.json(purchases);
+  } catch (error) {
+    console.error("❌ Erro ao listar compras:", error);
+    res.status(500).json({ error: "Erro ao listar compras" });
+  }
+}
+
 async function applyCheckout(req, res) {
   const { reservationId, stayId, roomId, checkoutDate } = req.body;
   if (!stayId || !checkoutDate)
@@ -120,5 +149,6 @@ module.exports = {
   createOrUpdateInventory,
   patchInventory,
   createPurchase,
-  applyCheckout
+  applyCheckout,
+  listPurchases,
 };
