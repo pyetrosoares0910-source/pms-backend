@@ -7,30 +7,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UnitBase {
+  ML
+  G
+  UNIT
+}
+
 model Stay {
-  id               String            @id @default(uuid())
+  id               String                      @id @default(uuid())
   name             String
-  createdAt        DateTime          @default(now())
+  createdAt        DateTime                    @default(now())
   position         Int?
   maintenanceTasks MaintenanceTask[]
   rooms            Room[]
+  inventories      Inventory[]
+  purchases        Purchase[]
+  profiles         ConsumptionProfile[]
+  events           ConsumptionEvent[]
+  dailyCommon      DailyCommonConsumptionLog[]
+
+  @@unique([name])
 }
 
 model Room {
-  id               String            @id @default(uuid())
-  active           Boolean           @default(true)
+  id               String               @id @default(uuid())
+  active           Boolean              @default(true)
   stayId           String?
   description      String?
   title            String
   capacity         Int?
   imageUrl         String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   category         String?
   position         Int?
   maintenanceTasks MaintenanceTask[]
   reservations     Reservation[]
-  stay             Stay?             @relation(fields: [stayId], references: [id])
+  stay             Stay?                @relation(fields: [stayId], references: [id])
+  profiles         ConsumptionProfile[]
+  events           ConsumptionEvent[] 
+
+  @@unique([stayId, title])
 }
 
 model Guest {
@@ -136,6 +153,106 @@ model MaintenanceTask {
 
   @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
   @@index([parentId])
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  name             String
+  category         String
+  unitBase         UnitBase
+  packageSizeValue Int?
+  packageSizeUnit  String?
+  defaultPrice     Decimal?
+  active           Boolean  @default(true)
+
+  consumptionProfiles       ConsumptionProfile[]
+  inventories               Inventory[]
+  purchases                 Purchase[]
+  consumptionEvents         ConsumptionEvent[]
+  dailyCommon      DailyCommonConsumptionLog[]
+
+  @@unique([name, category])
+  @@index([active])
+  @@index([category])
+}
+
+model ConsumptionProfile {
+  id                     String  @id @default(cuid())
+  stayId                 String
+  roomId                 String?
+  productId              String
+  consumptionPerCleaning Int
+  appliesToCommonAreas   Boolean @default(false)
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  room    Room?   @relation(fields: [roomId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([stayId, roomId, productId])
+  @@index([appliesToCommonAreas])
+}
+
+model Inventory {
+  id        String @id @default(cuid())
+  stayId    String
+  productId String
+  quantity  Int
+  capacity  Int
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([stayId, productId])
+  @@index([stayId])
+  @@index([productId])
+}
+
+model Purchase {
+  id           String   @id @default(cuid())
+  stayId       String
+  productId    String
+  quantity     Int
+  unitPrice    Decimal?
+  purchaseDate DateTime @default(now())
+  notes        String?
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([purchaseDate])
+}
+
+model ConsumptionEvent {
+  id            String   @id @default(cuid())
+  stayId        String
+  roomId        String?
+  productId     String
+  quantity      Int
+  occurredAt    DateTime @default(now())
+  reason        String
+  reservationId String?
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  room    Room?   @relation(fields: [roomId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([occurredAt])
+  @@index([reservationId])
+}
+
+model DailyCommonConsumptionLog {
+  id        String   @id @default(cuid())
+  stayId    String
+  productId String
+  date      DateTime
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([stayId, productId, date])
+  @@index([date])
 }
 
 enum PaymentState {

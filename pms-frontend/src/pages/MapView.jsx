@@ -172,7 +172,7 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
             disabled={loading}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
           >
-            Fazer check-out
+            Expedia - cobrar limpeza
           </button>
           <button
             onClick={() => setEditOpen(true)}

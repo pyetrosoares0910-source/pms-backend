@@ -63,6 +63,10 @@ const maidRoutes = require("./routes/maids");
 const reportPdfRoutes = require("./routes/reportPdfRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 
+// 📦 Rotas de Estoque e Produtos
+const productsRoutes = require("./routes/products");
+const inventoryRoutes = require("./routes/inventory");
+const consumptionProfilesRoutes = require("./routes/consumptionProfiles");
 
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
@@ -78,6 +82,9 @@ app.use("/maids", maidRoutes);
 app.use("/reports", require("./routes/reportRoutes"));
 app.use("/", reportPdfRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/api", productsRoutes);
+app.use("/api", inventoryRoutes);
+app.use("/api", consumptionProfilesRoutes);
 
 // 🔹 Teste
 app.get("/", (req, res) => {
