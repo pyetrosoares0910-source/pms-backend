@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Button, Input, Select } from "react-daisyui";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3333/api";
+const API = `${import.meta.env.VITE_API_URL}/api`;
+
 
 export default function Products() {
   const [products, setProducts] = useState([]);
