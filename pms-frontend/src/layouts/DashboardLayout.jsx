@@ -18,6 +18,10 @@ import {
   LogOut,
   BarChart3,
   ClipboardList, 
+  Package,          
+  ShoppingCart,     
+  Settings2,       
+  Boxes,    
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
@@ -156,6 +160,26 @@ export default function DashboardLayout() {
           <Item to="/maintenance" icon={Wrench} showText={showText}>
             Atividades
           </Item>
+
+          {showText && (
+  <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
+    Estoque
+  </div>
+)}
+
+<Item to="/products" icon={Package} showText={showText}>
+  Produtos
+</Item>
+<Item to="/inventory" icon={Boxes} showText={showText}>
+  Inventário
+</Item>
+<Item to="/purchases" icon={ShoppingCart} showText={showText}>
+  Compras
+</Item>
+<Item to="/consumption" icon={Settings2} showText={showText}>
+  Perfis de Consumo
+</Item>
+
 
           {showText && (
             <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
