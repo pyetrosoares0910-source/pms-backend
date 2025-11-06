@@ -203,7 +203,10 @@ export default function Purchases() {
                 <td>{p.stay?.name || p.stayId}</td>
                 <td>{p.product?.name || p.productId}</td>
                 <td>{p.quantity} {p.product?.unitBase || ""}</td>
-                <td>{p.unitPrice ? p.unitPrice.toFixed(2) : "-"}</td>
+                <td>{p.unitPrice
+    ? Number(p.unitPrice).toFixed(2)
+    : "-"}
+</td>
                 <td>{p.notes || "-"}</td>
               </tr>
             ))}
