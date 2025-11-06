@@ -275,7 +275,7 @@ export default function Purchases() {
       </form>
 
       {/* LISTAGEM AGRUPADA EM ROMANEIOS */}
-<div className="space-y-5">
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
   {(() => {
     // ======== Agrupa compras por stay + data ========
     const groups = {};
@@ -293,12 +293,11 @@ export default function Purchases() {
       groups[key].items.push(p);
     });
 
-    // ======== Gera os recibos agrupados ========
     const entries = Object.values(groups);
 
     if (entries.length === 0) {
       return (
-        <div className="text-center text-gray-400">
+        <div className="text-center col-span-full text-gray-400">
           Nenhuma compra registrada
         </div>
       );
@@ -318,9 +317,7 @@ export default function Purchases() {
           {/* Cabeçalho */}
           <div className="flex justify-between items-center border-b pb-1">
             <div>
-              <h3 className="font-bold text-gray-800">
-                {group.stay}
-              </h3>
+              <h3 className="font-bold text-gray-800">{group.stay}</h3>
               <p className="text-xs text-gray-500">
                 {group.date.toLocaleDateString("pt-BR")}
               </p>
