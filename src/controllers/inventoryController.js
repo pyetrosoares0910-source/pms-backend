@@ -173,6 +173,21 @@ async function createPurchase(req, res) {
   }
 }
 
+async function deletePurchase(req, res) {
+  const { id } = req.params;
+  try {
+    const existing = await prisma.purchase.findUnique({ where: { id } });
+    if (!existing)
+      return res.status(404).json({ error: "Compra não encontrada" });
+
+    await prisma.purchase.delete({ where: { id } });
+    res.json({ message: "Compra deletada com sucesso" });
+  } catch (error) {
+    console.error("❌ Erro ao deletar compra:", error);
+    res.status(500).json({ error: "Erro ao deletar compra" });
+  }
+}
+
 
 async function listPurchases(req, res) {
   try {
@@ -224,4 +239,5 @@ module.exports = {
   createPurchase,
   applyCheckout,
   listPurchases,
+  deletePurchase,
 };

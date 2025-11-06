@@ -7,7 +7,8 @@ const {
   patchInventory,
   createPurchase,
   applyCheckout,
-  listPurchases
+  listPurchases,
+  deletePurchase
 } = require("../controllers/inventoryController.js");
 
 const router = express.Router();
@@ -18,5 +19,7 @@ router.patch("/inventory/:id", patchInventory);
 router.get("/purchases", listPurchases);
 router.post("/purchases", createPurchase);
 router.post("/inventory/apply-checkout", applyCheckout);
+router.delete("/purchases/:id", deletePurchase);
+
 
 module.exports = router;

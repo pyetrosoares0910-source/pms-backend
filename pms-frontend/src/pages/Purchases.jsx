@@ -274,93 +274,140 @@ export default function Purchases() {
         </Button>
       </form>
 
-      {/* VISUALIZADOR DE COMPRAS EM FORMATO DE RECIBO */}
-<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {purchases.length === 0 && (
-    <div className="text-center col-span-full text-gray-400">
-      Nenhuma compra registrada
-    </div>
-  )}
+      {/* LISTAGEM AGRUPADA EM ROMANEIOS */}
+<div className="space-y-5">
+  {(() => {
+    // ======== Agrupa compras por stay + data ========
+    const groups = {};
+    purchases.forEach((p) => {
+      const key = `${p.stayId}_${new Date(p.purchaseDate)
+        .toISOString()
+        .split("T")[0]}`;
+      if (!groups[key]) {
+        groups[key] = {
+          stay: p.stay?.name || "Empreendimento",
+          date: new Date(p.purchaseDate),
+          items: [],
+        };
+      }
+      groups[key].items.push(p);
+    });
 
-  {purchases.map((p) => {
-    const total = (p.quantity || 0) * (p.unitPrice || 0);
-    return (
-      <div
-        key={p.id}
-        className="bg-base-100 border border-gray-300 rounded-xl shadow-sm p-4 space-y-3 relative overflow-hidden hover:shadow-md transition"
-      >
-        {/* Cabeçalho */}
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-base text-gray-700">
-            {p.stay?.name || "Empreendimento"}
-          </h3>
-          <span className="text-xs text-gray-500">
-            {new Date(p.purchaseDate).toLocaleDateString()}
-          </span>
+    // ======== Gera os recibos agrupados ========
+    const entries = Object.values(groups);
+
+    if (entries.length === 0) {
+      return (
+        <div className="text-center text-gray-400">
+          Nenhuma compra registrada
         </div>
+      );
+    }
 
-        {/* Produto e Quantidade */}
-        <div className="border-t border-gray-200 pt-2">
-          <p className="text-sm font-medium">
-            🧴 {p.product?.name || p.notes?.replace("•", "") || "Produto Avulso"}
-          </p>
-          <p className="text-xs text-gray-600 mt-1">
-            Quantidade: {p.quantity} {p.product?.unitBase || ""}
-          </p>
-          <p className="text-xs text-gray-600">
-            Valor Unitário: R$ {Number(p.unitPrice || 0).toFixed(2)}
-          </p>
-          <p className="text-sm font-semibold mt-1">
-            💰 Total: R$ {total.toFixed(2)}
-          </p>
-        </div>
+    return entries.map((group, index) => {
+      const totalCompra = group.items.reduce(
+        (acc, i) => acc + (i.quantity || 0) * (i.unitPrice || 0),
+        0
+      );
 
-        {/* Notas adicionais */}
-        {p.notes && (
-          <div className="bg-gray-50 text-xs text-gray-600 p-2 rounded-md mt-2">
-            {p.notes}
-          </div>
-        )}
-
-        {/* Rodapé */}
-        <div className="flex justify-between items-center mt-2 text-xs border-t pt-2 text-gray-500">
-          <span>
-            Status:{" "}
-            <span
-              className={`font-semibold ${
-                p.status === "pago" ? "text-green-600" : "text-yellow-600"
-              }`}
-            >
-              {p.status || "pendente"}
-            </span>
-          </span>
-
-          <button
-            onClick={async () => {
-              if (confirm("Deseja realmente excluir esta compra?")) {
-                try {
-                  await axios.delete(`${API}/purchases/${p.id}`);
-                  await load();
-                } catch (err) {
-                  console.error("Erro ao deletar compra:", err);
-                  alert("Falha ao excluir compra.");
+      return (
+        <div
+          key={index}
+          className="bg-base-100 border border-gray-300 rounded-xl shadow-sm p-4 space-y-3 relative overflow-hidden hover:shadow-md transition"
+        >
+          {/* Cabeçalho */}
+          <div className="flex justify-between items-center border-b pb-1">
+            <div>
+              <h3 className="font-bold text-gray-800">
+                {group.stay}
+              </h3>
+              <p className="text-xs text-gray-500">
+                {group.date.toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+            <Button
+              color="error"
+              size="xs"
+              onClick={async () => {
+                if (
+                  confirm(
+                    "Deseja excluir todas as compras desta data/empreendimento?"
+                  )
+                ) {
+                  try {
+                    const ids = group.items.map((i) => i.id);
+                    await Promise.all(
+                      ids.map((id) => axios.delete(`${API}/purchases/${id}`))
+                    );
+                    await load();
+                  } catch (err) {
+                    console.error("Erro ao deletar grupo:", err);
+                    alert("Falha ao excluir grupo de compras.");
+                  }
                 }
-              }
-            }}
-            className="text-red-500 hover:text-red-700 transition flex items-center gap-1"
-            title="Excluir compra"
-          >
-            <Trash2 size={14} />
-            <span>Excluir</span>
-          </button>
-        </div>
+              }}
+            >
+              <Trash2 size={14} />
+              Excluir
+            </Button>
+          </div>
 
-        {/* Detalhe visual de recibo */}
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-[repeating-linear-gradient(45deg,#e5e7eb_0_4px,transparent_4px_8px)] opacity-50 rounded-b-xl"></div>
-      </div>
-    );
-  })}
-</div>  
+          {/* Lista de produtos */}
+          <div className="divide-y divide-gray-200 text-sm">
+            {group.items.map((i) => {
+              const subtotal = (i.quantity || 0) * (i.unitPrice || 0);
+              return (
+                <div
+                  key={i.id}
+                  className="py-2 flex justify-between items-center"
+                >
+                  <div>
+                    <span className="font-medium text-gray-800">
+                      {i.product?.name ||
+                        i.notes?.replace("•", "").trim() ||
+                        "Produto Avulso"}
+                    </span>
+                    <span className="text-gray-500 ml-1">
+                      – {i.quantity} {i.product?.unitBase || ""}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">
+                      R$ {Number(i.unitPrice || 0).toFixed(2)} un.
+                    </p>
+                    <p className="font-semibold">
+                      R$ {subtotal.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Total */}
+          <div className="pt-2 mt-2 border-t flex justify-between items-center">
+            <p className="text-sm text-gray-500">Total da compra:</p>
+            <p className="text-lg font-bold text-primary">
+              R$ {totalCompra.toFixed(2)}
+            </p>
+          </div>
+
+          {/* Status (simples, por enquanto default pendente) */}
+          <div className="flex justify-end items-center text-xs text-gray-500">
+            Status:{" "}
+            <span className="font-semibold ml-1 text-yellow-600">
+              pendente
+            </span>
+          </div>
+
+          {/* Detalhe visual de recibo */}
+          <div className="absolute bottom-0 left-0 right-0 h-2 bg-[repeating-linear-gradient(45deg,#e5e7eb_0_4px,transparent_4px_8px)] opacity-50 rounded-b-xl"></div>
+        </div>
+      );
+    });
+  })()}
+</div>
+
     </div>
   );
 }
