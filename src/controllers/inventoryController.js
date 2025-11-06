@@ -73,6 +73,7 @@ async function patchInventory(req, res) {
 }
 
 async function createPurchase(req, res) {
+    console.log("🧾 Novo POST /purchases:", req.body);
   const { stayId, productId, quantityValue, quantityUnit, unitPrice, purchaseDate, notes } = req.body;
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
