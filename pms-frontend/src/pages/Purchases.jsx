@@ -274,42 +274,93 @@ export default function Purchases() {
         </Button>
       </form>
 
-      {/* LISTAGEM DE COMPRAS (básica) */}
-      <div className="overflow-x-auto bg-base-200 rounded-xl p-4 shadow">
-        <table className="table table-zebra w-full text-sm">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Empreendimento</th>
-              <th>Produto</th>
-              <th>Qtd</th>
-              <th>Preço (R$)</th>
-              <th>Notas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center text-gray-400">
-                  Nenhuma compra registrada
-                </td>
-              </tr>
-            )}
-            {purchases.map((p) => (
-              <tr key={p.id}>
-                <td>{new Date(p.purchaseDate).toLocaleDateString()}</td>
-                <td>{p.stay?.name || "-"}</td>
-                <td>{p.product?.name || "-"}</td>
-                <td>
-                  {p.quantity} {p.product?.unitBase}
-                </td>
-                <td>{Number(p.unitPrice || 0).toFixed(2)}</td>
-                <td>{p.notes || "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* VISUALIZADOR DE COMPRAS EM FORMATO DE RECIBO */}
+<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {purchases.length === 0 && (
+    <div className="text-center col-span-full text-gray-400">
+      Nenhuma compra registrada
+    </div>
+  )}
+
+  {purchases.map((p) => {
+    const total = (p.quantity || 0) * (p.unitPrice || 0);
+    return (
+      <div
+        key={p.id}
+        className="bg-base-100 border border-gray-300 rounded-xl shadow-sm p-4 space-y-3 relative overflow-hidden hover:shadow-md transition"
+      >
+        {/* Cabeçalho */}
+        <div className="flex justify-between items-center">
+          <h3 className="font-bold text-base text-gray-700">
+            {p.stay?.name || "Empreendimento"}
+          </h3>
+          <span className="text-xs text-gray-500">
+            {new Date(p.purchaseDate).toLocaleDateString()}
+          </span>
+        </div>
+
+        {/* Produto e Quantidade */}
+        <div className="border-t border-gray-200 pt-2">
+          <p className="text-sm font-medium">
+            🧴 {p.product?.name || p.notes?.replace("•", "") || "Produto Avulso"}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            Quantidade: {p.quantity} {p.product?.unitBase || ""}
+          </p>
+          <p className="text-xs text-gray-600">
+            Valor Unitário: R$ {Number(p.unitPrice || 0).toFixed(2)}
+          </p>
+          <p className="text-sm font-semibold mt-1">
+            💰 Total: R$ {total.toFixed(2)}
+          </p>
+        </div>
+
+        {/* Notas adicionais */}
+        {p.notes && (
+          <div className="bg-gray-50 text-xs text-gray-600 p-2 rounded-md mt-2">
+            {p.notes}
+          </div>
+        )}
+
+        {/* Rodapé */}
+        <div className="flex justify-between items-center mt-2 text-xs border-t pt-2 text-gray-500">
+          <span>
+            Status:{" "}
+            <span
+              className={`font-semibold ${
+                p.status === "pago" ? "text-green-600" : "text-yellow-600"
+              }`}
+            >
+              {p.status || "pendente"}
+            </span>
+          </span>
+
+          <button
+            onClick={async () => {
+              if (confirm("Deseja realmente excluir esta compra?")) {
+                try {
+                  await axios.delete(`${API}/purchases/${p.id}`);
+                  await load();
+                } catch (err) {
+                  console.error("Erro ao deletar compra:", err);
+                  alert("Falha ao excluir compra.");
+                }
+              }
+            }}
+            className="text-red-500 hover:text-red-700 transition flex items-center gap-1"
+            title="Excluir compra"
+          >
+            <Trash2 size={14} />
+            <span>Excluir</span>
+          </button>
+        </div>
+
+        {/* Detalhe visual de recibo */}
+        <div className="absolute bottom-0 left-0 right-0 h-2 bg-[repeating-linear-gradient(45deg,#e5e7eb_0_4px,transparent_4px_8px)] opacity-50 rounded-b-xl"></div>
       </div>
+    );
+  })}
+</div>  
     </div>
   );
 }
