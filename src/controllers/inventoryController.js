@@ -73,34 +73,106 @@ async function patchInventory(req, res) {
 }
 
 async function createPurchase(req, res) {
-    console.log("🧾 Novo POST /purchases:", req.body);
-  const { stayId, productId, quantityValue, quantityUnit, unitPrice, purchaseDate, notes } = req.body;
+  console.log("🧾 Novo POST /purchases:", req.body);
 
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product) return res.status(404).json({ error: "Product not found" });
+  try {
+    const { stayId, productId, quantityValue, quantityUnit, unitPrice, purchaseDate, notes } = req.body;
 
-  const { unitBase, baseValue } = toBaseUnit(Number(quantityValue), quantityUnit);
-  if (unitBase !== product.unitBase)
-    return res.status(400).json({ error: "Unit mismatch with product.unitBase" });
+    if (!stayId) {
+      return res.status(400).json({ error: "Campo stayId é obrigatório." });
+    }
 
-  const date = purchaseDate ? dayjs(purchaseDate).toDate() : new Date();
+    // =========================
+    // 🔍 VERIFICA PRODUTO
+    // =========================
+    let product = null;
 
-  const out = await prisma.$transaction(async (tx) => {
-    const p = await tx.purchase.create({
-      data: { stayId, productId, quantity: baseValue, unitPrice, purchaseDate: date, notes }
+    if (productId) {
+      product = await prisma.product.findUnique({ where: { id: productId } });
+    }
+
+    // caso produto não exista, cria um genérico (para compras ocasionais)
+    if (!product) {
+      console.warn("⚠️ Produto não encontrado, criando genérico...");
+      const nomeProduto = notes?.trim() || "Produto Avulso";
+
+      product = await prisma.product.create({
+        data: {
+          name: nomeProduto,
+          category: "Avulso",
+          unitBase: quantityUnit?.toUpperCase() || "UN",
+          packageSizeValue: Number(quantityValue) || 1,
+          packageSizeUnit: quantityUnit || "un",
+          defaultPrice: Number(unitPrice) || 0,
+          active: false,
+        },
+      });
+    }
+
+    // =========================
+    // 📏 CONVERSÃO DE UNIDADES
+    // =========================
+    let { unitBase, baseValue } = toBaseUnit(Number(quantityValue), quantityUnit);
+
+    if (unitBase !== product.unitBase) {
+      console.warn(
+        `⚠️ Unidade divergente: produto usa ${product.unitBase}, recebido ${unitBase}. Tentando conversão...`
+      );
+
+      // conversões simples
+      if (unitBase === "L" && product.unitBase === "ML") baseValue *= 1000;
+      else if (unitBase === "ML" && product.unitBase === "L") baseValue /= 1000;
+      else if (unitBase === "KG" && product.unitBase === "G") baseValue *= 1000;
+      else if (unitBase === "G" && product.unitBase === "KG") baseValue /= 1000;
+      else if (unitBase !== product.unitBase) {
+        // se não tiver conversão direta
+        console.warn("⚠️ Conversão desconhecida. Mantendo valor original.");
+      }
+    }
+
+    const date = purchaseDate ? dayjs(purchaseDate).toDate() : new Date();
+
+    // =========================
+    // 💾 TRANSAÇÃO PRINCIPAL
+    // =========================
+    const out = await prisma.$transaction(async (tx) => {
+      const p = await tx.purchase.create({
+        data: {
+          stayId,
+          productId: product.id,
+          quantity: baseValue,
+          unitPrice: Number(unitPrice) || 0,
+          purchaseDate: date,
+          notes,
+        },
+      });
+
+      await tx.inventory.upsert({
+        where: { stayId_productId: { stayId, productId: product.id } },
+        update: { quantity: { increment: baseValue } },
+        create: {
+          stayId,
+          productId: product.id,
+          quantity: baseValue,
+          capacity: baseValue,
+        },
+      });
+
+      return p;
     });
 
-    await tx.inventory.upsert({
-      where: { stayId_productId: { stayId, productId } },
-      update: { quantity: { increment: baseValue } },
-      create: { stayId, productId, quantity: baseValue, capacity: baseValue }
+    res.status(201).json(out);
+  } catch (error) {
+    console.error("❌ Erro ao criar purchase:", error);
+    res.status(400).json({
+      error: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack,
     });
-
-    return p;
-  });
-
-  res.status(201).json(out);
+  }
 }
+
 
 async function listPurchases(req, res) {
   try {
