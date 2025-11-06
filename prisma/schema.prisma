@@ -196,8 +196,8 @@ model Inventory {
   id        String @id @default(cuid())
   stayId    String
   productId String
-  quantity  Int
-  capacity  Int
+  quantity  Float    @default(0)
+  capacity  Float    @default(0)
 
   stay    Stay    @relation(fields: [stayId], references: [id])
   product Product @relation(fields: [productId], references: [id])
@@ -211,8 +211,8 @@ model Purchase {
   id           String   @id @default(cuid())
   stayId       String
   productId    String
-  quantity     Int
-  unitPrice    Decimal?
+  quantity     Float
+  unitPrice    Float
   purchaseDate DateTime @default(now())
   notes        String?
 
