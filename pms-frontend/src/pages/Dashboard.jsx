@@ -376,25 +376,7 @@ const maidsTomorrow = useMemo(() => {
 {/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-<DashboardKPIGrid>
-  {/* → /map */}
-  <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" to="/map" />
-  <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" to="/map" />
-  <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" to="/map" />
-  <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" to="/map" />
-  <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" to="/map" />
-
-  {/* → /performance-report */}
-  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? "-"} icon="🏆" to="/performance-report" />
-  <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" to="/performance-report" />
-  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? "-"} icon="⚠️" to="/performance-report" />
-
-  {/* → /cleaning-schedule */}
-  <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" to="/cleaning-schedule" />
-  <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" to="/cleaning-schedule" />
-</DashboardKPIGrid>
-
-
+<DashboardKPIGrid kpis={kpis} />
 
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
 <div className="lg:col-span-2 flex flex-col gap-6">
