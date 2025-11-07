@@ -25,6 +25,7 @@ import utc from "dayjs/plugin/utc";
 import isBetween from "dayjs/plugin/isBetween";
 import StatCard from "../components/StatCard";
 import DashboardKPIGrid from "../components/DashboardKPIGrid";
+import KpiGaugeOcupacao from "../components/KpiGaugeOcupacao";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -135,6 +136,26 @@ useEffect(() => {
         roomsByStay[stayId] = { stayId, stayName: r.stay?.name, rooms: [] };
       roomsByStay[stayId].rooms.push(r.id);
     });
+
+      // === Ocupação geral do mês ===
+const ocupacaoGeral = useMemo(() => {
+  let totalNights = 0;
+  let totalCapacity = 0;
+
+  occupancy.rows.forEach(o => {
+    const stayRooms = rooms.filter(r => r.stay?.id === o.stayId).length;
+    const capacity = stayRooms * daysInMonth;
+
+    totalCapacity += capacity;
+    totalNights += (o.ocupacao / 100) * capacity;
+  });
+
+  return totalCapacity > 0
+    ? Math.round((totalNights / totalCapacity) * 100)
+    : 0;
+}, [occupancy.rows, rooms, daysInMonth]);
+
+
 
     const occRows = Object.values(roomsByStay).map((group) => {
       const roomSet = new Set(group.rooms);
@@ -524,7 +545,7 @@ const maidsTomorrow = useMemo(() => {
 
 
     {/* === BLOCO DIVIDIDO (Manutenção + Eficiência Geral) === */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       
       {/* Donut Manutenção */}
       <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center w-full">
@@ -559,6 +580,9 @@ const maidsTomorrow = useMemo(() => {
           {maintenanceStats.done} concluídas de {maintenanceStats.total}
         </p>
       </div>
+              {/**/}
+              <KpiGaugeOcupacao value={ocupacaoGeral} previous={occupancy.avg} />
+
 
       {/* Total de Reservas Impactante */}
 <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
