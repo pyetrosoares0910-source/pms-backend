@@ -137,26 +137,6 @@ useEffect(() => {
       roomsByStay[stayId].rooms.push(r.id);
     });
 
-      // === Ocupação geral do mês ===
-const ocupacaoGeral = useMemo(() => {
-  let totalNights = 0;
-  let totalCapacity = 0;
-
-  occupancy.rows.forEach(o => {
-    const stayRooms = rooms.filter(r => r.stay?.id === o.stayId).length;
-    const capacity = stayRooms * daysInMonth;
-
-    totalCapacity += capacity;
-    totalNights += (o.ocupacao / 100) * capacity;
-  });
-
-  return totalCapacity > 0
-    ? Math.round((totalNights / totalCapacity) * 100)
-    : 0;
-}, [occupancy.rows, rooms, daysInMonth]);
-
-
-
     const occRows = Object.values(roomsByStay).map((group) => {
       const roomSet = new Set(group.rooms);
       let occupiedNights = 0;
@@ -192,6 +172,25 @@ const ocupacaoGeral = useMemo(() => {
 
     return { rows: occRows, avg };
   }, [rooms, reservations, mStart, mEnd, daysInMonth]);
+
+    // === Ocupação geral do mês ===
+const ocupacaoGeral = useMemo(() => {
+  let totalNights = 0;
+  let totalCapacity = 0;
+
+  occupancy.rows.forEach(o => {
+    const stayRooms = rooms.filter(r => r.stay?.id === o.stayId).length;
+    const capacity = stayRooms * daysInMonth;
+
+    totalCapacity += capacity;
+    totalNights += (o.ocupacao / 100) * capacity;
+  });
+
+  return totalCapacity > 0
+    ? Math.round((totalNights / totalCapacity) * 100)
+    : 0;
+}, [occupancy.rows, rooms, daysInMonth]);
+
 
   // === KPIs principais ===
 const kpis = useMemo(() => {
