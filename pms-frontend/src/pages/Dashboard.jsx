@@ -23,6 +23,8 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
 import isBetween from "dayjs/plugin/isBetween";
+import StatCard from "../components/StatCard";
+import DashboardKPIGrid from "../components/DashboardKPIGrid";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -374,26 +376,20 @@ const maidsTomorrow = useMemo(() => {
 {/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-{/* === 10 CARDS === */}
-<div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
-
-  {/* → /map */}
+<DashboardKPIGrid>
   <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" to="/map" />
   <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" to="/map" />
   <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" to="/map" />
   <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" to="/map" />
   <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" color="primary" to="/map" />
 
-  {/* → /performance-report */}
-  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? "-"} icon="🏆" color="success" to="/performance-report" />
+  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? '-'} icon="🏆" color="success" to="/performance-report" />
   <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" to="/performance-report" />
-  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? "-"} icon="⚠️" color="error" to="/performance-report" />
+  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? '-'} icon="⚠️" color="error" to="/performance-report" />
 
-  {/* → /cleaning-schedule */}
   <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" to="/cleaning-schedule" />
   <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" color="success" to="/cleaning-schedule" />
-
-</div>
+</DashboardKPIGrid>
 
 
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
@@ -694,19 +690,6 @@ const maidsTomorrow = useMemo(() => {
    COMPONENTES AUXILIARES
 ============================ */
 
-function StatCard({ title, value, icon, color = "primary" }) {
-  return (
-    <div className="card bg-white shadow-lg rounded-2xl border border-gray-100">
-      <div className="card-body flex flex-col items-center justify-center text-center px-6 py-4">
-        <div className="text-neutral mb-1 font-medium">{title}</div>
-        <div className="text-3xl font-bold text-neutral mb-2">{value}</div>
-        <div className={`btn btn-circle btn-${color} text-xl`} aria-hidden>
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function DiaristaList({ title, data, color, empty }) {
   return (
