@@ -377,18 +377,21 @@ const maidsTomorrow = useMemo(() => {
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
 <DashboardKPIGrid>
-  <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" to="/map" />
-  <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" to="/map" />
-  <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" to="/map" />
-  <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" to="/map" />
-  <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" color="primary" to="/map" />
+  {/* /map */}
+  <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" to="/map" />
+  <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" to="/map" />
+  <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" to="/map" />
+  <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" to="/map" />
+  <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" to="/map" />
 
-  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? '-'} icon="🏆" color="success" to="/performance-report" />
-  <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" to="/performance-report" />
-  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? '-'} icon="⚠️" color="error" to="/performance-report" />
+  {/* /performance-report */}
+  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? '-'} icon="🏆" to="/performance-report" />
+  <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" to="/performance-report" />
+  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? '-'} icon="⚠️" to="/performance-report" />
 
-  <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" to="/cleaning-schedule" />
-  <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" color="success" to="/cleaning-schedule" />
+  {/* /cleaning-schedule */}
+  <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" to="/cleaning-schedule" />
+  <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" to="/cleaning-schedule" />
 </DashboardKPIGrid>
 
 
