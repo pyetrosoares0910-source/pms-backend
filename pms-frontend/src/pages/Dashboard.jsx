@@ -374,19 +374,27 @@ const maidsTomorrow = useMemo(() => {
 {/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-  {/* === 10 CARDS === */}
-  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
-    <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" />
-    <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" />
-    <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" />
-    <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" />
-    <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" color="primary" />
-    <StatCard title="Maior ocupação" value={kpis.maiorOcupacao ? kpis.maiorOcupacao.label : "-"} icon="🏆" color="success" />
-    <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" />
-    <StatCard title="Menor ocupação" value={kpis.menorOcupacao ? kpis.menorOcupacao.label : "-"} icon="⚠️" color="error" />
-    <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" />
-    <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" color="success"/>
-  </div>
+{/* === 10 CARDS === */}
+<div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 content-start">
+
+  {/* → /map */}
+  <StatCard title="Reservas ativas (hoje)" value={kpis.activeToday} icon="📖" color="primary" to="/map" />
+  <StatCard title="Check-ins (hoje)" value={kpis.checkinsToday} icon="🛎️" color="accent" to="/map" />
+  <StatCard title="Check-outs (hoje)" value={kpis.checkoutsToday} icon="🧳" color="info" to="/map" />
+  <StatCard title="Diárias no mês" value={kpis.nightsInMonth} icon="🗓️" color="secondary" to="/map" />
+  <StatCard title="Reservas no mês" value={kpis.reservasMes} icon="🧾" color="primary" to="/map" />
+
+  {/* → /performance-report */}
+  <StatCard title="Maior ocupação" value={kpis.maiorOcupacao?.label ?? "-"} icon="🏆" color="success" to="/performance-report" />
+  <StatCard title="Média de diárias por reserva" value={kpis.mediaDiariasReserva} icon="📆" color="info" to="/performance-report" />
+  <StatCard title="Menor ocupação" value={kpis.menorOcupacao?.label ?? "-"} icon="⚠️" color="error" to="/performance-report" />
+
+  {/* → /cleaning-schedule */}
+  <StatCard title="Diárias de limpeza" value={kpis.diariasLimpeza} icon="🪣" color="secondary" to="/cleaning-schedule" />
+  <StatCard title="Eficiência de limpeza" value={kpis.eficienciaLimpeza} icon="🧹" color="success" to="/cleaning-schedule" />
+
+</div>
+
 
   {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
 <div className="lg:col-span-2 flex flex-col gap-6">
