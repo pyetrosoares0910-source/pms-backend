@@ -69,35 +69,58 @@ export default function Dashboard() {
   const [rooms, setRooms] = useState([]);
   const [stays, setStays] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [tasksMonth, setTasksMonth] = useState([]);
   const [maids, setMaids] = useState([]);
   const [maintenance, setMaintenance] = useState([]);
 
  
-  // === Carrega dados ===
-useEffect(() => {
-  let isMounted = true; // evita atualizar estado se o componente for desmontado
+  useEffect(() => {
+  let isMounted = true;
 
   const fetchData = async () => {
     try {
-      const start = dayjs().startOf("week").format("YYYY-MM-DD");
-      const end = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
+      // ✅ intervalo semanal (para calendários)
+      const startWeek = dayjs().startOf("week").format("YYYY-MM-DD");
+      const endWeek = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
 
-      const [rsv, rms, sts, checkouts, maidsRes, maint] = await Promise.all([
+      // ✅ intervalo mensal (para KPIs reais)
+      const startMonth = dayjs().startOf("month").format("YYYY-MM-DD");
+      const endMonth = dayjs().endOf("month").format("YYYY-MM-DD");
+
+      const [
+        rsv,
+        rms,
+        sts,
+        checkoutsWeek,
+        maidsRes,
+        maint,
+        checkoutsMonth,
+      ] = await Promise.all([
         api("/reservations"),
         api("/rooms"),
         api("/stays"),
-        api(`/tasks/checkouts?start=${start}&end=${end}`),
+        api(`/tasks/checkouts?start=${startWeek}&end=${endWeek}`),
         api("/maids"),
         api("/maintenance"),
+        api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`), // ✅ NOVO
       ]);
 
-      if (!isMounted) return; // interrompe se o componente já desmontou
+      if (!isMounted) return;
 
-      const mappedTasks = (checkouts || []).map((t) => ({
+      // ✅ Mapeamento semanal
+      const mappedWeek = (checkoutsWeek || []).map((t) => ({
         id: t.id,
-        date: dayjs
-          .utc(t.date || t.checkoutDate || new Date())
-          .format("YYYY-MM-DD"),
+        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
+        stay: t.stay || "Sem Stay",
+        rooms: t.rooms || "Sem identificação",
+        maid: t.maid || null,
+        maidId: t.maidId || null,
+      }));
+
+      // ✅ Mapeamento do mês inteiro
+      const mappedMonth = (checkoutsMonth || []).map((t) => ({
+        id: t.id,
+        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
         stay: t.stay || "Sem Stay",
         rooms: t.rooms || "Sem identificação",
         maid: t.maid || null,
@@ -107,7 +130,8 @@ useEffect(() => {
       setReservations(rsv || []);
       setRooms(rms || []);
       setStays(sts || []);
-      setTasks(mappedTasks);
+      setTasks(mappedWeek);
+      setTasksMonth(mappedMonth); // ✅ define tarefas mensais
       setMaids(maidsRes || []);
       setMaintenance(maint || []);
     } catch (err) {
@@ -116,11 +140,9 @@ useEffect(() => {
   };
 
   fetchData();
+  return () => { isMounted = false; };
+}, []);
 
-  return () => {
-    isMounted = false; // cleanup seguro
-  };
-}, []); 
 
 
 
@@ -242,16 +264,16 @@ const kpis = useMemo(() => {
       dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
   ).length;
 
-  const diariasLimpezaMes = tasks.filter((t) =>
-    dayjs(t.date).isBetween(mStart, mEnd, null, "[]")
-  ).length;
+  const diariasLimpeza = tasksMonth.length; 
 
   const eficienciaLimpeza =
-    diariasLimpezaMes > 0
-      ? (checkoutsDoMes / diariasLimpezaMes).toFixed(1)
-      : "-";
+  diariasLimpeza > 0
+    ? (checkoutsDoMes / diariasLimpeza).toFixed(1)
+    : "-";
 
-  const diariasLimpeza = diariasLimpezaMes;
+
+ const diariasLimpezaMes = tasksMonth.length;
+
 
   const mediaDiariasReserva =
     reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
@@ -294,9 +316,10 @@ const kpis = useMemo(() => {
       dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
   ).length;
 
-  const diariasLimpezaPrev = tasks.filter((t) =>
-    dayjs(t.date).isBetween(prevStart, prevEnd, null, "[]")
-  ).length;
+  const diariasLimpezaPrev = tasksMonth.filter(t =>
+  dayjs(t.date).isBetween(prevStart, prevEnd, null, "[]")
+).length;
+
 
   const eficienciaLimpezaPrev =
     diariasLimpezaPrev > 0
@@ -333,10 +356,11 @@ const kpis = useMemo(() => {
         const dados = roomMap[roomId];
 
         return {
-          label: room?.title || `#${roomId}`,
-          image: room?.imageUrl || "/placeholder.jpg",
-          ocupacao: Math.round((dados.noites / dados.capacidade) * 100),
-        };
+  label: room?.title || room?.name || room?.roomName || `#${r.roomId}`,
+  image: room?.imageUrl || room?.image || room?.photo || "/placeholder.jpg",
+  ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
+};
+
       })
       .sort((a, b) => b.ocupacao - a.ocupacao)
       .slice(0, 10);
