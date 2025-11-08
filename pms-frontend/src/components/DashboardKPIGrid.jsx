@@ -19,11 +19,12 @@ export default function DashboardKPIGrid({ kpis }) {
 
   return (
     <motion.div
-  className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-2"
+  className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 lg:col-span-2"
   initial="hidden"
   animate="show"
   variants={gridVariants}
 >
+
 
       {/* ============================================================
          ✅ PRIMEIRO BLOCO — /map
