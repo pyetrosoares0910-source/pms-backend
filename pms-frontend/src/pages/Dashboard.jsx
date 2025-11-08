@@ -396,215 +396,147 @@ const maidsTomorrow = useMemo(() => {
 {/* ==== GRID PRINCIPAL (cards + eficiência + manutenção) ==== */}
 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-<DashboardKPIGrid kpis={kpis} />
+  {/* ✅ 10 KPI Cards (compactados) — ocupam as 2 primeiras colunas */}
+  <DashboardKPIGrid kpis={kpis} />
 
-  {/* === COLUNA DIREITA (Top 10 + Manutenção + Eficiência) === */}
-<div className="lg:col-span-2 flex flex-col gap-6">
+  {/* ✅ Ranking Top 10 — ocupa as 2 colunas da direita */}
+  <div className="lg:col-span-2 flex flex-col gap-6">
 
-  {/* === TOP EFICIÊNCIA === */}
-<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-  <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
-    📊 Acomodações com Melhor Eficiência
-  </h2>
+    {/* === TOP EFICIÊNCIA === */}
+    <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+      <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
+        📊 Acomodações com Melhor Eficiência
+      </h2>
 
-  <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-    {/* 🥇🥈🥉 TOP 3 VISUAL */}
-    <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-  {kpis.topEfficiency.slice(0, 3).map((item, i) => {
-    const colors = [
-      "from-yellow-400 to-yellow-300", // 🥇
-      "from-gray-300 to-gray-200",     // 🥈
-      "from-amber-700 to-amber-600",   // 🥉
-    ];
-    const numColor =
-      i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700";
+      <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
 
-    const height = i === 0 ? "h-24" : "h-20";
-    const width = "w-40";
-    const radius = "rounded-3xl";
+        {/* 🥇🥈🥉 TOP 3 VISUAL */}
+        <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+          {kpis.topEfficiency.slice(0, 3).map((item, i) => {
+            const colors = [
+              "from-yellow-400 to-yellow-300", 
+              "from-gray-300 to-gray-200",
+              "from-amber-700 to-amber-600",
+            ];
+            const numColor =
+              i === 0 ? "text-yellow-500"
+              : i === 1 ? "text-gray-400"
+              : "text-amber-700";
 
-    return (
-      <div key={i} className="relative flex flex-col items-center">
-        {/* Moldura com brilho animado */}
-        <div
-          className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
-        >
-          {/* Reflexo de brilho que se move */}
-          <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-          
-          <div
-            className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
-          >
-            <img
-              src={item.image || "/placeholder.jpg"}
-              alt={item.label}
-              className="w-full h-full object-cover"
-            />
-          </div>
+            const height = i === 0 ? "h-24" : "h-20";
+            const width = "w-40";
+            const radius = "rounded-3xl";
+
+            return (
+              <div key={i} className="relative flex flex-col items-center">
+                <div
+                  className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                >
+                  <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent"/>
+                  <div className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}>
+                    <img src={item.image || "/placeholder.jpg"} alt={item.label} className="w-full h-full object-cover"/>
+                  </div>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
+                <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Nome e posição */}
-        <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
-        <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
+        {/* 📊 GRÁFICO TOP 10 */}
+        <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart
+              data={kpis.topEfficiency.map((item, index) => ({
+                ...item,
+                posicao: `${index + 1}º`,
+              }))}
+              layout="vertical"
+              barCategoryGap={4}
+              margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+            >
+              <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false}/>
+              <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false}
+                tick={{ fill: "#64748b", fontSize: 12 }}/>
+              <YAxis type="category" dataKey="posicao" axisLine={false} tickLine={false} width={40}
+                tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}/>
+              <RechartsTooltip formatter={(v) => `${v}%`} contentStyle={{
+                backgroundColor: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}/>
+
+              <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
+                {kpis.topEfficiency.map((_, index) => {
+                  let color = "#0f4c81";
+                  if (index === 0) color = "#eab308";
+                  else if (index === 1) color = "#94a3b8";
+                  else if (index === 2) color = "#b45309";
+                  return <Cell key={`cell-${index}`} fill={color} />;
+                })}
+                <LabelList dataKey="label" position="insideLeft" style={{ fill: "#ffffff", fontWeight: 600, fontSize: 12 }}/>
+                <LabelList dataKey="ocupacao" position="right" formatter={(v) => `${v}%`}
+                  style={{ fill: "#082f49", fontWeight: 700, fontSize: 12 }}/>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
       </div>
-    );
-  })}
-</div>
-
-
-    {/* 📊 GRÁFICO TOP 10 */}
-    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
-      <ResponsiveContainer width="100%" height={340}>
-        <BarChart
-          data={kpis.topEfficiency.map((item, index) => ({
-            ...item,
-            posicao: `${index + 1}º`,
-          }))}
-          layout="vertical"
-          barCategoryGap={4}
-          margin={{ top: 5, right: 25, left: 10, bottom: 0 }} 
-        >
-          <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
-
-          <XAxis
-            type="number"
-            domain={[0, 100]}
-            tickFormatter={(v) => `${v}%`}
-            tick={{ fill: "#64748b", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
-
-          {/* Eixo Y – apenas as posições */}
-          <YAxis
-            type="category"
-            dataKey="posicao"
-            axisLine={false}
-            tickLine={false}
-            width={40}
-            tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}
-          />
-
-          <RechartsTooltip
-            formatter={(v) => `${v}%`}
-            contentStyle={{
-              backgroundColor: "#ffffff",
-              borderRadius: "8px",
-              border: "1px solid #e2e8f0",
-              color: "#0f172a",
-              fontSize: 12,
-            }}
-          />
-
-          <Bar
-            dataKey="ocupacao"
-            radius={[0, 6, 6, 0]}
-            barSize={22}
-            isAnimationActive={false}
-          >
-            {/* Cores especiais para top 3 */}
-            {kpis.topEfficiency.map((_, index) => {
-              let color = "#0f4c81";
-              if (index === 0) color = "#eab308";
-              else if (index === 1) color = "#94a3b8";
-              else if (index === 2) color = "#b45309";
-              return <Cell key={`cell-${index}`} fill={color} />;
-            })}
-
-            {/* Nome da acomodação dentro da barra */}
-            <LabelList
-              dataKey="label"
-              position="insideLeft"
-              style={{
-                fill: "#ffffff",
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            />
-
-            {/* Percentual à direita */}
-            <LabelList
-              dataKey="ocupacao"
-              position="right"
-              formatter={(v) => `${v}%`}
-              style={{
-                fill: "#082f49",
-                fontSize: 12,
-                fontWeight: 700,
-              }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
     </div>
   </div>
-</div>
 
-{/* === LINHA INFERIOR: Ocupação Geral (2) + Manutenção (1) + Total Reservas (1) === */}
-<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  {/* === NOVA LINHA: Gauge (2 col) + Manutenção (1) + Total Reservas (1) === */}
+  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:col-span-4">
 
-  {/* ESQUERDA — Gauge ocupando 2 colunas */}
-  <div className="lg:col-span-2">
-    <KpiGaugeOcupacao 
-      value={ocupacaoGeral}
-      previous={occupancy.avg}
-    />
-  </div>
+    {/* ✅ Ocupação Geral — 2 colunas */}
+    <div className="lg:col-span-2">
+      <KpiGaugeOcupacao value={ocupacaoGeral} previous={occupancy.avg}/>
+    </div>
 
-  {/* MANUTENÇÃO — 1 coluna */}
-  <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center">
-    <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
+    {/* ✅ Manutenção — 1 col */}
+    <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center">
+      <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
 
-    <PieChart width={160} height={160}>
-      <Pie
-        data={[
-          { name: "Concluídas", value: maintenanceStats.done },
-          { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
-        ]}
-        dataKey="value"
-        innerRadius={55}
-        outerRadius={75}
-        paddingAngle={3}
-        stroke="none"
-      >
-        <Cell fill="#22c55e" />
-        <Cell fill="#e5e7eb" />
-      </Pie>
+      <PieChart width={160} height={160}>
+        <Pie
+          data={[
+            { name: "Concluídas", value: maintenanceStats.done },
+            { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
+          ]}
+          dataKey="value"
+          innerRadius={55}
+          outerRadius={75}
+          paddingAngle={3}
+          stroke="none"
+        >
+          <Cell fill="#22c55e"/>
+          <Cell fill="#e5e7eb"/>
+        </Pie>
 
-      <text
-        x="50%"
-        y="50%"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={20}
-        fontWeight="bold"
-      >
-        {maintenanceStats.pctDone}%
-      </text>
-    </PieChart>
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
+          fontSize={20} fontWeight="bold">
+          {maintenanceStats.pctDone}%
+        </text>
+      </PieChart>
 
-    <p className="text-sm text-gray-500 mt-2">
-      {maintenanceStats.done} concluídas de {maintenanceStats.total}
-    </p>
-  </div>
+      <p className="text-sm text-gray-500 mt-2">
+        {maintenanceStats.done} concluídas de {maintenanceStats.total}
+      </p>
+    </div>
 
-  {/* TOTAL DE RESERVAS — 1 coluna */}
-  <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
-    <h2 className="font-semibold text-neutral mb-3 text-lg">
-      🏅 Total de Reservas
-    </h2>
-    <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
-      {kpis.totalReservas + 1963}
-    </p>
-    <p className="text-sm text-gray-500">
-      Inclui 1.963 reservas do PMS anterior
-    </p>
+    {/* ✅ Total Reservas — 1 col */}
+    <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
+      <h2 className="font-semibold text-neutral mb-3 text-lg">🏅 Total de Reservas</h2>
+      <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
+        {kpis.totalReservas + 1963}
+      </p>
+      <p className="text-sm text-gray-500">Inclui 1.963 reservas do PMS anterior</p>
+    </div>
+
   </div>
 
 </div>
 
-  </div>
-</div>
+
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ocupação */}
