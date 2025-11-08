@@ -540,63 +540,69 @@ const maidsTomorrow = useMemo(() => {
   </div>
 </div>
 
+{/* === LINHA INFERIOR: Ocupação Geral (2) + Manutenção (1) + Total Reservas (1) === */}
+<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
+  {/* ESQUERDA — Gauge ocupando 2 colunas */}
+  <div className="lg:col-span-2">
+    <KpiGaugeOcupacao 
+      value={ocupacaoGeral}
+      previous={occupancy.avg}
+    />
+  </div>
 
+  {/* MANUTENÇÃO — 1 coluna */}
+  <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center">
+    <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
 
-    {/* === BLOCO DIVIDIDO (Manutenção + Eficiência Geral) === */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      
-      {/* Donut Manutenção */}
-      <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center w-full">
-        <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
-        <PieChart width={160} height={160}>
-          <Pie
-            data={[
-              { name: "Concluídas", value: maintenanceStats.done },
-              { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
-            ]}
-            dataKey="value"
-            innerRadius={55}
-            outerRadius={75}
-            paddingAngle={3}
-            stroke="none"
-          >
-            <Cell fill="#22c55e" />
-            <Cell fill="#e5e7eb" />
-          </Pie>
-          <text
-            x="50%"
-            y="50%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={20}
-            fontWeight="bold"
-          >
-            {maintenanceStats.pctDone}%
-          </text>
-        </PieChart>
-        <p className="text-sm text-gray-500 mt-2">
-          {maintenanceStats.done} concluídas de {maintenanceStats.total}
-        </p>
-      </div>
-              {/**/}
-              <KpiGaugeOcupacao value={ocupacaoGeral} previous={occupancy.avg} />
+    <PieChart width={160} height={160}>
+      <Pie
+        data={[
+          { name: "Concluídas", value: maintenanceStats.done },
+          { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
+        ]}
+        dataKey="value"
+        innerRadius={55}
+        outerRadius={75}
+        paddingAngle={3}
+        stroke="none"
+      >
+        <Cell fill="#22c55e" />
+        <Cell fill="#e5e7eb" />
+      </Pie>
 
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={20}
+        fontWeight="bold"
+      >
+        {maintenanceStats.pctDone}%
+      </text>
+    </PieChart>
 
-      {/* Total de Reservas Impactante */}
-<div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
-  <h2 className="font-semibold text-neutral mb-3 text-lg">
-    🏅 Total de Reservas
-  </h2>
-  <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
-    {kpis.totalReservas + 1963}
-  </p>
-  <p className="text-sm text-gray-500">
-    Inclui 1.963 reservas do PMS anterior
-  </p>
+    <p className="text-sm text-gray-500 mt-2">
+      {maintenanceStats.done} concluídas de {maintenanceStats.total}
+    </p>
+  </div>
+
+  {/* TOTAL DE RESERVAS — 1 coluna */}
+  <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
+    <h2 className="font-semibold text-neutral mb-3 text-lg">
+      🏅 Total de Reservas
+    </h2>
+    <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
+      {kpis.totalReservas + 1963}
+    </p>
+    <p className="text-sm text-gray-500">
+      Inclui 1.963 reservas do PMS anterior
+    </p>
+  </div>
+
 </div>
 
-    </div>
   </div>
 </div>
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
