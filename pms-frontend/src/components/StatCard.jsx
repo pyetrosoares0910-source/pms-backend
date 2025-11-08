@@ -3,12 +3,16 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useMemo } from "react";
 import clsx from "clsx";
 
-// =============================================================
-// ✅ Animated Number
-// =============================================================
+/* =============================================================
+   ✅ Animated Number
+============================================================= */
 function AnimatedNumber({ value, className }) {
   const mv = useMotionValue(0);
-  const display = useTransform(mv, v => Math.floor(v).toLocaleString());
+
+  const display = useTransform(mv, (v) => {
+    if (String(value).includes(".")) return v.toFixed(1);
+    return Math.round(v).toLocaleString("pt-BR");
+  });
 
   useEffect(() => {
     const num = Number(value);
@@ -20,24 +24,33 @@ function AnimatedNumber({ value, className }) {
   return <motion.span className={className}>{display}</motion.span>;
 }
 
-// =============================================================
-// ✅ StatCard Glow Azul B — versão refinada
-// =============================================================
+/* =============================================================
+   ✅ StatCard Glow Azul B — COM VARIAÇÃO (C3)
+============================================================= */
 export default function StatCard({
   title,
   value,
+  prev,
   icon,
   to,
   onClick,
   className,
 }) {
+
   const Wrapper = to ? Link : onClick ? "button" : "div";
-  const isNumeric = useMemo(() => {
-    return !isNaN(Number(value));
-  }, [value]);
+
+  const isNumeric = useMemo(() => !isNaN(Number(value)), [value]);
+
+  /* ✅ Calcula variação (C3) */
+  const prevDiff = useMemo(() => {
+    if (!isNumeric || typeof prev !== "number" || isNaN(prev)) return null;
+    const v = Number(value);
+    return prev !== 0 ? ((v - prev) / prev) * 100 : 0;
+  }, [value, prev, isNumeric]);
 
   return (
     <Wrapper {...(to ? { to } : onClick ? { onClick } : {})} className="block">
+
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,9 +67,10 @@ export default function StatCard({
           className
         )}
       >
+
         {/* === LINHA SUPERIOR CURVADA === */}
         <div
-          className="absolute top-0 left-3 right-3 h-[3px] rounded-full 
+          className="absolute top-0 left-2 right-2 h-[4px] rounded-md
           bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 opacity-90 pointer-events-none"
         />
 
@@ -77,17 +91,39 @@ export default function StatCard({
             {title}
           </span>
 
-          {isNumeric ? (
-            <AnimatedNumber
-              value={value}
-              className="text-[26px] font-bold text-slate-900 tracking-tight"
-            />
-          ) : (
-            <span className="text-[26px] font-bold text-slate-900 tracking-tight truncate">
-              {value}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isNumeric ? (
+              <AnimatedNumber
+                value={value}
+                className="text-[26px] font-bold text-slate-900 tracking-tight"
+              />
+            ) : (
+              <span className="text-[26px] font-bold text-slate-900 tracking-tight truncate">
+                {value}
+              </span>
+            )}
+
+            {/* ✅ Badge Premium (C3) */}
+            {isNumeric && prevDiff !== null && (
+              <span
+                className={clsx(
+                  "px-2 py-[2px] text-xs font-semibold rounded-full",
+                  "backdrop-blur-md border shadow-md",
+                  prevDiff > 0
+                    ? "text-emerald-700 bg-emerald-100/30 border-emerald-300/40 shadow-emerald-400/40"
+                    : prevDiff < 0
+                    ? "text-red-600 bg-red-100/30 border-red-300/40 shadow-red-400/40"
+                    : "text-slate-500 bg-slate-200/40 border-slate-300/40"
+                )}
+              >
+                {prevDiff > 0 && "▲ "}
+                {prevDiff < 0 && "▼ "}
+                {Math.abs(prevDiff).toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
+
       </motion.div>
     </Wrapper>
   );

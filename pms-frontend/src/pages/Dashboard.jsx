@@ -192,9 +192,10 @@ const ocupacaoGeral = useMemo(() => {
 }, [occupancy.rows, rooms, daysInMonth]);
 
 
-  // === KPIs principais ===
+// === KPIs principais ===
 const kpis = useMemo(() => {
   const { start: mStart, end: mEnd } = monthBounds();
+  const { start: prevStart, end: prevEnd } = monthBounds(dayjs().subtract(1, "month"));
 
   // === RESERVAS HOJE ===
   const activeToday = reservations.filter(
@@ -216,12 +217,10 @@ const kpis = useMemo(() => {
       dayjs.utc(r.checkoutDate).isSame(today, "day")
   ).length;
 
-  // === CÁLCULOS MENSAIS ===
+  // === CÁLCULOS DO MÊS ATUAL ===
   const nightsInMonth = reservations.reduce((sum, r) => {
     if (r.status === "cancelada") return sum;
-    const ci = dayjs(r.checkinDate);
-    const co = dayjs(r.checkoutDate);
-    return sum + overlapDays(ci, co, mStart, mEnd);
+    return sum + overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
   }, 0);
 
   const totalReservas = reservations.length;
@@ -237,10 +236,22 @@ const kpis = useMemo(() => {
     );
   }).length;
 
-  const diariasLimpeza = tasks.length;
+  const checkoutsDoMes = reservations.filter(
+    (r) =>
+      r.status !== "cancelada" &&
+      dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
+  ).length;
+
+  const diariasLimpezaMes = tasks.filter((t) =>
+    dayjs(t.date).isBetween(mStart, mEnd, null, "[]")
+  ).length;
 
   const eficienciaLimpeza =
-    diariasLimpeza > 0 ? (reservasMes / diariasLimpeza).toFixed(1) : "-";
+    diariasLimpezaMes > 0
+      ? (checkoutsDoMes / diariasLimpezaMes).toFixed(1)
+      : "-";
+
+  const diariasLimpeza = diariasLimpezaMes;
 
   const mediaDiariasReserva =
     reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
@@ -255,34 +266,81 @@ const kpis = useMemo(() => {
       ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
       : null;
 
-  // === TOP EFICIÊNCIA (QUARTOS) ===
-  const topEfficiency = (() => {
-  const roomMap = {};
-  reservations.forEach((r) => {
-    if (r.status === "cancelada") return;
+  // ============================================================
+  // ✅ MÊS ANTERIOR (prev)
+  // ============================================================
+
+  const nightsPrev = reservations.reduce((sum, r) => {
+    if (r.status === "cancelada") return sum;
+    return sum + overlapDays(r.checkinDate, r.checkoutDate, prevStart, prevEnd);
+  }, 0);
+
+  const reservasPrev = reservations.filter((r) => {
+    if (r.status === "cancelada") return false;
     const ci = dayjs(r.checkinDate);
     const co = dayjs(r.checkoutDate);
-    const overlap = overlapDays(ci, co, mStart, mEnd);
-    if (overlap <= 0) return;
+    return (
+      ci.isBetween(prevStart, prevEnd, null, "[]") ||
+      co.isBetween(prevStart, prevEnd, null, "[]")
+    );
+  }).length;
 
-    if (!roomMap[r.roomId]) {
-      roomMap[r.roomId] = { roomId: r.roomId, noites: 0, capacidade: daysInMonth };
-    }
-    roomMap[r.roomId].noites += overlap;
-  });
+  const mediaPrev =
+    reservasPrev > 0 ? (nightsPrev / reservasPrev).toFixed(1) : null;
 
-  const roomList = Object.values(roomMap).map((r) => {
-    const room = rooms.find((rm) => rm.id === r.roomId);
-    return {
-      label: room?.title || `#${r.roomId}`,
-      image: room?.imageUrl || "/placeholder.jpg", // 🧠 adiciona imagem real aqui
-      ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
-    };
-  });
+  const checkoutsPrev = reservations.filter(
+    (r) =>
+      r.status !== "cancelada" &&
+      dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
+  ).length;
 
-  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
-})();
+  const diariasLimpezaPrev = tasks.filter((t) =>
+    dayjs(t.date).isBetween(prevStart, prevEnd, null, "[]")
+  ).length;
 
+  const eficienciaLimpezaPrev =
+    diariasLimpezaPrev > 0
+      ? (checkoutsPrev / diariasLimpezaPrev).toFixed(1)
+      : null;
+
+  const prev = {
+    nightsInMonth: nightsPrev,
+    reservasMes: reservasPrev,
+    mediaDiariasReserva: mediaPrev,
+    diariasLimpeza: diariasLimpezaPrev,
+    eficienciaLimpeza: eficienciaLimpezaPrev,
+  };
+
+  // === TOP EFICIÊNCIA (QUARTOS) ===
+  const topEfficiency = (() => {
+    const roomMap = {};
+
+    reservations.forEach((r) => {
+      if (r.status === "cancelada") return;
+      const overlap = overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
+      if (overlap <= 0) return;
+
+      if (!roomMap[r.roomId]) {
+        roomMap[r.roomId] = { noites: 0, capacidade: daysInMonth };
+      }
+
+      roomMap[r.roomId].noites += overlap;
+    });
+
+    return Object.keys(roomMap)
+      .map((roomId) => {
+        const room = rooms.find((rm) => rm.id === Number(roomId));
+        const dados = roomMap[roomId];
+
+        return {
+          label: room?.title || `#${roomId}`,
+          image: room?.imageUrl || "/placeholder.jpg",
+          ocupacao: Math.round((dados.noites / dados.capacidade) * 100),
+        };
+      })
+      .sort((a, b) => b.ocupacao - a.ocupacao)
+      .slice(0, 10);
+  })();
 
   // === RETORNO FINAL ===
   return {
@@ -298,8 +356,14 @@ const kpis = useMemo(() => {
     menorOcupacao,
     diariasLimpeza,
     topEfficiency,
+    checkoutsDoMes,
+    diariasLimpezaMes,
+
+    // ✅ Comparativos
+    prev,
   };
-}, [reservations, today, occupancy.rows, tasks, rooms]);
+}, [reservations, occupancy.rows, tasks, rooms, today]);
+
 
 
   // === Eventos (Limpeza) ===
