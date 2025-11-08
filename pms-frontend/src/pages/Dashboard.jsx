@@ -334,33 +334,37 @@ const kpis = useMemo(() => {
     eficienciaLimpeza: eficienciaLimpezaPrev,
   };
 
-  // === TOP EFICIÊNCIA (QUARTOS) ===
-  const topEfficiency = (() => {
-    const roomMap = {};
+  /// === TOP EFICIÊNCIA (QUARTOS) ===
+const topEfficiency = useMemo(() => {
+  const roomMap = {};
 
-    reservations.forEach((r) => {
-      if (r.status === "cancelada") return;
-      const overlap = overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
-      if (overlap <= 0) return;
+  reservations.forEach((r) => {
+    if (r.status === "cancelada") return;
 
-      if (!roomMap[r.roomId]) {
-        roomMap[r.roomId] = { noites: 0, capacidade: daysInMonth };
-      }
+    const overlap = overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
+    if (overlap <= 0) return;
 
-      roomMap[r.roomId].noites += overlap;
-    });
+    if (!roomMap[r.roomId]) {
+      roomMap[r.roomId] = {
+        roomId: r.roomId,
+        noites: 0,
+        capacidade: daysInMonth,
+      };
+    }
 
-    return Object.keys(roomMap)
-  .map((roomId) => {
-    const room = rooms.find((rm) => rm.id === Number(roomId));
-    const dados = roomMap[roomId]; // ✅ noites e capacidade estão aqui
+    roomMap[r.roomId].noites += overlap;
+  });
+
+  // ✅ TRANSFORMA roomMap EM LISTA
+  const roomList = Object.values(roomMap).map((entry) => {
+    const room = rooms.find((rm) => rm.id === entry.roomId);
 
     return {
       label:
         room?.title ||
         room?.name ||
         room?.roomName ||
-        `Quarto ${roomId}`, // ✅ fallback correto
+        `Quarto ${entry.roomId}`,
 
       image:
         room?.imageUrl ||
@@ -370,14 +374,14 @@ const kpis = useMemo(() => {
 
       ocupacao: Math.min(
         100,
-        Math.round((dados.noites / dados.capacidade) * 100) // ✅ usar DADOS, não r
+        Math.round((entry.noites / entry.capacidade) * 100)
       ),
     };
-  })
+  });
 
-      .sort((a, b) => b.ocupacao - a.ocupacao)
-      .slice(0, 10);
-  })();
+  // ✅ ORDENA E PEGA TOP 10
+  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
+}, [reservations, rooms, mStart, mEnd, daysInMonth]);
 
   // === RETORNO FINAL ===
   return {
