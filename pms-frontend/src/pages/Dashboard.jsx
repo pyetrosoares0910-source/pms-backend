@@ -351,17 +351,30 @@ const kpis = useMemo(() => {
     });
 
     return Object.keys(roomMap)
-      .map((roomId) => {
-        const room = rooms.find((rm) => rm.id === Number(roomId));
-        const dados = roomMap[roomId];
+  .map((roomId) => {
+    const room = rooms.find((rm) => rm.id === Number(roomId));
+    const dados = roomMap[roomId]; // ✅ noites e capacidade estão aqui
 
-        return {
-  label: room?.title || room?.name || room?.roomName || `#${r.roomId}`,
-  image: room?.imageUrl || room?.image || room?.photo || "/placeholder.jpg",
-  ocupacao: Math.min(100, Math.round((r.noites / r.capacidade) * 100)),
-};
+    return {
+      label:
+        room?.title ||
+        room?.name ||
+        room?.roomName ||
+        `Quarto ${roomId}`, // ✅ fallback correto
 
-      })
+      image:
+        room?.imageUrl ||
+        room?.image ||
+        room?.photo ||
+        "/placeholder.jpg",
+
+      ocupacao: Math.min(
+        100,
+        Math.round((dados.noites / dados.capacidade) * 100) // ✅ usar DADOS, não r
+      ),
+    };
+  })
+
       .sort((a, b) => b.ocupacao - a.ocupacao)
       .slice(0, 10);
   })();
