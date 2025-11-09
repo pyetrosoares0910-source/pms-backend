@@ -334,8 +334,8 @@ const kpis = useMemo(() => {
     eficienciaLimpeza: eficienciaLimpezaPrev,
   };
 
-  /// === TOP EFICIÊNCIA (QUARTOS) ===
-const topEfficiency = useMemo(() => {
+/// === EFICIÊNCIA DE TODOS OS QUARTOS ===
+const allEfficiency = useMemo(() => {
   const roomMap = {};
 
   reservations.forEach((r) => {
@@ -355,33 +355,30 @@ const topEfficiency = useMemo(() => {
     roomMap[r.roomId].noites += overlap;
   });
 
-  // ✅ TRANSFORMA roomMap EM LISTA
-  const roomList = Object.values(roomMap).map((entry) => {
-    const room = rooms.find((rm) => rm.id === entry.roomId);
+  // ✅ TRANSFORMA roomMap EM LISTA COMPLETA
+  return rooms.map((room) => {
+    const data = roomMap[room.id] || { noites: 0, capacidade: daysInMonth };
 
     return {
-      label:
-        room?.title ||
-        room?.name ||
-        room?.roomName ||
-        `Quarto ${entry.roomId}`,
-
-      image:
-        room?.imageUrl ||
-        room?.image ||
-        room?.photo ||
-        "/placeholder.jpg",
-
-      ocupacao: Math.min(
-        100,
-        Math.round((entry.noites / entry.capacidade) * 100)
-      ),
+      roomId: room.id,
+      label: room?.title || room?.name || `Quarto ${room.id}`,
+      image: room?.imageUrl || room?.image || "/placeholder.jpg",
+      ocupacao: Math.min(100, Math.round((data.noites / data.capacidade) * 100)),
     };
   });
-
-  // ✅ ORDENA E PEGA TOP 10
-  return roomList.sort((a, b) => b.ocupacao - a.ocupacao).slice(0, 10);
 }, [reservations, rooms, mStart, mEnd, daysInMonth]);
+
+
+const topEfficiency = allEfficiency
+  .slice()
+  .sort((a, b) => b.ocupacao - a.ocupacao)
+  .slice(0, 10);
+
+const worstEfficiency = allEfficiency
+  .slice()
+  .sort((a, b) => a.ocupacao - b.ocupacao)
+  .slice(0, 10);
+
 
   // === RETORNO FINAL ===
   return {
@@ -399,6 +396,9 @@ const topEfficiency = useMemo(() => {
     topEfficiency,
     checkoutsDoMes,
     diariasLimpezaMes,
+    topEfficiency,
+    worstEfficiency,
+    allEfficiency,
 
     // ✅ Comparativos
     prev,
