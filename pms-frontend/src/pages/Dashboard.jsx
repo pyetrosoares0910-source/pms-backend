@@ -449,15 +449,15 @@ const topEfficiency = useMemo(() => {
   [maintenance]
 );
 
-    // ===== SAFEGUARDS =====
+   // === SAFEGUARD ARRAYS ===
 const topEfficiency = Array.isArray(kpis?.topEfficiency)
   ? kpis.topEfficiency.slice(0, 10)
   : [];
 
 const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
   ? kpis.worstEfficiency.slice(0, 10)
-  // fallback: se não veio do backend, usa o top invertido
   : topEfficiency.slice().reverse();
+
 
 
   // === Progresso de manutenção ===
@@ -628,7 +628,7 @@ const maidsTomorrow = useMemo(() => {
                   backgroundColor: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}/>
 
                 <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
-                  {kpis.topEfficiency.map((_, index) => {
+                  {topEfficiency.map((_, index) => {
                     let color = "#0f4c81";
                     if (index === 0) color = "#eab308";
                     else if (index === 1) color = "#94a3b8";
@@ -732,7 +732,7 @@ const maidsTomorrow = useMemo(() => {
           />
 
           <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
-            {kpis.worstEfficiency.map((_, index) => {
+            {worstEfficiency.map((_, index) => {
               let color = "#ef4444"; // base vermelha
               if (index === 0) color = "#dc2626";   // pior
               else if (index === 1) color = "#f97316"; // segundo
