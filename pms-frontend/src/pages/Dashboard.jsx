@@ -630,10 +630,118 @@ const maidsTomorrow = useMemo(() => {
         </div>
       </div>
 
-      {/* 📉 ESPAÇO RESERVADO – PIOR EFICIÊNCIA (próxima etapa) */}
-      <div className="card bg-white shadow-md border border-dashed border-gray-200 flex items-center justify-center text-gray-400">
-        <p className="italic">[Em breve: gráfico com Piores Eficiências]</p>
-      </div>
+      {/* 📉 PIOR EFICIÊNCIA */}
+<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
+  <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
+    📉 Acomodações com Pior Eficiência
+  </h2>
+
+  <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+
+    {/* 🥇🥈🥉 TOP 3 PIORES */}
+    <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+      {kpis.worstEfficiency.slice(0, 3).map((item, i) => {
+        const colors = [
+          "from-red-500 to-red-400",     // 1º pior
+          "from-orange-400 to-orange-300", // 2º pior
+          "from-amber-500 to-amber-400",   // 3º pior
+        ];
+        const numColor =
+          i === 0 ? "text-red-500"
+          : i === 1 ? "text-orange-400"
+          : "text-amber-500";
+
+        const height = i === 0 ? "h-24" : "h-20";
+        const width = "w-40";
+        const radius = "rounded-3xl";
+
+        return (
+          <div key={i} className="relative flex flex-col items-center">
+            <div
+              className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+            >
+              <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+              <div
+                className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+              >
+                <img
+                  src={item.image || "/placeholder.jpg"}
+                  alt={item.label}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
+            <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* 📊 GRÁFICO TOP 10 PIORES */}
+    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+      <ResponsiveContainer width="100%" height={340}>
+        <BarChart
+          data={kpis.worstEfficiency.map((item, index) => ({
+            ...item,
+            posicao: `${index + 1}º`,
+          }))}
+          layout="vertical"
+          barCategoryGap={4}
+          margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+        >
+          <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
+          <XAxis
+            type="number"
+            domain={[0, 100]}
+            tickFormatter={(v) => `${v}%`}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "#64748b", fontSize: 12 }}
+          />
+          <YAxis
+            type="category"
+            dataKey="posicao"
+            axisLine={false}
+            tickLine={false}
+            width={40}
+            tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}
+          />
+          <RechartsTooltip
+            formatter={(v) => `${v}%`}
+            contentStyle={{
+              backgroundColor: "#ffffff",
+              borderRadius: "8px",
+              border: "1px solid #e2e8f0",
+            }}
+          />
+
+          <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
+            {kpis.worstEfficiency.map((_, index) => {
+              let color = "#ef4444"; // base vermelha
+              if (index === 0) color = "#dc2626";   // pior
+              else if (index === 1) color = "#f97316"; // segundo
+              else if (index === 2) color = "#f59e0b"; // terceiro
+              return <Cell key={`cell-${index}`} fill={color} />;
+            })}
+            <LabelList
+              dataKey="label"
+              position="insideLeft"
+              style={{ fill: "#ffffff", fontWeight: 600, fontSize: 12 }}
+            />
+            <LabelList
+              dataKey="ocupacao"
+              position="right"
+              formatter={(v) => `${v}%`}
+              style={{ fill: "#7f1d1d", fontWeight: 700, fontSize: 12 }}
+            />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+</div>
+
     </div>
 
 
