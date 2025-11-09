@@ -449,13 +449,22 @@ const topEfficiency = useMemo(() => {
   [maintenance]
 );
 
-   // === SAFEGUARD ARRAYS ===
-const topEfficiency = Array.isArray(kpis?.topEfficiency)
-  ? kpis.topEfficiency.slice(0, 10)
+// === GERAR TOP E WORST EFFICIENCY NO FRONT ===
+
+// usamos o topEfficiency atual como base
+const allEfficiency = Array.isArray(kpis?.topEfficiency)
+  ? [...kpis.topEfficiency]
   : [];
 
-const worstEfficiency = allRooms
-  .filter(r => !topEfficiency.find(t => t.id === r.id))
+// top 10 melhores (garantido)
+const topEfficiency = allEfficiency
+  .slice()
+  .sort((a, b) => b.ocupacao - a.ocupacao)
+  .slice(0, 10);
+
+// top 10 piores (sem repetir as melhores)
+const worstEfficiency = allEfficiency
+  .filter(r => !topEfficiency.find(t => t.label === r.label))
   .sort((a, b) => a.ocupacao - b.ocupacao)
   .slice(0, 10);
 
