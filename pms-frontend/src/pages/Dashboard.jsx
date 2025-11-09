@@ -634,9 +634,9 @@ const maidsTomorrow = useMemo(() => {
                 <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
                   {topEfficiency.map((_, index) => {
                     let color = "#0f4c81";
-                    if (index === 0) color = "#eab308";
-                    else if (index === 1) color = "#94a3b8";
-                    else if (index === 2) color = "#b45309";
+                    if (index === 0) color = "#22c55e";
+                    else if (index === 1) color = "#22c55e";
+                    else if (index === 2) color = "#22c55e";
                     return <Cell key={`cell-${index}`} fill={color} />;
                   })}
                   <LabelList dataKey="label" position="insideLeft" style={{ fill: "#ffffff", fontWeight: 600, fontSize: 12 }}/>
@@ -740,8 +740,8 @@ const maidsTomorrow = useMemo(() => {
             {worstEfficiency.map((_, index) => {
               let color = "#0f4c81"; // azul padrão
               if (index === 0) color = "#dc2626";   // pior
-              else if (index === 1) color = "#eb3d3dff"; // segundo
-              else if (index === 2) color = "#eb3d3dff"; // terceiro
+              else if (index === 1) color = "#dc2626"; // segundo
+              else if (index === 2) color = "#dc2626"; // terceiro
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
             <LabelList
