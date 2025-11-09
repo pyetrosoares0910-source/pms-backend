@@ -633,7 +633,7 @@ const maidsTomorrow = useMemo(() => {
 
                 <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
                   {topEfficiency.map((_, index) => {
-                    let color = "#0f4c81";
+                    let color = "#22c55e";
                     if (index === 0) color = "#22c55e";
                     else if (index === 1) color = "#22c55e";
                     else if (index === 2) color = "#22c55e";
@@ -663,8 +663,8 @@ const maidsTomorrow = useMemo(() => {
         // gradações de vermelho para o top 3
         const colors = [
           "from-red-600 to-red-500",   // 1º pior — vermelho destaque
-          "from-red-400 to-red-300",   // 2º pior — vermelho neutro
-          "from-red-400 to-red-300",   // 3º pior — vermelho pastel
+          "from-red-600 to-red-500",   // 2º pior — vermelho neutro
+          "from-red-600 to-red-500",   // 3º pior — vermelho pastel
         ];
         const numColor =
           i === 0 ? "text-red-600"
@@ -738,7 +738,7 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
             {worstEfficiency.map((_, index) => {
-              let color = "#0f4c81"; // azul padrão
+              let color = "#dc2626"; // azul padrão
               if (index === 0) color = "#dc2626";   // pior
               else if (index === 1) color = "#dc2626"; // segundo
               else if (index === 2) color = "#dc2626"; // terceiro
