@@ -664,12 +664,12 @@ const maidsTomorrow = useMemo(() => {
         const colors = [
           "from-red-600 to-red-500",   // 1º pior — vermelho destaque
           "from-red-400 to-red-300",   // 2º pior — vermelho neutro
-          "from-red-200 to-red-100",   // 3º pior — vermelho pastel
+          "from-red-400 to-red-300",   // 3º pior — vermelho pastel
         ];
         const numColor =
           i === 0 ? "text-red-600"
           : i === 1 ? "text-red-400"
-          : "text-red-300";
+          : "text-red-400";
 
         const height = i === 0 ? "h-24" : "h-20";
         const width = "w-40";
@@ -713,7 +713,7 @@ const maidsTomorrow = useMemo(() => {
           <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
           <XAxis
             type="number"
-            domain={[0, 100]}
+            domain={[0, 60]}
             tickFormatter={(v) => `${v}%`}
             axisLine={false}
             tickLine={false}
@@ -740,8 +740,8 @@ const maidsTomorrow = useMemo(() => {
             {worstEfficiency.map((_, index) => {
               let color = "#0f4c81"; // azul padrão
               if (index === 0) color = "#dc2626";   // pior
-              else if (index === 1) color = "#f87171"; // segundo
-              else if (index === 2) color = "#fecaca"; // terceiro
+              else if (index === 1) color = "#eb3d3dff"; // segundo
+              else if (index === 2) color = "#eb3d3dff"; // terceiro
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
             <LabelList
