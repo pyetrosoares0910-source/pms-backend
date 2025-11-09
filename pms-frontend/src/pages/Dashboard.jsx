@@ -498,7 +498,7 @@ const maidsTomorrow = useMemo(() => {
     <h1 className="text-3xl font-bold text-neutral mb-2">Dashboard</h1>
 
     {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div>
       <DashboardKPIGrid kpis={kpis} />
     </div>
 

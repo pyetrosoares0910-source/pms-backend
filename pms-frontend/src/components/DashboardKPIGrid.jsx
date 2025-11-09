@@ -9,7 +9,7 @@ export default function DashboardKPIGrid({ kpis }) {
 
   return (
     <motion.div
-  className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"
+  className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-6 place-items-stretch"
   initial="hidden"
   animate="show"
   variants={gridVariants}
