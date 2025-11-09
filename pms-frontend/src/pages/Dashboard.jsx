@@ -470,7 +470,7 @@ const worstEfficiency = allEfficiency
   .sort((a, b) => a.ocupacao - b.ocupacao)
   .slice(0, 10);
 
-
+console.log("🔥 worstEfficiency:", worstEfficiency);
 
 
   // === Progresso de manutenção ===
@@ -747,10 +747,6 @@ const maidsTomorrow = useMemo(() => {
               if (index === 0) color = "#dc2626";   // pior
               else if (index === 1) color = "#f87171"; // segundo
               else if (index === 2) color = "#fecaca"; // terceiro
-
-              console.log("🔥 worstEfficiency:", worstEfficiency);
-
-
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
             <LabelList
