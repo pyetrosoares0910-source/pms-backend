@@ -451,26 +451,28 @@ const topEfficiency = useMemo(() => {
 
 // === GERAR TOP E WORST EFFICIENCY NO FRONT ===
 
-// usa a lista completa, se existir
-const allEfficiency = Array.isArray(kpis?.efficiencyByRoom)
-  ? [...kpis.efficiencyByRoom]
+// usa lista completa de ocupações (por empreendimento ou acomodação)
+const allEfficiency = Array.isArray(occupancy?.rows)
+  ? [...occupancy.rows]
   : Array.isArray(kpis?.topEfficiency)
     ? [...kpis.topEfficiency]
     : [];
 
-// top 10 melhores
+// top 10 melhores (garantido)
 const topEfficiency = allEfficiency
   .slice()
   .sort((a, b) => b.ocupacao - a.ocupacao)
   .slice(0, 10);
 
-// top 10 piores (sem repetir)
+// top 10 piores (sem repetir as melhores)
 const worstEfficiency = allEfficiency
   .filter(r => !topEfficiency.find(t => t.label === r.label))
   .sort((a, b) => a.ocupacao - b.ocupacao)
   .slice(0, 10);
 
+console.log("🔥 allEfficiency:", allEfficiency);
 console.log("🔥 worstEfficiency:", worstEfficiency);
+
 
 
   // === Progresso de manutenção ===
