@@ -451,22 +451,25 @@ const topEfficiency = useMemo(() => {
 
 // === GERAR TOP E WORST EFFICIENCY NO FRONT ===
 
-// usamos o topEfficiency atual como base
-const allEfficiency = Array.isArray(kpis?.topEfficiency)
-  ? [...kpis.topEfficiency]
-  : [];
+// usa a lista completa, se existir
+const allEfficiency = Array.isArray(kpis?.efficiencyByRoom)
+  ? [...kpis.efficiencyByRoom]
+  : Array.isArray(kpis?.topEfficiency)
+    ? [...kpis.topEfficiency]
+    : [];
 
-// top 10 melhores (garantido)
+// top 10 melhores
 const topEfficiency = allEfficiency
   .slice()
   .sort((a, b) => b.ocupacao - a.ocupacao)
   .slice(0, 10);
 
-// top 10 piores (sem repetir as melhores)
+// top 10 piores (sem repetir)
 const worstEfficiency = allEfficiency
   .filter(r => !topEfficiency.find(t => t.label === r.label))
   .sort((a, b) => a.ocupacao - b.ocupacao)
   .slice(0, 10);
+
 
 
 
@@ -512,10 +515,6 @@ const maidsTomorrow = useMemo(() => {
   });
   return acc;
 }, [tasks, tomorrowStr]);
-
-
-
-
 
 
   return (
