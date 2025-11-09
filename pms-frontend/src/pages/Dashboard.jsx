@@ -454,9 +454,10 @@ const topEfficiency = Array.isArray(kpis?.topEfficiency)
   ? kpis.topEfficiency.slice(0, 10)
   : [];
 
-const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
-  ? kpis.worstEfficiency.slice(0, 10)
-  : topEfficiency.slice().reverse();
+const worstEfficiency = allRooms
+  .filter(r => !topEfficiency.find(t => t.id === r.id))
+  .sort((a, b) => a.ocupacao - b.ocupacao)
+  .slice(0, 10);
 
 
 
@@ -653,18 +654,19 @@ const maidsTomorrow = useMemo(() => {
 
   <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
 
-    {/* 🥇🥈🥉 TOP 3 PIORES */}
+    {/* 🥇🥈🥉 PIORES 3 VISUAL */}
     <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
       {worstEfficiency.slice(0, 3).map((item, i) => {
+        // gradações de vermelho para o top 3
         const colors = [
-          "from-red-500 to-red-400",     // 1º pior
-          "from-orange-400 to-orange-300", // 2º pior
-          "from-amber-500 to-amber-400",   // 3º pior
+          "from-red-600 to-red-500",   // 1º pior — vermelho destaque
+          "from-red-400 to-red-300",   // 2º pior — vermelho neutro
+          "from-red-200 to-red-100",   // 3º pior — vermelho pastel
         ];
         const numColor =
-          i === 0 ? "text-red-500"
-          : i === 1 ? "text-orange-400"
-          : "text-amber-500";
+          i === 0 ? "text-red-600"
+          : i === 1 ? "text-red-400"
+          : "text-red-300";
 
         const height = i === 0 ? "h-24" : "h-20";
         const width = "w-40";
@@ -733,10 +735,10 @@ const maidsTomorrow = useMemo(() => {
 
           <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
             {worstEfficiency.map((_, index) => {
-              let color = "#ef4444"; // base vermelha
+              let color = "#0f4c81"; // azul padrão
               if (index === 0) color = "#dc2626";   // pior
-              else if (index === 1) color = "#f97316"; // segundo
-              else if (index === 2) color = "#f59e0b"; // terceiro
+              else if (index === 1) color = "#f87171"; // segundo
+              else if (index === 2) color = "#fecaca"; // terceiro
               return <Cell key={`cell-${index}`} fill={color} />;
             })}
             <LabelList
@@ -756,6 +758,7 @@ const maidsTomorrow = useMemo(() => {
     </div>
   </div>
 </div>
+
 
     </div>
 
