@@ -9,11 +9,12 @@ export default function DashboardKPIGrid({ kpis }) {
 
   return (
     <motion.div
-      className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 lg:col-span-2"
-      initial="hidden"
-      animate="show"
-      variants={gridVariants}
-    >
+  className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"
+  initial="hidden"
+  animate="show"
+  variants={gridVariants}
+>
+
 
       {/* ✅ KPIs do dia — SEM comparativo */}
       <StatCard
