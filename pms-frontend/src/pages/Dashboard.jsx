@@ -355,10 +355,9 @@ const allEfficiency = useMemo(() => {
     roomMap[r.roomId].noites += overlap;
   });
 
-  // ✅ TRANSFORMA roomMap EM LISTA COMPLETA
+  // ✅ Transforma roomMap em lista completa
   return rooms.map((room) => {
     const data = roomMap[room.id] || { noites: 0, capacidade: daysInMonth };
-
     return {
       roomId: room.id,
       label: room?.title || room?.name || `Quarto ${room.id}`,
@@ -368,16 +367,18 @@ const allEfficiency = useMemo(() => {
   });
 }, [reservations, rooms, mStart, mEnd, daysInMonth]);
 
-
+// ✅ Top 10 melhores
 const topEfficiency = allEfficiency
   .slice()
   .sort((a, b) => b.ocupacao - a.ocupacao)
   .slice(0, 10);
 
+// ✅ Top 10 piores
 const worstEfficiency = allEfficiency
   .slice()
   .sort((a, b) => a.ocupacao - b.ocupacao)
   .slice(0, 10);
+
 
 
   // === RETORNO FINAL ===
@@ -450,25 +451,18 @@ const worstEfficiency = allEfficiency
 );
 
 // === GERAR TOP E WORST EFFICIENCY NO FRONT ===
+//
+// Já calculados dentro de kpis.useMemo()
+// Aqui apenas garantimos variáveis seguras para uso na renderização.
 
-// usa o array original que já tem as imagens
-const allEfficiency = Array.isArray(kpis?.topEfficiency)
-  ? [...kpis.topEfficiency]
+const topEfficiency = Array.isArray(kpis?.topEfficiency)
+  ? kpis.topEfficiency
   : [];
 
-// top 10 melhores — mantido igual
-const topEfficiency = allEfficiency
-  .slice()
-  .sort((a, b) => b.ocupacao - a.ocupacao)
-  .slice(0, 10);
+const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
+  ? kpis.worstEfficiency
+  : [];
 
-// top 10 piores — removendo os melhores da lista original
-const worstEfficiency = allEfficiency
-  .filter(r => !topEfficiency.find(t => t.label === r.label))
-  .sort((a, b) => a.ocupacao - b.ocupacao)
-  .slice(0, 10);
-
-console.log("🔥 allEfficiency:", allEfficiency.length);
 console.log("🔥 topEfficiency:", topEfficiency.length);
 console.log("🔥 worstEfficiency:", worstEfficiency.length);
 
