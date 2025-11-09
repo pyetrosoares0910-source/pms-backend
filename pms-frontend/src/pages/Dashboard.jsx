@@ -449,6 +449,16 @@ const topEfficiency = useMemo(() => {
   [maintenance]
 );
 
+    // ===== SAFEGUARDS =====
+const topEfficiency = Array.isArray(kpis?.topEfficiency)
+  ? kpis.topEfficiency.slice(0, 10)
+  : [];
+
+const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
+  ? kpis.worstEfficiency.slice(0, 10)
+  // fallback: se não veio do backend, usa o top invertido
+  : topEfficiency.slice().reverse();
+
 
   // === Progresso de manutenção ===
   const maintenanceStats = useMemo(() => {
@@ -492,6 +502,11 @@ const maidsTomorrow = useMemo(() => {
   });
   return acc;
 }, [tasks, tomorrowStr]);
+
+
+
+
+
 
   return (
   <div className="p-6 space-y-8 bg-base-100 min-h-screen">
@@ -560,7 +575,7 @@ const maidsTomorrow = useMemo(() => {
 
           {/* 🥇🥈🥉 TOP 3 VISUAL */}
           <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-            {kpis.topEfficiency.slice(0, 3).map((item, i) => {
+            {topEfficiency.slice(0, 3).map((item, i) => {
               const colors = [
                 "from-yellow-400 to-yellow-300",
                 "from-gray-300 to-gray-200",
@@ -596,7 +611,7 @@ const maidsTomorrow = useMemo(() => {
           <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
             <ResponsiveContainer width="100%" height={340}>
               <BarChart
-                data={kpis.topEfficiency.map((item, index) => ({
+                data={topEfficiency.map((item, index) => ({
                   ...item,
                   posicao: `${index + 1}º`,
                 }))}
@@ -640,7 +655,7 @@ const maidsTomorrow = useMemo(() => {
 
     {/* 🥇🥈🥉 TOP 3 PIORES */}
     <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-      {kpis.worstEfficiency.slice(0, 3).map((item, i) => {
+      {worstEfficiency.slice(0, 3).map((item, i) => {
         const colors = [
           "from-red-500 to-red-400",     // 1º pior
           "from-orange-400 to-orange-300", // 2º pior
@@ -682,7 +697,7 @@ const maidsTomorrow = useMemo(() => {
     <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
       <ResponsiveContainer width="100%" height={340}>
         <BarChart
-          data={kpis.worstEfficiency.map((item, index) => ({
+          data={worstEfficiency.map((item, index) => ({
             ...item,
             posicao: `${index + 1}º`,
           }))}
