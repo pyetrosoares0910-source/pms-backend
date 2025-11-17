@@ -195,23 +195,37 @@ export default function Dashboard() {
     return { rows: occRows, avg };
   }, [rooms, reservations, mStart, mEnd, daysInMonth]);
 
-    // === Ocupação geral do mês ===
+// === Ocupação geral do mês atual ===
 const ocupacaoGeral = useMemo(() => {
-  let totalNights = 0;
-  let totalCapacity = 0;
+  const { start, end, daysInMonth } = monthBounds();
 
-  occupancy.rows.forEach(o => {
-    const stayRooms = rooms.filter(r => r.stay?.id === o.stayId).length;
-    const capacity = stayRooms * daysInMonth;
+  const totalNoites = reservations.reduce((sum, r) => {
+    if (r.status === "cancelada") return sum;
+    return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
+  }, 0);
 
-    totalCapacity += capacity;
-    totalNights += (o.ocupacao / 100) * capacity;
-  });
+  const capacidadeTotal = rooms.length * daysInMonth;
 
-  return totalCapacity > 0
-    ? Math.round((totalNights / totalCapacity) * 100)
+  return capacidadeTotal > 0
+    ? Math.round((totalNoites / capacidadeTotal) * 100)
     : 0;
-}, [occupancy.rows, rooms, daysInMonth]);
+}, [reservations, rooms]);
+
+// === Ocupação geral do mês anterior ===
+const ocupacaoGeralPrev = useMemo(() => {
+  const { start, end, daysInMonth } = monthBounds(dayjs().subtract(1, "month"));
+
+  const totalNoites = reservations.reduce((sum, r) => {
+    if (r.status === "cancelada") return sum;
+    return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
+  }, 0);
+
+  const capacidadeTotal = rooms.length * daysInMonth;
+
+  return capacidadeTotal > 0
+    ? Math.round((totalNoites / capacidadeTotal) * 100)
+    : 0;
+}, [reservations, rooms]);
 
 
 // === KPIs principais ===
@@ -525,7 +539,7 @@ const maidsTomorrow = useMemo(() => {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* ✅ Ocupação Geral — 2 colunas */}
       <div className="lg:col-span-2">
-        <KpiGaugeOcupacao value={ocupacaoGeral} previous={occupancy.avg}/>
+        <KpiGaugeOcupacao value={ocupacaoGeral} previous={ocupacaoGeralPrev} />
       </div>
 
       {/* ✅ Manutenção — 1 col */}

@@ -9,7 +9,8 @@ export default function KpiGaugeOcupacao({ value, previous }) {
   const pathColor =
     pct >= 80 ? "#0ea5e9" : pct >= 60 ? "#38bdf8" : pct >= 40 ? "#60a5fa" : "#93c5fd";
 
-  const circumference = 260; 
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius; 
   const offset = circumference - (circumference * pct) / 100;
 
   return (
