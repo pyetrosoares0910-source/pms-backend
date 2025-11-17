@@ -72,6 +72,7 @@ export default function Dashboard() {
   const [tasksMonth, setTasksMonth] = useState([]);
   const [maids, setMaids] = useState([]);
   const [maintenance, setMaintenance] = useState([]);
+  const [tasksMonthPrev, setTasksMonthPrev] = useState([]);
 
  
   useEffect(() => {
@@ -87,6 +88,16 @@ export default function Dashboard() {
       const startMonth = dayjs().startOf("month").format("YYYY-MM-DD");
       const endMonth = dayjs().endOf("month").format("YYYY-MM-DD");
 
+      // ✅ mês anterior (para comparativo de diárias de limpeza)
+      const prevMonthStart = dayjs()
+        .subtract(1, "month")
+        .startOf("month")
+        .format("YYYY-MM-DD");
+      const prevMonthEnd = dayjs()
+        .subtract(1, "month")
+        .endOf("month")
+        .format("YYYY-MM-DD");
+
       const [
         rsv,
         rms,
@@ -95,6 +106,7 @@ export default function Dashboard() {
         maidsRes,
         maint,
         checkoutsMonth,
+        checkoutsPrevMonth,
       ] = await Promise.all([
         api("/reservations"),
         api("/rooms"),
@@ -102,7 +114,8 @@ export default function Dashboard() {
         api(`/tasks/checkouts?start=${startWeek}&end=${endWeek}`),
         api("/maids"),
         api("/maintenance"),
-        api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`), // ✅ NOVO
+        api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`),
+        api(`/tasks/checkouts?start=${prevMonthStart}&end=${prevMonthEnd}`),
       ]);
 
       if (!isMounted) return;
@@ -117,8 +130,18 @@ export default function Dashboard() {
         maidId: t.maidId || null,
       }));
 
-      // ✅ Mapeamento do mês inteiro
+      // ✅ Mapeamento do mês atual
       const mappedMonth = (checkoutsMonth || []).map((t) => ({
+        id: t.id,
+        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
+        stay: t.stay || "Sem Stay",
+        rooms: t.rooms || "Sem identificação",
+        maid: t.maid || null,
+        maidId: t.maidId || null,
+      }));
+
+      // ✅ Mapeamento do mês anterior
+      const mappedPrevMonth = (checkoutsPrevMonth || []).map((t) => ({
         id: t.id,
         date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
         stay: t.stay || "Sem Stay",
@@ -131,7 +154,8 @@ export default function Dashboard() {
       setRooms(rms || []);
       setStays(sts || []);
       setTasks(mappedWeek);
-      setTasksMonth(mappedMonth); // ✅ define tarefas mensais
+      setTasksMonth(mappedMonth);       // mês atual
+      setTasksMonthPrev(mappedPrevMonth); // mês anterior
       setMaids(maidsRes || []);
       setMaintenance(maint || []);
     } catch (err) {
@@ -140,8 +164,11 @@ export default function Dashboard() {
   };
 
   fetchData();
-  return () => { isMounted = false; };
+  return () => {
+    isMounted = false;
+  };
 }, []);
+
 
 
 
@@ -253,7 +280,7 @@ const kpis = useMemo(() => {
       dayjs.utc(r.checkoutDate).isSame(today, "day")
   ).length;
 
-  // === CÁLCULOS DO MÊS ATUAL ===
+    // === CÁLCULOS DO MÊS ATUAL ===
   const nightsInMonth = reservations.reduce((sum, r) => {
     if (r.status === "cancelada") return sum;
     return sum + overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
@@ -278,15 +305,24 @@ const kpis = useMemo(() => {
       dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
   ).length;
 
-  const diariasLimpeza = tasksMonth.length; 
+  // 🔹 DIÁRIAS DE LIMPEZA – mês atual
+  // 1 diária = (diarista, dia) 
+  const diariasLimpeza = (() => {
+    const set = new Set();
+    (tasksMonth || []).forEach((t) => {
+      if (!t.maid && !t.maidId) return;
+      const key = `${t.date}-${t.maidId || t.maid}`;
+      set.add(key);
+    });
+    return set.size;
+  })();
+
+  const diariasLimpezaMes = diariasLimpeza; 
+
 
   const eficienciaLimpeza =
-  diariasLimpeza > 0
-    ? (checkoutsDoMes / diariasLimpeza).toFixed(1)
-    : "-";
+    diariasLimpeza > 0 ? (checkoutsDoMes / diariasLimpeza).toFixed(1) : "-";
 
-
- const diariasLimpezaMes = tasksMonth.length;
 
 
   const mediaDiariasReserva =
@@ -330,10 +366,16 @@ const kpis = useMemo(() => {
       dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
   ).length;
 
-  const diariasLimpezaPrev = tasksMonth.filter(t =>
-  dayjs(t.date).isBetween(prevStart, prevEnd, null, "[]")
-).length;
 
+  const diariasLimpezaPrev = (() => {
+    const set = new Set();
+    (tasksMonthPrev || []).forEach((t) => {
+      if (!t.maid && !t.maidId) return;
+      const key = `${t.date}-${t.maidId || t.maid}`;
+      set.add(key);
+    });
+    return set.size;
+  })();
 
   const eficienciaLimpezaPrev =
     diariasLimpezaPrev > 0
@@ -347,6 +389,7 @@ const kpis = useMemo(() => {
     diariasLimpeza: diariasLimpezaPrev,
     eficienciaLimpeza: eficienciaLimpezaPrev,
   };
+
 
 /// === EFICIÊNCIA DE TODOS OS QUARTOS ===
 const allEfficiency = useMemo(() => {
@@ -418,7 +461,8 @@ const worstEfficiency = allEfficiency
     // ✅ Comparativos
     prev,
   };
-}, [reservations, occupancy.rows, tasks, rooms, today]);
+}, [reservations, occupancy.rows, tasksMonth, tasksMonthPrev, rooms, today]);
+
 
 
 
