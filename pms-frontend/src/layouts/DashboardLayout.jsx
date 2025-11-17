@@ -195,7 +195,6 @@ export default function DashboardLayout() {
             to="/performance-report"
             icon={BarChart3}
             showText={showText}
-            highlight
           >
             Relatório de Desempenho
           </Item>
