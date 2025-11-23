@@ -112,35 +112,44 @@ export default function Reservations() {
 
   // abreviação
   function abbrevStay(name) {
-  const map = {
-    "Itaim Stay (Tabapuã)": "Itaim",
-    "Itaim Stay 2 (Tabapuã)": "Itaim 2",
-    "JK Stay (Clodomiro)": "JK",
-    "Internacional Stay (Urussuí)": "Internacional",
-    "Iguatemi Stay A (Butantã)": "Iguatemi A",
-    "Iguatemi Stay B (Butantã)": "Iguatemi B",
-    "Estanconfor Vila Olímpia": "Vila Olímpia",
-  };
-  if (map[name]) return map[name];
-  return name?.split("(")[0]?.trim() || name;
-}
+    const map = {
+      "Itaim Stay (Tabapuã)": "Itaim",
+      "Itaim Stay 2 (Tabapuã)": "Itaim 2",
+      "JK Stay (Clodomiro)": "JK",
+      "Internacional Stay (Urussuí)": "Internacional",
+      "Iguatemi Stay A (Butantã)": "Iguatemi A",
+      "Iguatemi Stay B (Butantã)": "Iguatemi B",
+      "Estanconfor Vila Olímpia": "Vila Olímpia",
+    };
+    if (map[name]) return map[name];
+    return name?.split("(")[0]?.trim() || name;
+  }
 
-
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return (
+      <p className="p-6 text-slate-700 dark:text-slate-200">
+        Carregando...
+      </p>
+    );
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Reservas</h1>
+    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <h1 className="text-3xl font-bold mb-6">Reservas</h1>
 
       {/* Formulário de cadastro */}
       <form
         onSubmit={handleCreate}
-        className="mb-6 grid grid-cols-2 gap-4 bg-white p-4 rounded shadow"
+        className="mb-6 grid grid-cols-2 gap-4 bg-white p-4 rounded shadow
+                   dark:bg-slate-900 dark:border dark:border-slate-700"
       >
         <select
-          className="border p-2 rounded"
+          className="border p-2 rounded bg-white dark:bg-slate-900 
+                     border-gray-300 dark:border-slate-700 
+                     text-slate-900 dark:text-slate-100"
           value={formData.guestId}
-          onChange={(e) => setFormData({ ...formData, guestId: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, guestId: e.target.value })
+          }
           required
         >
           <option value="">Selecione o hóspede</option>
@@ -152,9 +161,13 @@ export default function Reservations() {
         </select>
 
         <select
-          className="border p-2 rounded"
+          className="border p-2 rounded bg-white dark:bg-slate-900 
+                     border-gray-300 dark:border-slate-700 
+                     text-slate-900 dark:text-slate-100"
           value={formData.roomId}
-          onChange={(e) => setFormData({ ...formData, roomId: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, roomId: e.target.value })
+          }
           required
         >
           <option value="">Selecione o quarto</option>
@@ -167,7 +180,9 @@ export default function Reservations() {
 
         <input
           type="date"
-          className="border p-2 rounded"
+          className="border p-2 rounded bg-white dark:bg-slate-900 
+                     border-gray-300 dark:border-slate-700 
+                     text-slate-900 dark:text-slate-100"
           value={formData.checkinDate}
           onChange={(e) =>
             setFormData({ ...formData, checkinDate: e.target.value })
@@ -177,7 +192,9 @@ export default function Reservations() {
 
         <input
           type="date"
-          className="border p-2 rounded"
+          className="border p-2 rounded bg-white dark:bg-slate-900 
+                     border-gray-300 dark:border-slate-700 
+                     text-slate-900 dark:text-slate-100"
           value={formData.checkoutDate}
           onChange={(e) =>
             setFormData({ ...formData, checkoutDate: e.target.value })
@@ -186,9 +203,13 @@ export default function Reservations() {
         />
 
         <select
-          className="border p-2 rounded"
+          className="border p-2 rounded bg-white dark:bg-slate-900 
+                     border-gray-300 dark:border-slate-700 
+                     text-slate-900 dark:text-slate-100"
           value={formData.status}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, status: e.target.value })
+          }
         >
           <option value="agendada">Agendada</option>
           <option value="ativa">Ativa</option>
@@ -198,35 +219,57 @@ export default function Reservations() {
 
         <button
           type="submit"
-          className="col-span-2 bg-sky-700 text-white py-2 rounded hover:bg-sky-800"
+          className="col-span-2 bg-sky-700 text-white py-2 rounded hover:bg-sky-800
+                     transition-colors duration-200"
         >
           Cadastrar Reserva
         </button>
       </form>
 
       {/* Tabela de reservas */}
-      <table className="w-full bg-white shadow rounded">
+      <table className="w-full bg-white shadow rounded 
+                        dark:bg-slate-900 dark:border dark:border-slate-700">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-left">Hóspede</th>
-            <th className="p-2 text-left">Quarto</th>
-            <th className="p-2 text-left">Check-in</th>
-            <th className="p-2 text-left">Check-out</th>
-            <th className="p-2 text-left">Status</th>
-            <th className="p-2 text-center">Ações</th>
+          <tr className="bg-gray-200 dark:bg-slate-800">
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Hóspede
+            </th>
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Quarto
+            </th>
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Check-in
+            </th>
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Check-out
+            </th>
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Status
+            </th>
+            <th className="p-2 text-center text-slate-800 dark:text-slate-100">
+              Ações
+            </th>
           </tr>
         </thead>
         <tbody>
           {reservations.map((res) => (
-            <tr key={res.id} className="border-t">
+            <tr
+              key={res.id}
+              className="border-t border-gray-200 dark:border-slate-700"
+            >
               {editId === res.id ? (
                 <>
                   <td className="p-2">
                     <select
-                      className="border p-1 rounded"
+                      className="border p-1 rounded bg-white dark:bg-slate-900 
+                                 border-gray-300 dark:border-slate-700 
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.guestId}
                       onChange={(e) =>
-                        setEditData({ ...editData, guestId: e.target.value })
+                        setEditData({
+                          ...editData,
+                          guestId: e.target.value,
+                        })
                       }
                     >
                       {guests.map((g) => (
@@ -238,10 +281,15 @@ export default function Reservations() {
                   </td>
                   <td className="p-2">
                     <select
-                      className="border p-1 rounded"
+                      className="border p-1 rounded bg-white dark:bg-slate-900 
+                                 border-gray-300 dark:border-slate-700 
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.roomId}
                       onChange={(e) =>
-                        setEditData({ ...editData, roomId: e.target.value })
+                        setEditData({
+                          ...editData,
+                          roomId: e.target.value,
+                        })
                       }
                     >
                       {rooms.map((r) => (
@@ -254,17 +302,24 @@ export default function Reservations() {
                   <td className="p-2">
                     <input
                       type="date"
-                      className="border p-1 rounded"
+                      className="border p-1 rounded bg-white dark:bg-slate-900 
+                                 border-gray-300 dark:border-slate-700 
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.checkinDate}
                       onChange={(e) =>
-                        setEditData({ ...editData, checkinDate: e.target.value })
+                        setEditData({
+                          ...editData,
+                          checkinDate: e.target.value,
+                        })
                       }
                     />
                   </td>
                   <td className="p-2">
                     <input
                       type="date"
-                      className="border p-1 rounded"
+                      className="border p-1 rounded bg-white dark:bg-slate-900 
+                                 border-gray-300 dark:border-slate-700 
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.checkoutDate}
                       onChange={(e) =>
                         setEditData({
@@ -276,10 +331,15 @@ export default function Reservations() {
                   </td>
                   <td className="p-2">
                     <select
-                      className="border p-1 rounded"
+                      className="border p-1 rounded bg-white dark:bg-slate-900 
+                                 border-gray-300 dark:border-slate-700 
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.status}
                       onChange={(e) =>
-                        setEditData({ ...editData, status: e.target.value })
+                        setEditData({
+                          ...editData,
+                          status: e.target.value,
+                        })
                       }
                     >
                       <option value="agendada">Agendada</option>
@@ -305,12 +365,30 @@ export default function Reservations() {
                 </>
               ) : (
                 <>
-                  <td className="p-2">{res.guest?.name}</td>
-                  <td className="p-2">{res.room? `${res.room.title} 
-                        (${abbrevStay(res.room.stay?.name)})`: "—"}</td>
-                  <td className="p-2">{res.checkinDate?.split("T")[0]}</td>
-                  <td className="p-2">{res.checkoutDate?.split("T")[0]}</td>
-                  <td className="p-2 capitalize">{res.status}</td>
+                  <td className="p-2">
+                    <span className="text-slate-800 dark:text-slate-100">
+                      {res.guest?.name}
+                    </span>
+                  </td>
+                  <td className="p-2">
+                    {res.room ? (
+                      <span className="text-slate-800 dark:text-slate-100">
+                        {res.room.title} (
+                        {abbrevStay(res.room.stay?.name)})
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="p-2 text-slate-800 dark:text-slate-100">
+                    {res.checkinDate?.split("T")[0]}
+                  </td>
+                  <td className="p-2 text-slate-800 dark:text-slate-100">
+                    {res.checkoutDate?.split("T")[0]}
+                  </td>
+                  <td className="p-2 capitalize text-slate-800 dark:text-slate-100">
+                    {res.status}
+                  </td>
                   <td className="p-2 flex gap-2 justify-center">
                     <button
                       onClick={() => handleEdit(res)}
@@ -331,7 +409,10 @@ export default function Reservations() {
           ))}
           {reservations.length === 0 && (
             <tr>
-              <td colSpan="6" className="p-4 text-center text-gray-500">
+              <td
+                colSpan="6"
+                className="p-4 text-center text-gray-500 dark:text-slate-400"
+              >
                 Nenhuma reserva cadastrada.
               </td>
             </tr>
