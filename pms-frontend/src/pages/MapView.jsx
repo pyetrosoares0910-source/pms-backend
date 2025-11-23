@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../lib/api";
+import { useTheme } from "../context/ThemeContext";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -36,7 +37,7 @@ function colorByStatus(status) {
     case ReservationStatus.AGENDADA:
       return "bg-sky-500";
     case ReservationStatus.ATIVA:
-      return "bg-red-500";
+      return "bg-rose-500";
     case ReservationStatus.CONCLUIDA:
       return "bg-emerald-600";
     case ReservationStatus.CANCELADA:
@@ -46,14 +47,17 @@ function colorByStatus(status) {
   }
 }
 
+// largura da coluna das UHs (antes era 260px)
+const ROOM_COL_WIDTH = 200;
+
 // ===== Modal base =====
 function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-transparent dark:border-slate-700">
-        <div className="px-5 py-4 border-b border-neutral-200 dark:border-slate-700 flex justify-between items-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-slate-200/70 dark:border-slate-700">
+        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-semibold">{title}</h2>
           <button
             onClick={onClose}
@@ -157,44 +161,44 @@ function ReservationActionsModal({
   return (
     <>
       <Modal open={open} onClose={onClose} title="Ações da Reserva">
-        <h2 className="text-lg font-semibold mb-4">
+        <h2 className="text-lg font-semibold mb-1">
           {reservation.guest?.name} • {reservation.room?.title}
         </h2>
-        <p className="text-sm mb-4">
+        <p className="text-sm mb-4 text-slate-600 dark:text-slate-300">
           {fmtBR(ci)} → {fmtBR(co)}
         </p>
         <div className="space-y-2">
           <button
             onClick={() => updateStatus("ativa")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+            className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
           >
             Fazer check-in
           </button>
           <button
             onClick={() => updateStatus("agendada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700"
+            className="w-full px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg"
           >
             Reverter check-in
           </button>
           <button
             onClick={() => updateStatus("concluida")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
           >
             Expedia - cobrar limpeza
           </button>
           <button
             onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-blue-800 text-white rounded-lg mt-4 hover:bg-blue-900"
+            className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg mt-4"
           >
             Editar reserva
           </button>
           <button
             onClick={() => updateStatus("cancelada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600"
+            className="w-full px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg"
           >
             Cancelar reserva
           </button>
@@ -263,43 +267,34 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     <Modal open={open} onClose={onClose} title="Editar reserva">
       <form onSubmit={handleSave} className="space-y-4">
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Check-in
-          </label>
+          <label className="text-sm">Check-in</label>
           <input
             type="date"
             name="checkinDate"
             value={form.checkinDate}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             required
           />
         </div>
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Check-out
-          </label>
+          <label className="text-sm">Check-out</label>
           <input
             type="date"
             name="checkoutDate"
             value={form.checkoutDate}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             required
           />
         </div>
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Quarto
-          </label>
+          <label className="text-sm">Quarto</label>
           <select
             name="roomId"
             value={form.roomId}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             required
           >
             <option value="">Selecione...</option>
@@ -311,15 +306,12 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
           </select>
         </div>
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Observações
-          </label>
+          <label className="text-sm">Observações</label>
           <textarea
             name="notes"
             value={form.notes}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="w-full border rounded-lg px-3 py-2 mt-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             rows={3}
           />
         </div>
@@ -328,16 +320,14 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg border-slate-300 text-slate-700 bg-white
-                       hover:bg-slate-50
-                       dark:border-slate-600 dark:text-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="px-4 py-2 border rounded-lg border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
           >
             {loading ? "Salvando..." : "Salvar alterações"}
           </button>
@@ -395,50 +385,38 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
     <Modal open={open} onClose={onClose} title="Nova reserva">
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Hóspede
-          </label>
+          <label className="text-sm">Hóspede</label>
           <input
-            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Check-in
-          </label>
+          <label className="text-sm">Check-in</label>
           <input
             type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             value={checkin}
             onChange={(e) => setCheckin(e.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Check-out
-          </label>
+          <label className="text-sm">Check-out</label>
           <input
             type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             value={checkout}
             onChange={(e) => setCheckout(e.target.value)}
             required
           />
         </div>
         <div className="col-span-2">
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Quarto
-          </label>
+          <label className="text-sm">Quarto</label>
           <select
-            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             required
@@ -452,12 +430,9 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
           </select>
         </div>
         <div className="col-span-2">
-          <label className="text-sm text-slate-700 dark:text-slate-200">
-            Observações
-          </label>
+          <label className="text-sm">Observações</label>
           <textarea
-            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
-                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -472,16 +447,14 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg border-slate-300 text-slate-700 bg-white
-                       hover:bg-slate-50
-                       dark:border-slate-600 dark:text-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="px-4 py-2 border rounded-lg border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
           >
             {loading ? "Salvando..." : "Salvar"}
           </button>
@@ -494,6 +467,9 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
 // ===== Página principal =====
 export default function MapView() {
   const api = useApi();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [rooms, setRooms] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -501,7 +477,7 @@ export default function MapView() {
   const [addOpen, setAddOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState(new Set());
   const cellW = 45;
-  const WINDOW_DAYS = 34;
+  const WINDOW_DAYS = 34; // 30 dias + 4 extras
 
   const [start, setStart] = useState(startOfDay(new Date()));
   const endDisplay = addDays(start, WINDOW_DAYS);
@@ -565,12 +541,14 @@ export default function MapView() {
   };
 
   return (
-    <div className="p-4 overflow-x-auto text-slate-900 dark:text-slate-100">
+    <div className="p-4 overflow-x-auto">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-[30px] font-semibold">Mapa de Reservas</h1>
+        <h1 className="text-[30px] font-semibold text-slate-900 dark:text-slate-50">
+          Mapa de Reservas
+        </h1>
         <button
           onClick={() => setAddOpen(true)}
-          className="px-4 py-2 rounded-xl bg-sky-700 text-white hover:bg-sky-800"
+          className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20"
         >
           Adicionar reserva
         </button>
@@ -578,25 +556,28 @@ export default function MapView() {
 
       {/* Controle de datas */}
       <div className="flex items-center justify-center mb-3">
-        <div className="flex items-stretch rounded-md overflow-hidden shadow bg-white dark:bg-slate-900 dark:shadow-slate-900/40">
+        <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm border border-sky-600/60">
           <button
             onClick={goPrev}
-            className="px-3 bg-sky-700 text-white hover:bg-sky-800"
+            className="px-3 bg-sky-600 hover:bg-sky-700 text-white text-lg"
             title="30 dias anteriores"
           >
             ‹
           </button>
           <button
             onClick={() => startPickerRef.current?.showPicker?.()}
-            className="px-4 bg-white border-y border-sky-700 text-slate-700 font-semibold
-                       dark:bg-slate-900 dark:text-slate-100 dark:border-sky-500"
+            className={`px-4 font-semibold border-x border-sky-500 text-sm ${
+              isDark
+                ? "bg-slate-950 text-sky-100"
+                : "bg-white text-slate-800"
+            }`}
             title="Alterar data inicial"
           >
             {`${fmtBR(start)} à ${fmtBR(endDisplay)}`}
           </button>
           <button
             onClick={goNext}
-            className="px-3 bg-sky-700 text-white hover:bg-sky-800"
+            className="px-3 bg-sky-600 hover:bg-sky-700 text-white text-lg"
             title="Próximos 30 dias"
           >
             ›
@@ -611,22 +592,34 @@ export default function MapView() {
         />
       </div>
 
-      <div className="rounded-2xl border border-neutral-200 overflow-x-auto min-w-[900px] bg-white dark:bg-slate-900 dark:border-slate-700">
-        {/* Cabeçalho */}
+      {/* GRID PRINCIPAL */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-x-auto min-w-[900px] bg-white dark:bg-slate-900 shadow-sm dark:shadow-lg">
+        {/* Cabeçalho topo */}
         <div
           className="grid sticky top-0 z-30"
-          style={{ gridTemplateColumns: `260px repeat(${days}, ${cellW}px)` }}
+          style={{
+            gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
+          }}
         >
-          {/* Coluna fixa UH / Mês */}
-          <div className="bg-gradient-to-b from-sky-700 to-sky-900 border-b border-neutral-200 px-3 text-white text-sm sticky left-0 z-40 h-12 flex items-center">
+          {/* Coluna UH / Mês */}
+          <div
+            className={`
+              sticky left-0 z-40 h-12 px-3 text-sm flex items-center
+              border-b border-slate-200 dark:border-slate-700
+              font-medium tracking-wide
+              ${isDark ? "bg-slate-950 text-sky-100" : "bg-sky-600 text-white"}
+            `}
+          >
             UH / Mês
           </div>
 
-          {/* Linha contínua dias */}
+          {/* Linha de fundo (sem dias ainda) */}
           {Array.from({ length: days }).map((_, i) => (
             <div
               key={i}
-              className="h-12 border-b border-neutral-200 bg-gradient-to-b from-sky-700 to-sky-900"
+              className={`h-12 border-b border-slate-200 dark:border-slate-700 ${
+                isDark ? "bg-slate-950" : "bg-sky-50"
+              }`}
             />
           ))}
         </div>
@@ -636,40 +629,46 @@ export default function MapView() {
           const isOpen = expandedGroups.has(stay);
           return (
             <div key={stay}>
-              {/* Cabeçalho do empreendimento */}
+              {/* Cabeçalho do empreendimento + dias */}
               <div
-                className="grid sticky top-10 z-20 bg-stone-50 dark:bg-slate-950"
+                className="grid sticky top-10 z-20"
                 style={{
-                  gridTemplateColumns: `260px repeat(${days}, ${cellW}px)`,
+                  gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
                 }}
               >
                 {/* Coluna Stay */}
                 <div
-                  className="sticky left-0 z-30 bg-sky-900 px-3 text-[13px] text-white font-semibold border-b border-neutral-200 h-10 flex items-center cursor-pointer select-none"
+                  className={`
+                    sticky left-0 z-30 px-3 h-10 flex items-center cursor-pointer select-none
+                    border-b border-slate-200 dark:border-slate-700 text-[13px] font-semibold
+                    ${isDark ? "bg-slate-900 text-slate-100" : "bg-sky-100 text-slate-900"}
+                  `}
                   onClick={() => toggleGroup(stay)}
                 >
                   <span className="mr-2">{isOpen ? "⌄" : "›"}</span>
                   {stay}
                 </div>
 
-                {/* Colunas de dias */}
+                {/* Cabeçalhos dos dias */}
                 {headerDays.map((d, i) => {
-                  const isWeekend =
-                    d.getDay() === 0 || d.getDay() === 6;
+                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                  const baseBg = isDark
+                    ? isWeekend
+                      ? "bg-slate-800"
+                      : "bg-slate-900"
+                    : isWeekend
+                    ? "bg-sky-100"
+                    : "bg-sky-50";
+
                   return (
                     <div
                       key={i}
-                      className={`h-10 flex flex-col justify-center items-center border-l border-stone-200 border-b 
-                        ${
-                          isWeekend
-                            ? "bg-sky-900 text-white"
-                            : "bg-sky-900 text-white"
-                        }`}
+                      className={`h-10 flex flex-col justify-center items-center border-l border-b border-slate-200 dark:border-slate-700 ${baseBg}`}
                     >
-                      <div className="text-[18px] font-semibold leading-tight">
+                      <div className="text-[18px] font-semibold leading-tight text-slate-900 dark:text-slate-100">
                         {pad2(d.getDate())}
                       </div>
-                      <div className="text-[10px] uppercase leading-tight">
+                      <div className="text-[10px] uppercase leading-tight text-slate-600 dark:text-slate-300">
                         {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][
                           d.getDay()
                         ]}
@@ -686,36 +685,42 @@ export default function MapView() {
                     key={room.id}
                     className="relative grid"
                     style={{
-                      gridTemplateColumns: `260px repeat(${days}, ${cellW}px)`,
+                      gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
                     }}
                   >
-                    <div className="sticky left-0 z-10 bg-white dark:bg-slate-950 px-3 text-sm border-b border-neutral-200 dark:border-slate-700 h-10 flex items-center">
+                    {/* Nome da UH */}
+                    <div className="sticky left-0 z-10 bg-white dark:bg-slate-900 px-3 text-sm border-b border-slate-200 dark:border-slate-700 h-10 flex items-center text-slate-800 dark:text-slate-100">
                       {room.title}
                     </div>
 
+                    {/* Células de dias */}
                     {Array.from({ length: days }).map((_, i) => {
                       const d = headerDays[i];
-                      const isWeekend =
-                        d.getDay() === 0 || d.getDay() === 6;
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      const bgClass = isDark
+                        ? isWeekend
+                          ? "bg-slate-800/60"
+                          : "bg-slate-900"
+                        : isWeekend
+                        ? "bg-slate-50"
+                        : "bg-white";
+
                       return (
                         <div
                           key={i}
-                          className={`relative h-10 border-l border-stone-200 dark:border-slate-800 border-b 
-                            ${
-                              isWeekend
-                                ? "bg-gray-100 dark:bg-slate-800/70"
-                                : "bg-white dark:bg-slate-900"
-                            }`}
+                          className={`relative h-10 border-l border-b border-slate-200 dark:border-slate-800 ${bgClass}`}
                         />
                       );
                     })}
 
-                    <div className="absolute left-[260px] right-0 top-0 bottom-0">
+                    {/* Faixas de reserva */}
+                    <div
+                      className="absolute top-0 bottom-0 right-0"
+                      style={{ left: ROOM_COL_WIDTH }}
+                    >
                       {reservations
                         .filter(
-                          (r) =>
-                            r.roomId === room.id &&
-                            r.status !== "cancelada"
+                          (r) => r.roomId === room.id && r.status !== "cancelada"
                         )
                         .map((r) => (
                           <ReservationBar
@@ -750,9 +755,7 @@ export default function MapView() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         rooms={rooms}
-        onCreated={(res) =>
-          setReservations((prev) => [...prev, res])
-        }
+        onCreated={(res) => setReservations((prev) => [...prev, res])}
       />
 
       {loading && (
