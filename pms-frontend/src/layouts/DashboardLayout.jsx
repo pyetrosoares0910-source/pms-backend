@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -25,7 +25,7 @@ import {
   Boxes,
   Sun,
   Moon,
-  ChevronUp, // ⬅️ novo ícone
+  ChevronUp,
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
@@ -75,8 +75,7 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
 
-  const [showScrollTop, setShowScrollTop] = useState(false); // botão ^
-  const mainRef = useRef(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     if (!collapsed) {
@@ -94,32 +93,31 @@ export default function DashboardLayout() {
 
   const isDark = theme === "dark";
 
-  // Listener de scroll do main (conteúdo)
+  // Listener de scroll na janela
   useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
-
     const handleScroll = () => {
-      setShowScrollTop(el.scrollTop > 200);
+      const scrollTop =
+        window.scrollY || document.documentElement.scrollTop || 0;
+      setShowScrollTop(scrollTop > 200);
     };
 
-    el.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // inicial
+
     return () => {
-      el.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
   const handleScrollTop = () => {
-    if (mainRef.current) {
-      mainRef.current.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-screen flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
         className={`
@@ -128,6 +126,7 @@ export default function DashboardLayout() {
           dark:from-slate-900 dark:to-slate-950 /* 🌚 escuro */
           text-white flex flex-col shadow-lg 
           transition-[width] duration-400 ease-out overflow-hidden
+          h-screen sticky top-0
           ${collapsed ? "w-[72px]" : "w-[240px]"}
         `}
       >
@@ -237,7 +236,7 @@ export default function DashboardLayout() {
           </Item>
         </nav>
 
-        {/* BASE FIXA - sempre no fim da coluna da sidebar */}
+        {/* BASE FIXA */}
         <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)] shrink-0">
           {/* Toggle Tema */}
           <button
@@ -308,10 +307,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main
-        ref={mainRef}
-        className="flex-1 overflow-y-auto relative"
-      >
+      <main className="flex-1">
         <div
           className="
           w-full
@@ -325,36 +321,36 @@ export default function DashboardLayout() {
         >
           <Outlet />
         </div>
-
-        {/* BOTÃO VOLTAR AO TOPO */}
-        {showScrollTop && (
-          <button
-            onClick={handleScrollTop}
-            aria-label="Voltar ao topo"
-            className="
-              fixed
-              bottom-6
-              right-6
-              z-40
-              rounded-full
-              px-3
-              py-3
-              bg-sky-600
-              hover:bg-sky-700
-              dark:bg-sky-500
-              dark:hover:bg-sky-400
-              shadow-lg
-              flex
-              items-center
-              justify-center
-              transition-all
-              duration-300
-            "
-          >
-            <ChevronUp size={18} />
-          </button>
-        )}
       </main>
+
+      {/* BOTÃO VOLTAR AO TOPO */}
+      {showScrollTop && (
+        <button
+          onClick={handleScrollTop}
+          aria-label="Voltar ao topo"
+          className="
+            fixed
+            bottom-6
+            right-6
+            z-40
+            rounded-full
+            px-3
+            py-3
+            bg-sky-600
+            hover:bg-sky-700
+            dark:bg-sky-500
+            dark:hover:bg-sky-400
+            shadow-lg
+            flex
+            items-center
+            justify-center
+            transition-all
+            duration-300
+          "
+        >
+          <ChevronUp size={18} />
+        </button>
+      )}
     </div>
   );
 }

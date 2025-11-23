@@ -52,10 +52,15 @@ function Modal({ open, onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="px-5 py-4 border-b flex justify-between items-center">
+      <div className="relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-transparent dark:border-slate-700">
+        <div className="px-5 py-4 border-b border-neutral-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-neutral-600">✕</button>
+          <button
+            onClick={onClose}
+            className="text-neutral-600 dark:text-slate-300 hover:text-neutral-900 dark:hover:text-white"
+          >
+            ✕
+          </button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -115,7 +120,13 @@ function ReservationBar({ res, day0, days, cellW = 45, onClick }) {
 }
 
 // ===== Modais (ações + adicionar reserva) =====
-function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms }) {
+function ReservationActionsModal({
+  open,
+  onClose,
+  reservation,
+  onUpdated,
+  rooms,
+}) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -126,9 +137,9 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
     setLoading(true);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
-  method: "PUT",
-  body: JSON.stringify({ status: newStatus }),
-});
+        method: "PUT",
+        body: JSON.stringify({ status: newStatus }),
+      });
 
       onUpdated(updated);
       onClose();
@@ -156,37 +167,37 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
           <button
             onClick={() => updateStatus("ativa")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
           >
             Fazer check-in
           </button>
           <button
             onClick={() => updateStatus("agendada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700"
           >
             Reverter check-in
           </button>
           <button
             onClick={() => updateStatus("concluida")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Expedia - cobrar limpeza
           </button>
           <button
             onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-blue-800 text-white rounded-lg mt-4"
+            className="w-full px-4 py-2 bg-blue-800 text-white rounded-lg mt-4 hover:bg-blue-900"
           >
             Editar reserva
           </button>
           <button
             onClick={() => updateStatus("cancelada")}
             disabled={loading}
-            className="w-full px-4 py-2 bg-rose-500 text-white rounded-lg"
+            className="w-full px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600"
           >
             Cancelar reserva
-          </button>     
+          </button>
         </div>
       </Modal>
 
@@ -200,7 +211,6 @@ function ReservationActionsModal({ open, onClose, reservation, onUpdated, rooms 
     </>
   );
 }
-
 
 function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
   const api = useApi();
@@ -233,9 +243,9 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     setLoading(true);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
-  method: "PUT",
-  body: JSON.stringify(form),
-});
+        method: "PUT",
+        body: JSON.stringify(form),
+      });
 
       onUpdated(updated);
       onClose();
@@ -253,34 +263,43 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     <Modal open={open} onClose={onClose} title="Editar reserva">
       <form onSubmit={handleSave} className="space-y-4">
         <div>
-          <label className="text-sm">Check-in</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Check-in
+          </label>
           <input
             type="date"
             name="checkinDate"
             value={form.checkinDate}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
+            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             required
           />
         </div>
         <div>
-          <label className="text-sm">Check-out</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Check-out
+          </label>
           <input
             type="date"
             name="checkoutDate"
             value={form.checkoutDate}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
+            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             required
           />
         </div>
         <div>
-          <label className="text-sm">Quarto</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Quarto
+          </label>
           <select
             name="roomId"
             value={form.roomId}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
+            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             required
           >
             <option value="">Selecione...</option>
@@ -292,12 +311,15 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
           </select>
         </div>
         <div>
-          <label className="text-sm">Observações</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Observações
+          </label>
           <textarea
             name="notes"
             value={form.notes}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 mt-1"
+            className="w-full border rounded-lg px-3 py-2 mt-1 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             rows={3}
           />
         </div>
@@ -306,14 +328,16 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg border-slate-300 text-slate-700 bg-white
+                       hover:bg-slate-50
+                       dark:border-slate-600 dark:text-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
           >
             {loading ? "Salvando..." : "Salvar alterações"}
           </button>
@@ -322,7 +346,6 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
     </Modal>
   );
 }
-
 
 function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const api = useApi();
@@ -372,38 +395,50 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
     <Modal open={open} onClose={onClose} title="Nova reserva">
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="text-sm">Hóspede</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Hóspede
+          </label>
           <input
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-sm">Check-in</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Check-in
+          </label>
           <input
             type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             value={checkin}
             onChange={(e) => setCheckin(e.target.value)}
             required
           />
         </div>
         <div>
-          <label className="text-sm">Check-out</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Check-out
+          </label>
           <input
             type="date"
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             value={checkout}
             onChange={(e) => setCheckout(e.target.value)}
             required
           />
         </div>
         <div className="col-span-2">
-          <label className="text-sm">Quarto</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Quarto
+          </label>
           <select
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
             required
@@ -417,27 +452,36 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
           </select>
         </div>
         <div className="col-span-2">
-          <label className="text-sm">Observações</label>
+          <label className="text-sm text-slate-700 dark:text-slate-200">
+            Observações
+          </label>
           <textarea
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="mt-1 w-full border rounded-lg px-3 py-2 border-slate-300 bg-white text-slate-900
+                       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
         </div>
-        {error && <div className="col-span-2 text-sm text-red-600">{error}</div>}
+        {error && (
+          <div className="col-span-2 text-sm text-red-600 dark:text-red-400">
+            {error}
+          </div>
+        )}
         <div className="col-span-2 flex justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg border-slate-300 text-slate-700 bg-white
+                       hover:bg-slate-50
+                       dark:border-slate-600 dark:text-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
           >
             {loading ? "Salvando..." : "Salvar"}
           </button>
@@ -457,7 +501,7 @@ export default function MapView() {
   const [addOpen, setAddOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState(new Set());
   const cellW = 45;
-  const WINDOW_DAYS = 34; // 30 dias + 4 extras (fechando container)
+  const WINDOW_DAYS = 34;
 
   const [start, setStart] = useState(startOfDay(new Date()));
   const endDisplay = addDays(start, WINDOW_DAYS);
@@ -494,27 +538,23 @@ export default function MapView() {
   }, []);
 
   const grouped = useMemo(() => {
-  const map = {};
+    const map = {};
 
-  rooms.forEach((r) => {
-    const stayName = r.stay?.name || "Sem empreendimento";
-    const stayPos = r.stay?.position ?? 9999;
-    if (!map[stayName]) map[stayName] = { rooms: [], position: stayPos };
-    map[stayName].rooms.push(r);
-  });
+    rooms.forEach((r) => {
+      const stayName = r.stay?.name || "Sem empreendimento";
+      const stayPos = r.stay?.position ?? 9999;
+      if (!map[stayName]) map[stayName] = { rooms: [], position: stayPos };
+      map[stayName].rooms.push(r);
+    });
 
-  // Ordena as UHs pela posição definida no cadastro
-  Object.values(map).forEach((group) => {
-    group.rooms.sort((a, b) => (a.position ?? 9999) - (b.position ?? 9999));
-  });
+    Object.values(map).forEach((group) => {
+      group.rooms.sort((a, b) => (a.position ?? 9999) - (b.position ?? 9999));
+    });
 
-  // Ordena os empreendimentos pela posição do Stay
-  return Object.entries(map).sort(
-    ([, a], [, b]) => (a.position ?? 9999) - (b.position ?? 9999)
-  );
-}, [rooms]);
-
-
+    return Object.entries(map).sort(
+      ([, a], [, b]) => (a.position ?? 9999) - (b.position ?? 9999)
+    );
+  }, [rooms]);
 
   const toggleGroup = (stay) => {
     setExpandedGroups((prev) => {
@@ -525,12 +565,12 @@ export default function MapView() {
   };
 
   return (
-    <div className="p-4 overflow-x-auto">
+    <div className="p-4 overflow-x-auto text-slate-900 dark:text-slate-100">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-[30px] font-semibold">Mapa de Reservas</h1>
         <button
           onClick={() => setAddOpen(true)}
-          className="px-4 py-2 rounded-xl bg-sky-700 text-white hover:bg-sky-700"
+          className="px-4 py-2 rounded-xl bg-sky-700 text-white hover:bg-sky-800"
         >
           Adicionar reserva
         </button>
@@ -538,24 +578,25 @@ export default function MapView() {
 
       {/* Controle de datas */}
       <div className="flex items-center justify-center mb-3">
-        <div className="flex items-stretch rounded-md overflow-hidden shadow">
+        <div className="flex items-stretch rounded-md overflow-hidden shadow bg-white dark:bg-slate-900 dark:shadow-slate-900/40">
           <button
             onClick={goPrev}
-            className="px-3 bg-sky-700 text-white hover:bg-sky-700"
+            className="px-3 bg-sky-700 text-white hover:bg-sky-800"
             title="30 dias anteriores"
           >
             ‹
           </button>
           <button
             onClick={() => startPickerRef.current?.showPicker?.()}
-            className="px-4 bg-white border-y border-sky-700 text-slate-700 font-semibold"
+            className="px-4 bg-white border-y border-sky-700 text-slate-700 font-semibold
+                       dark:bg-slate-900 dark:text-slate-100 dark:border-sky-500"
             title="Alterar data inicial"
           >
             {`${fmtBR(start)} à ${fmtBR(endDisplay)}`}
           </button>
           <button
             onClick={goNext}
-            className="px-3 bg-sky-700 text-white hover:bg-sky-950"
+            className="px-3 bg-sky-700 text-white hover:bg-sky-800"
             title="Próximos 30 dias"
           >
             ›
@@ -570,148 +611,155 @@ export default function MapView() {
         />
       </div>
 
-
-
-      <div className="rounded-2xl border border-neutral-200 overflow-x-auto min-w-[900px] bg-white">
-  {/* Cabeçalho */}
-  <div
-  className="grid sticky top-0 z-30"
-  style={{ gridTemplateColumns: `260px repeat(${days}, ${cellW}px)` }}
->
-  {/* Coluna fixa UH / Mês com gradiente vertical */}
-  <div className="bg-gradient-to-b from-sky-700 to-sky-900 border-b border-neutral-200 px-3 text-white text-sm sticky left-0 z-40 h-12 flex items-center">
-    UH / Mês
-  </div>
-
-  {/* Linha contínua com gradiente vertical */}
-  {Array.from({ length: days }).map((_, i) => (
-    <div
-      key={i}
-      className="h-12 border-b border-neutral-200 
-                 bg-gradient-to-b from-sky-700 to-sky-900"
-    />
-  ))}
-</div>
-
-
-
-
-
-
-  {/* Grupos */}
-  {grouped.map(([stay, rows]) => {
-    const isOpen = expandedGroups.has(stay);
-    return (
-      <div key={stay}>
-        {/* Cabeçalho do empreendimento */}
+      <div className="rounded-2xl border border-neutral-200 overflow-x-auto min-w-[900px] bg-white dark:bg-slate-900 dark:border-slate-700">
+        {/* Cabeçalho */}
         <div
-  className="grid sticky top-10 z-20 bg-stone-50"
-  style={{ gridTemplateColumns: `260px repeat(${days}, ${cellW}px)` }}
->
-  {/* Coluna Stay */}
-  <div
-    className="sticky left-0 z-30 bg-sky-900 px-3 text-[13px] text-white font-semibold border-b border-neutral-200 h-10 flex items-center cursor-pointer select-none"
-    onClick={() => toggleGroup(stay)}
-  >
-    <span className="mr-2">{isOpen ? "⌄" : "›"}</span>
-    {stay}
-  </div>
+          className="grid sticky top-0 z-30"
+          style={{ gridTemplateColumns: `260px repeat(${days}, ${cellW}px)` }}
+        >
+          {/* Coluna fixa UH / Mês */}
+          <div className="bg-gradient-to-b from-sky-700 to-sky-900 border-b border-neutral-200 px-3 text-white text-sm sticky left-0 z-40 h-12 flex items-center">
+            UH / Mês
+          </div>
 
-  {/* Colunas de dias */}
-  {headerDays.map((d, i) => {
-    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-    return (
-      <div
-        key={i}
-        className={`h-10 flex flex-col justify-center items-center border-l border-stone-200 border-b 
-          ${isWeekend ? "bg-sky-900 text-white" : "bg-sky-900 text-white"}`}
-      >
-        {/* Dia numérico */}
-        <div className="text-[18px] font-semibold leading-tight">
-          {pad2(d.getDate())}
-        </div>
-        {/* Dia da semana */}
-        <div className="text-[10px] uppercase leading-tight">
-          {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][d.getDay()]}
-        </div>
-      </div>
-    );
-  })}
-</div>
-
-
-        {/* Linhas de UHs */}
-        {isOpen &&
-          rows.rooms.map((room) => (
+          {/* Linha contínua dias */}
+          {Array.from({ length: days }).map((_, i) => (
             <div
-              key={room.id}
-              className="relative grid"
-              style={{ gridTemplateColumns: `260px repeat(${days}, ${cellW}px)` }}
-            >
-              <div className="sticky left-0 z-10 bg-white px-3 text-sm border-b border-neutral-200 h-10 flex items-center">
-                {room.title}
-              </div>
-
-              {Array.from({ length: days }).map((_, i) => {
-                const d = headerDays[i];
-                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                return (
-                  <div
-                    key={i}
-                    className={`relative h-10 border-l border-stone-200 border-b 
-                      ${isWeekend ? "bg-gray-100" : "bg-white"}`}
-                  />
-                );
-              })}
-
-              <div className="absolute left-[260px] right-0 top-0 bottom-0">
-                {reservations
-                  .filter(
-                    (r) => r.roomId === room.id && r.status !== "cancelada"
-                  )
-                  .map((r) => (
-                    <ReservationBar
-                      key={r.id}
-                      res={r}
-                      day0={start}
-                      days={days}
-                      onClick={setSelected}
-                    />
-                  ))}
-              </div>
-            </div>
+              key={i}
+              className="h-12 border-b border-neutral-200 bg-gradient-to-b from-sky-700 to-sky-900"
+            />
           ))}
+        </div>
+
+        {/* Grupos */}
+        {grouped.map(([stay, rows]) => {
+          const isOpen = expandedGroups.has(stay);
+          return (
+            <div key={stay}>
+              {/* Cabeçalho do empreendimento */}
+              <div
+                className="grid sticky top-10 z-20 bg-stone-50 dark:bg-slate-950"
+                style={{
+                  gridTemplateColumns: `260px repeat(${days}, ${cellW}px)`,
+                }}
+              >
+                {/* Coluna Stay */}
+                <div
+                  className="sticky left-0 z-30 bg-sky-900 px-3 text-[13px] text-white font-semibold border-b border-neutral-200 h-10 flex items-center cursor-pointer select-none"
+                  onClick={() => toggleGroup(stay)}
+                >
+                  <span className="mr-2">{isOpen ? "⌄" : "›"}</span>
+                  {stay}
+                </div>
+
+                {/* Colunas de dias */}
+                {headerDays.map((d, i) => {
+                  const isWeekend =
+                    d.getDay() === 0 || d.getDay() === 6;
+                  return (
+                    <div
+                      key={i}
+                      className={`h-10 flex flex-col justify-center items-center border-l border-stone-200 border-b 
+                        ${
+                          isWeekend
+                            ? "bg-sky-900 text-white"
+                            : "bg-sky-900 text-white"
+                        }`}
+                    >
+                      <div className="text-[18px] font-semibold leading-tight">
+                        {pad2(d.getDate())}
+                      </div>
+                      <div className="text-[10px] uppercase leading-tight">
+                        {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][
+                          d.getDay()
+                        ]}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Linhas de UHs */}
+              {isOpen &&
+                rows.rooms.map((room) => (
+                  <div
+                    key={room.id}
+                    className="relative grid"
+                    style={{
+                      gridTemplateColumns: `260px repeat(${days}, ${cellW}px)`,
+                    }}
+                  >
+                    <div className="sticky left-0 z-10 bg-white dark:bg-slate-950 px-3 text-sm border-b border-neutral-200 dark:border-slate-700 h-10 flex items-center">
+                      {room.title}
+                    </div>
+
+                    {Array.from({ length: days }).map((_, i) => {
+                      const d = headerDays[i];
+                      const isWeekend =
+                        d.getDay() === 0 || d.getDay() === 6;
+                      return (
+                        <div
+                          key={i}
+                          className={`relative h-10 border-l border-stone-200 dark:border-slate-800 border-b 
+                            ${
+                              isWeekend
+                                ? "bg-gray-100 dark:bg-slate-800/70"
+                                : "bg-white dark:bg-slate-900"
+                            }`}
+                        />
+                      );
+                    })}
+
+                    <div className="absolute left-[260px] right-0 top-0 bottom-0">
+                      {reservations
+                        .filter(
+                          (r) =>
+                            r.roomId === room.id &&
+                            r.status !== "cancelada"
+                        )
+                        .map((r) => (
+                          <ReservationBar
+                            key={r.id}
+                            res={r}
+                            day0={start}
+                            days={days}
+                            onClick={setSelected}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          );
+        })}
       </div>
-    );
-  })}
-</div>
 
+      <ReservationActionsModal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        reservation={selected}
+        rooms={rooms}
+        onUpdated={(updated) =>
+          setReservations((prev) =>
+            prev.map((r) => (r.id === updated.id ? updated : r))
+          )
+        }
+      />
 
+      <AddReservationModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        rooms={rooms}
+        onCreated={(res) =>
+          setReservations((prev) => [...prev, res])
+        }
+      />
 
-
-
-  <ReservationActionsModal
-    open={!!selected}
-    onClose={() => setSelected(null)}
-    reservation={selected}
-    rooms={rooms}
-    onUpdated={(updated) =>
-      setReservations((prev) =>
-        prev.map((r) => (r.id === updated.id ? updated : r))
-      )
-    }
-  />
-
-  <AddReservationModal
-    open={addOpen}
-    onClose={() => setAddOpen(false)}
-    rooms={rooms}
-    onCreated={(res) => setReservations((prev) => [...prev, res])}
-  />
-
-  {loading && (
-    <div className="mt-4 text-sm text-neutral-500">Carregando mapa...</div>
-  )}
-</div>
+      {loading && (
+        <div className="mt-4 text-sm text-neutral-500 dark:text-slate-400">
+          Carregando mapa...
+        </div>
+      )}
+    </div>
   );
-  }
+}
