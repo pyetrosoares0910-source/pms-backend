@@ -5,12 +5,12 @@ export default function KpiGaugeOcupacao({ value, previous }) {
   const pctPrev = Number(previous) || pct;
   const diff = pct - pctPrev;
 
-  // Cor do progresso
+  // Cor do progresso (mantive igual ao seu)
   const pathColor =
     pct >= 80 ? "#0ea5e9" : pct >= 60 ? "#38bdf8" : pct >= 40 ? "#60a5fa" : "#93c5fd";
 
   const radius = 70;
-  const circumference = 2 * Math.PI * radius; 
+  const circumference = 2 * Math.PI * radius;
   const offset = circumference - (circumference * pct) / 100;
 
   return (
@@ -18,9 +18,9 @@ export default function KpiGaugeOcupacao({ value, previous }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="card bg-white shadow-md border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center w-full h-full"
+      className="card bg-white shadow-md border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center w-full h-full dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300"
     >
-      <h2 className="text-neutral font-semibold text-lg mb-4">
+      <h2 className="text-neutral font-semibold text-lg mb-4 dark:text-slate-100">
         📈 Ocupação Geral do Mês
       </h2>
 
@@ -54,14 +54,14 @@ export default function KpiGaugeOcupacao({ value, previous }) {
 
         {/* Valor central */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-extrabold text-neutral">
+          <span className="text-4xl font-extrabold text-neutral dark:text-slate-50">
             {pct}%
           </span>
 
           {previous !== undefined && (
             <span
               className={`mt-1 text-sm font-semibold ${
-                diff >= 0 ? "text-emerald-600" : "text-red-500"
+                diff >= 0 ? "text-emerald-500" : "text-red-500"
               }`}
             >
               {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
@@ -71,7 +71,7 @@ export default function KpiGaugeOcupacao({ value, previous }) {
       </div>
 
       {previous !== undefined && (
-        <p className="text-xs text-gray-500 mt-3">
+        <p className="text-xs text-gray-500 mt-3 dark:text-slate-400">
           comparação com o mês anterior
         </p>
       )}

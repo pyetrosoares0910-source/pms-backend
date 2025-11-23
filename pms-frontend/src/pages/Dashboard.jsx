@@ -23,18 +23,15 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
 import isBetween from "dayjs/plugin/isBetween";
-import StatCard from "../components/StatCard";
 import DashboardKPIGrid from "../components/DashboardKPIGrid";
 import KpiGaugeOcupacao from "../components/KpiGaugeOcupacao";
+import { useTheme } from "../context/ThemeContext";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(minMax);
 dayjs.extend(utc);
 dayjs.extend(isBetween);
-
-const today = dayjs.utc().startOf("day");
-const ymd = (d) => dayjs(d).format("YYYY-MM-DD");
 
 function overlapDays(a0, a1, b0, b1) {
   const start = dayjs.max(dayjs(a0), dayjs(b0));
@@ -65,6 +62,9 @@ function abbrevStay(name) {
 
 export default function Dashboard() {
   const api = useApi();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [reservations, setReservations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [stays, setStays] = useState([]);
@@ -160,7 +160,7 @@ export default function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [api]);
 
   const todayLocal = dayjs().startOf("day");
   const { start: mStart, end: mEnd, daysInMonth } = monthBounds();
@@ -495,7 +495,6 @@ export default function Dashboard() {
     [maintenance]
   );
 
-  // === TOP/WORST para render ===
   const topEfficiency = Array.isArray(kpis?.topEfficiency)
     ? kpis.topEfficiency
     : [];
@@ -503,9 +502,6 @@ export default function Dashboard() {
   const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
     ? kpis.worstEfficiency
     : [];
-
-  console.log("🔥 topEfficiency:", topEfficiency.length);
-  console.log("🔥 worstEfficiency:", worstEfficiency.length);
 
   // === Progresso de manutenção ===
   const maintenanceStats = useMemo(() => {
@@ -563,7 +559,7 @@ export default function Dashboard() {
 
       {/* ==== LINHA: OCUPAÇÃO + MANUTENÇÃO + TOTAL ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* ✅ Ocupação Geral — 2 colunas */}
+        {/* Ocupação Geral — 2 colunas */}
         <div className="lg:col-span-2">
           <KpiGaugeOcupacao
             value={ocupacaoGeral}
@@ -571,7 +567,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* ✅ Manutenção — 1 col */}
+        {/* Progresso Manutenção */}
         <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <h2 className="font-semibold mb-4 text-slate-900 dark:text-slate-100">
             🛠️ Progresso da Manutenção
@@ -592,7 +588,7 @@ export default function Dashboard() {
               stroke="none"
             >
               <Cell fill="#22c55e" />
-              <Cell fill="#1f2933" />
+              <Cell fill={isDark ? "#020617" : "#e5e7eb"} />
             </Pie>
             <text
               x="50%"
@@ -601,7 +597,7 @@ export default function Dashboard() {
               dominantBaseline="middle"
               fontSize={20}
               fontWeight="bold"
-              className="fill-current text-slate-900 dark:text-slate-50"
+              fill={isDark ? "#e5e7eb" : "#111827"}
             >
               {maintenanceStats.pctDone}%
             </text>
@@ -611,7 +607,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* ✅ Total Reservas — 1 col */}
+        {/* Total Reservas */}
         <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <h2 className="font-semibold mb-3 text-lg text-slate-900 dark:text-slate-100">
             🏅 Total de Reservas
@@ -625,16 +621,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ==== LINHA: TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
+      {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 📊 MELHOR EFICIÊNCIA */}
+        {/* Melhor Eficiência */}
         <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
             📊 Acomodações com Melhor Eficiência
           </h2>
 
           <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-            {/* 🥇🥈🥉 TOP 3 VISUAL */}
+            {/* Top 3 visual */}
             <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
               {topEfficiency.slice(0, 3).map((item, i) => {
                 const colors = [
@@ -680,7 +676,7 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* 📊 GRÁFICO TOP 10 */}
+            {/* Gráfico Top 10 */}
             <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
               <ResponsiveContainer width="100%" height={340}>
                 <BarChart
@@ -692,17 +688,20 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
-                  {/* removemos linhas horizontais; só linha de base no eixo X */}
+                  {/* sem grid, só linha de base do eixo X */}
                   <XAxis
                     type="number"
                     domain={[0, 100]}
                     tickFormatter={(v) => `${v}%`}
                     axisLine={{
-                      stroke: "#4b5563",
+                      stroke: isDark ? "#4b5563" : "#e5e7eb",
                       strokeDasharray: "3 3",
                     }}
                     tickLine={false}
-                    tick={{ fill: "#9ca3af", fontSize: 12 }}
+                    tick={{
+                      fill: isDark ? "#9ca3af" : "#6b7280",
+                      fontSize: 12,
+                    }}
                   />
                   <YAxis
                     type="category"
@@ -711,7 +710,7 @@ export default function Dashboard() {
                     tickLine={false}
                     width={40}
                     tick={{
-                      fill: "#e5e7eb",
+                      fill: isDark ? "#e5e7eb" : "#374151",
                       fontSize: 12,
                       fontWeight: 600,
                     }}
@@ -719,10 +718,10 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: "#020617",
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
                       borderRadius: "8px",
-                      border: "1px solid #1f2937",
-                      color: "#e5e7eb",
+                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                      color: isDark ? "#e5e7eb" : "#111827",
                     }}
                   />
 
@@ -732,10 +731,9 @@ export default function Dashboard() {
                     barSize={22}
                     isAnimationActive={false}
                   >
-                    {topEfficiency.map((_, index) => {
-                      const color = "#22c55e";
-                      return <Cell key={`cell-${index}`} fill={color} />;
-                    })}
+                    {topEfficiency.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill="#22c55e" />
+                    ))}
                     <LabelList
                       dataKey="label"
                       position="insideLeft"
@@ -750,7 +748,7 @@ export default function Dashboard() {
                       position="right"
                       formatter={(v) => `${v}%`}
                       style={{
-                        fill: "#e5e7eb",
+                        fill: isDark ? "#e5e7eb" : "#082f49",
                         fontWeight: 700,
                         fontSize: 12,
                       }}
@@ -762,14 +760,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 📉 PIOR EFICIÊNCIA */}
+        {/* Pior Eficiência */}
         <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
             📉 Acomodações com Pior Eficiência
           </h2>
 
           <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-            {/* 🥇🥈🥉 PIORES 3 VISUAL */}
+            {/* Piores 3 visual */}
             <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
               {worstEfficiency.slice(0, 3).map((item, i) => {
                 const colors = [
@@ -779,10 +777,10 @@ export default function Dashboard() {
                 ];
                 const numColor =
                   i === 0
-                    ? "text-red-400"
+                    ? "text-red-500"
                     : i === 1
-                    ? "text-red-300"
-                    : "text-red-300";
+                    ? "text-red-400"
+                    : "text-red-400";
 
                 const height = i === 0 ? "h-24" : "h-20";
                 const width = "w-40";
@@ -815,7 +813,7 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* 📊 GRÁFICO TOP 10 PIORES */}
+            {/* Gráfico Top 10 Piores */}
             <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
               <ResponsiveContainer width="100%" height={340}>
                 <BarChart
@@ -827,17 +825,19 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
-                  {/* remove horizontais, mantém base eixos */}
                   <XAxis
                     type="number"
                     domain={[0, 60]}
                     tickFormatter={(v) => `${v}%`}
                     axisLine={{
-                      stroke: "#4b5563",
+                      stroke: isDark ? "#4b5563" : "#e5e7eb",
                       strokeDasharray: "3 3",
                     }}
                     tickLine={false}
-                    tick={{ fill: "#9ca3af", fontSize: 12 }}
+                    tick={{
+                      fill: isDark ? "#9ca3af" : "#6b7280",
+                      fontSize: 12,
+                    }}
                   />
                   <YAxis
                     type="category"
@@ -846,7 +846,7 @@ export default function Dashboard() {
                     tickLine={false}
                     width={40}
                     tick={{
-                      fill: "#e5e7eb",
+                      fill: isDark ? "#e5e7eb" : "#374151",
                       fontSize: 12,
                       fontWeight: 600,
                     }}
@@ -854,10 +854,10 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: "#020617",
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
                       borderRadius: "8px",
-                      border: "1px solid #1f2937",
-                      color: "#e5e7eb",
+                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                      color: isDark ? "#e5e7eb" : "#111827",
                     }}
                   />
 
@@ -867,10 +867,9 @@ export default function Dashboard() {
                     barSize={22}
                     isAnimationActive={false}
                   >
-                    {worstEfficiency.map((_, index) => {
-                      const color = "#dc2626";
-                      return <Cell key={`cell-${index}`} fill={color} />;
-                    })}
+                    {worstEfficiency.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill="#dc2626" />
+                    ))}
                     <LabelList
                       dataKey="label"
                       position="insideLeft"
@@ -885,7 +884,7 @@ export default function Dashboard() {
                       position="right"
                       formatter={(v) => `${v}%`}
                       style={{
-                        fill: "#fecaca",
+                        fill: isDark ? "#fecaca" : "#7f1d1d",
                         fontWeight: 700,
                         fontSize: 12,
                       }}
@@ -898,9 +897,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ==== GRÁFICOS + DIARISTAS ==== */}
+      {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ocupação */}
+        {/* Ocupação por empreendimento */}
         <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <div className="card-body px-6">
             <h2 className="card-title text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
@@ -915,10 +914,16 @@ export default function Dashboard() {
                 barSize={55}
                 margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={isDark ? "#1f2937" : "#f3f4f6"}
+                />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "#cbd5f5", fontSize: 13 }}
+                  tick={{
+                    fill: isDark ? "#e5e7eb" : "#6b7280",
+                    fontSize: 13,
+                  }}
                   interval={0}
                   tickMargin={10}
                 />
@@ -927,7 +932,10 @@ export default function Dashboard() {
                   type="number"
                   allowDecimals={false}
                   tickFormatter={(v) => `${v}%`}
-                  tick={{ fill: "#9ca3af", fontSize: 12 }}
+                  tick={{
+                    fill: isDark ? "#9ca3af" : "#6b7280",
+                    fontSize: 12,
+                  }}
                   padding={{ top: 0 }}
                 />
                 <RechartsTooltip
@@ -935,9 +943,9 @@ export default function Dashboard() {
                   labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
                   contentStyle={{
                     borderRadius: "8px",
-                    borderColor: "#1f2937",
-                    backgroundColor: "#020617",
-                    color: "#e5e7eb",
+                    borderColor: isDark ? "#1f2937" : "#e5e7eb",
+                    backgroundColor: isDark ? "#020617" : "#ffffff",
+                    color: isDark ? "#e5e7eb" : "#111827",
                   }}
                 />
                 <Bar
@@ -1052,6 +1060,9 @@ function DiaristaList({ title, data, color, empty }) {
 }
 
 function CalendarCard({ title, events, emptyText }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
       <div className="card-body px-6">
@@ -1073,6 +1084,21 @@ function CalendarCard({ title, events, emptyText }) {
           eventContent={(arg) => {
             const isNoMaid = arg.event.title === "Sem diarista";
 
+            // paleta diferente por tema
+            const stylesLight = {
+              borderColor: isNoMaid ? "#fca5a5" : "#93c5fd",
+              backgroundColor: isNoMaid ? "#fee2e2" : "#dbeafe",
+              color: isNoMaid ? "#b91c1c" : "#1e3a8a",
+            };
+
+            const stylesDark = {
+              borderColor: isNoMaid ? "#f97373" : "#60a5fa",
+              backgroundColor: isNoMaid ? "#7f1d1d" : "#1e3a8a",
+              color: isNoMaid ? "#fee2e2" : "#e0f2fe",
+            };
+
+            const styles = isDark ? stylesDark : stylesLight;
+
             return (
               <div
                 className="px-2 py-1 rounded-lg text-xs font-medium truncate"
@@ -1081,9 +1107,7 @@ function CalendarCard({ title, events, emptyText }) {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   border: "1px solid",
-                  borderColor: isNoMaid ? "#f97373" : "#60a5fa",
-                  backgroundColor: isNoMaid ? "#7f1d1d" : "#1e3a8a",
-                  color: isNoMaid ? "#fee2e2" : "#e0f2fe",
+                  ...styles,
                 }}
                 title={arg.event.title}
               >
