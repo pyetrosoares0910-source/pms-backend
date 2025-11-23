@@ -306,8 +306,8 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1">
+            {/* CONTEÚDO PRINCIPAL */}
+        <main className="flex-1 overflow-y-auto min-w-0">
         <div
           className="
           w-full
