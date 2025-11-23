@@ -74,7 +74,6 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
 
-  // Sincroniza texto com expansão/recolhimento
   useEffect(() => {
     if (!collapsed) {
       const timer = setTimeout(() => setShowText(true), 380);
@@ -95,10 +94,14 @@ export default function DashboardLayout() {
     <div className="min-h-screen flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
-        className={`bg-gradient-to-b from-sky-900 to-sky-950 
-        text-white flex flex-col shadow-lg 
-        transition-[width] duration-400 ease-out overflow-hidden
-        ${collapsed ? "w-[72px]" : "w-[240px]"}`}
+        className={`
+          bg-gradient-to-b 
+          from-sky-900 to-sky-950           /* 🌞 claro */
+          dark:from-slate-900 dark:to-slate-950 /* 🌚 escuro */
+          text-white flex flex-col shadow-lg 
+          transition-[width] duration-400 ease-out overflow-hidden
+          ${collapsed ? "w-[72px]" : "w-[240px]"}
+        `}
       >
         {/* TOPO */}
         <div className="p-4 border-b border-white/10 flex items-center justify-center shrink-0">
