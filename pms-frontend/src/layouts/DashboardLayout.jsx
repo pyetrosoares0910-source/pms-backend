@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import {
   LayoutDashboard,
   Map,
@@ -17,11 +18,13 @@ import {
   CalendarDays,
   LogOut,
   BarChart3,
-  ClipboardList, 
-  Package,          
-  ShoppingCart,     
-  Settings2,       
-  Boxes,    
+  ClipboardList,
+  Package,
+  ShoppingCart,
+  Settings2,
+  Boxes,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
@@ -30,11 +33,12 @@ const Item = ({ to, children, icon: Icon, showText, collapsed, highlight }) => (
     to={to}
     className={({ isActive }) =>
       `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out 
-      ${isActive
-        ? highlight
-          ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
-          : "bg-white/15 text-white font-semibold border-l-4 border-blue-400"
-        : highlight
+      ${
+        isActive
+          ? highlight
+            ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
+            : "bg-white/15 text-white font-semibold border-l-4 border-blue-400"
+          : highlight
           ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
           : "text-gray-200 hover:bg-white/10 hover:text-white"
       }`
@@ -66,6 +70,7 @@ const Item = ({ to, children, icon: Icon, showText, collapsed, highlight }) => (
 // ======================= DASHBOARD LAYOUT =======================
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
 
@@ -84,13 +89,16 @@ export default function DashboardLayout() {
     setCollapsed(!collapsed);
   };
 
+  const isDark = theme === "dark";
+
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
-        className={`bg-gradient-to-b from-sky-900 to-sky-950 text-white flex flex-col shadow-lg transition-[width] duration-400 ease-out overflow-hidden ${
-          collapsed ? "w-[72px]" : "w-[240px]"
-        }`}
+        className={`bg-gradient-to-b from-sky-900 to-sky-950 
+        text-white flex flex-col shadow-lg 
+        transition-[width] duration-400 ease-out overflow-hidden
+        ${collapsed ? "w-[72px]" : "w-[240px]"}`}
       >
         {/* TOPO */}
         <div className="p-4 border-b border-white/10 flex items-center justify-center shrink-0">
@@ -162,24 +170,23 @@ export default function DashboardLayout() {
           </Item>
 
           {showText && (
-  <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
-    Estoque
-  </div>
-)}
+            <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
+              Estoque
+            </div>
+          )}
 
-<Item to="/products" icon={Package} showText={showText}>
-  Produtos
-</Item>
-<Item to="/inventory" icon={Boxes} showText={showText}>
-  Inventário
-</Item>
-<Item to="/purchases" icon={ShoppingCart} showText={showText}>
-  Compras
-</Item>
-<Item to="/consumption" icon={Settings2} showText={showText}>
-  Perfis de Consumo
-</Item>
-
+          <Item to="/products" icon={Package} showText={showText}>
+            Produtos
+          </Item>
+          <Item to="/inventory" icon={Boxes} showText={showText}>
+            Inventário
+          </Item>
+          <Item to="/purchases" icon={ShoppingCart} showText={showText}>
+            Compras
+          </Item>
+          <Item to="/consumption" icon={Settings2} showText={showText}>
+            Perfis de Consumo
+          </Item>
 
           {showText && (
             <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
@@ -190,7 +197,6 @@ export default function DashboardLayout() {
             Relatório de Limpeza
           </Item>
 
-          {/* 🔹 Destaque especial para o Relatório de Desempenho */}
           <Item
             to="/performance-report"
             icon={BarChart3}
@@ -202,6 +208,48 @@ export default function DashboardLayout() {
 
         {/* BASE FIXA */}
         <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)]">
+          {/* Toggle Tema - acima do Recolher */}
+          <button
+            onClick={toggleTheme}
+            aria-label={`Ativar modo ${isDark ? "claro" : "escuro"}`}
+            className={`
+              group
+              w-full flex items-center justify-center
+              px-3 py-2
+              rounded-xl
+              border border-white/10
+              bg-white/5
+              hover:bg-white/15
+              transition-all duration-300 ease-out
+              ${isDark ? "shadow-[0_0_14px_rgba(56,189,248,0.45)]" : ""}
+            `}
+          >
+            <div className="flex items-center gap-2">
+              {isDark ? (
+                <Sun
+                  size={18}
+                  className="transition-transform duration-300 group-hover:rotate-12"
+                />
+              ) : (
+                <Moon
+                  size={18}
+                  className="transition-transform duration-300 group-hover:-rotate-12"
+                />
+              )}
+
+              {showText && (
+                <div className="flex flex-col items-start">
+                  <span className="text-xs uppercase tracking-wide opacity-70">
+                    Tema
+                  </span>
+                  <span className="text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:translate-y-[1px] transition-all duration-300">
+                    {isDark ? "Claro" : "Escuro"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </button>
+
           <button
             onClick={toggleSidebar}
             className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors duration-300 ease-out"
@@ -213,6 +261,7 @@ export default function DashboardLayout() {
               </span>
             )}
           </button>
+
           <button
             onClick={logout}
             className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors duration-300 ease-out"
@@ -229,17 +278,19 @@ export default function DashboardLayout() {
 
       {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 overflow-y-auto">
-        <div className="
+        <div
+          className="
           w-full
           mx-auto
           px-4 sm:px-6 lg:px-8
           py-6
           max-w-full
           xl:max-w-[1600px]
-          2xl:max-w-[1800px] ">
+          2xl:max-w-[1800px]
+        "
+        >
           <Outlet />
         </div>
-
       </main>
     </div>
   );
