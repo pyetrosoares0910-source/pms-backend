@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -26,22 +26,23 @@ import {
   Sun,
   Moon,
   ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
-const Item = ({ to, children, icon: Icon, showText, collapsed, highlight }) => (
+const Item = ({ to, children, icon: Icon, showText, highlight }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out 
+      `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out
       ${
         isActive
           ? highlight
             ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
-            : "bg-white/15 text-white font-semibold border-l-4 border-blue-400"
+            : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
           : highlight
           ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
-          : "text-gray-200 hover:bg-white/10 hover:text-white"
+          : "text-slate-100/80 hover:bg-white/10 hover:text-white"
       }`
     }
   >
@@ -68,15 +69,66 @@ const Item = ({ to, children, icon: Icon, showText, collapsed, highlight }) => (
   </NavLink>
 );
 
+// ======================= GRUPO DE NAVEGAÇÃO =======================
+const NavGroup = ({ label, icon: Icon, isOpen, onToggle, children }) => {
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="
+          w-full flex items-center justify-between
+          px-3 py-2
+          rounded-lg
+          text-[11px] font-semibold uppercase tracking-wide
+          text-slate-100/70
+          bg-white/5 hover:bg-white/10
+          border border-white/10
+          transition-all duration-300
+        "
+      >
+        <div className="flex items-center gap-2">
+          {Icon && <Icon size={14} className="opacity-80" />}
+          <span>{label}</span>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`transition-transform duration-300 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {/* Conteúdo do grupo */}
+      <div
+        className={`
+          mt-2 space-y-1 overflow-hidden transition-all duration-300
+          ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
+        `}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 // ======================= DASHBOARD LAYOUT =======================
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
-
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  const [groupsOpen, setGroupsOpen] = useState({
+    cadastros: false,
+    estoque: false,
+    relatorios: false,
+  });
+
+  // Sincroniza texto com expansão/recolhimento
   useEffect(() => {
     if (!collapsed) {
       const timer = setTimeout(() => setShowText(true), 380);
@@ -93,6 +145,43 @@ export default function DashboardLayout() {
 
   const isDark = theme === "dark";
 
+  // Abre automaticamente o grupo da rota atual
+  useEffect(() => {
+    const path = location.pathname;
+
+    const inCadastros = [
+      "/maintenance",
+      "/reservations",
+      "/guests",
+      "/stays",
+      "/rooms",
+      "/staff",
+      "/maids",
+    ].includes(path);
+
+    const inEstoque = [
+      "/products",
+      "/inventory",
+      "/purchases",
+      "/consumption",
+    ].includes(path);
+
+    const inRelatorios = [
+      "/cleaning-report",
+      "/performance-report",
+    ].includes(path);
+
+    setGroupsOpen((prev) => ({
+      cadastros: inCadastros || prev.cadastros,
+      estoque: inEstoque || prev.estoque,
+      relatorios: inRelatorios || prev.relatorios,
+    }));
+  }, [location.pathname]);
+
+  const toggleGroup = (key) => {
+    setGroupsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   // Listener de scroll na janela
   useEffect(() => {
     const handleScroll = () => {
@@ -102,7 +191,7 @@ export default function DashboardLayout() {
     };
 
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); // inicial
+    handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -117,17 +206,18 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-dvh w-full flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
         className={`
           bg-gradient-to-b 
-          from-sky-900 to-sky-950           /* 🌞 claro */
-          dark:from-slate-900 dark:to-slate-950 /* 🌚 escuro */
-          text-white flex flex-col shadow-lg 
+          from-sky-800 to-sky-950
+          dark:from-slate-950 dark:to-slate-900
+          text-white flex flex-col shadow-xl
           transition-[width] duration-400 ease-out overflow-hidden
-          h-screen sticky top-0
-          ${collapsed ? "w-[72px]" : "w-[240px]"}
+          sticky top-0
+          min-h-dvh md:h-auto
+          ${collapsed ? "w-[72px]" : "w-[260px]"}
         `}
       >
         {/* TOPO */}
@@ -148,13 +238,14 @@ export default function DashboardLayout() {
 
         {/* USUÁRIO */}
         {user && showText && (
-          <div className="px-4 py-2 text-sm text-gray-200 border-b border-white/10 opacity-0 animate-fade-in-blur shrink-0">
+          <div className="px-4 py-2 text-sm text-slate-100/90 border-b border-white/10 opacity-0 animate-fade-in-blur shrink-0">
             👋 Olá, <span className="font-medium">{user.name}</span>
           </div>
         )}
 
         {/* NAVEGAÇÃO */}
         <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+          {/* Atalhos principais */}
           <Item to="/dashboard" icon={LayoutDashboard} showText={showText}>
             Dashboard
           </Item>
@@ -172,68 +263,96 @@ export default function DashboardLayout() {
             Agenda de Atividades
           </Item>
 
+          {/* Grupos só aparecem quando o texto está visível (sidebar expandida) */}
           {showText && (
-            <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
-              Cadastros
+            <div className="mt-4 space-y-2">
+              {/* CADASTROS */}
+              <NavGroup
+                label="Cadastros"
+                icon={ClipboardList}
+                isOpen={groupsOpen.cadastros}
+                onToggle={() => toggleGroup("cadastros")}
+              >
+                <Item
+                  to="/maintenance"
+                  icon={Wrench}
+                  showText={showText}
+                >
+                  Atividades
+                </Item>
+                <Item
+                  to="/reservations"
+                  icon={ClipboardList}
+                  showText={showText}
+                >
+                  Reservas
+                </Item>
+                <Item to="/guests" icon={Users} showText={showText}>
+                  Hóspedes
+                </Item>
+                <Item to="/stays" icon={Building} showText={showText}>
+                  Empreendimentos
+                </Item>
+                <Item to="/rooms" icon={Bed} showText={showText}>
+                  Quartos
+                </Item>
+                <Item to="/staff" icon={UserCog} showText={showText}>
+                  Funcionários
+                </Item>
+                <Item to="/maids" icon={UsersRound} showText={showText}>
+                  Diaristas
+                </Item>
+              </NavGroup>
+
+              {/* ESTOQUE */}
+              <NavGroup
+                label="Estoque"
+                icon={Boxes}
+                isOpen={groupsOpen.estoque}
+                onToggle={() => toggleGroup("estoque")}
+              >
+                <Item to="/products" icon={Package} showText={showText}>
+                  Produtos
+                </Item>
+                <Item to="/inventory" icon={Boxes} showText={showText}>
+                  Inventário
+                </Item>
+                <Item
+                  to="/purchases"
+                  icon={ShoppingCart}
+                  showText={showText}
+                >
+                  Compras
+                </Item>
+                <Item
+                  to="/consumption"
+                  icon={Settings2}
+                  showText={showText}
+                >
+                  Perfis de Consumo
+                </Item>
+              </NavGroup>
+
+              {/* RELATÓRIOS */}
+              <NavGroup
+                label="Relatórios"
+                icon={BarChart3}
+                isOpen={groupsOpen.relatorios}
+                onToggle={() => toggleGroup("relatorios")}
+              >
+                <Item to="/cleaning-report" icon={Brush} showText={showText}>
+                  Relatório de Limpeza
+                </Item>
+                <Item
+                  to="/performance-report"
+                  icon={BarChart3}
+                  showText={showText}
+                >
+                  Relatório de Desempenho
+                </Item>
+              </NavGroup>
             </div>
           )}
-          <Item to="/reservations" icon={ClipboardList} showText={showText}>
-            Reservas
-          </Item>
-          <Item to="/guests" icon={Users} showText={showText}>
-            Hóspedes
-          </Item>
-          <Item to="/stays" icon={Building} showText={showText}>
-            Empreendimentos
-          </Item>
-          <Item to="/rooms" icon={Bed} showText={showText}>
-            Quartos
-          </Item>
-          <Item to="/staff" icon={UserCog} showText={showText}>
-            Funcionários
-          </Item>
-          <Item to="/maids" icon={UsersRound} showText={showText}>
-            Diaristas
-          </Item>
-          <Item to="/maintenance" icon={Wrench} showText={showText}>
-            Atividades
-          </Item>
-
-          {showText && (
-            <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
-              Estoque
-            </div>
-          )}
-
-          <Item to="/products" icon={Package} showText={showText}>
-            Produtos
-          </Item>
-          <Item to="/inventory" icon={Boxes} showText={showText}>
-            Inventário
-          </Item>
-          <Item to="/purchases" icon={ShoppingCart} showText={showText}>
-            Compras
-          </Item>
-          <Item to="/consumption" icon={Settings2} showText={showText}>
-            Perfis de Consumo
-          </Item>
-
-          {showText && (
-            <div className="mt-5 mb-1 text-xs font-semibold uppercase opacity-60 tracking-wider opacity-0 animate-fade-in-blur-slower">
-              Relatórios
-            </div>
-          )}
-          <Item to="/cleaning-report" icon={Brush} showText={showText}>
-            Relatório de Limpeza
-          </Item>
-
-          <Item
-            to="/performance-report"
-            icon={BarChart3}
-            showText={showText}
-          >
-            Relatório de Desempenho
-          </Item>
         </nav>
 
         {/* BASE FIXA */}
@@ -306,8 +425,8 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-            {/* CONTEÚDO PRINCIPAL */}
-        <main className="flex-1 overflow-y-auto min-w-0">
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="flex-1 overflow-y-auto min-w-0">
         <div
           className="
           w-full
