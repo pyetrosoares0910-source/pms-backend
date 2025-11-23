@@ -1063,70 +1063,114 @@ function CalendarCard({ title, events, emptyText }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
+  const bgCard = isDark
+    ? "bg-slate-900/60 backdrop-blur-xl border border-slate-700"
+    : "bg-white border border-gray-200 shadow-sm";
+
+  const headerText = isDark ? "text-slate-100" : "text-slate-900";
+
+  const toolbarBtn =
+    "rounded-lg px-3 py-1 text-xs font-medium transition-all border " +
+    (isDark
+      ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+      : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200");
+
+  const eventBase =
+    "px-2 py-1 rounded-md text-xs font-semibold shadow-sm truncate";
+
   return (
-    <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-      <div className="card-body px-6">
-        <h2 className="card-title text-lg font-semibold mb-2 text-slate-900 dark:text-slate-100">
-          {title}
-        </h2>
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridWeek"
-          locale="pt-br"
-          events={events}
-          height={500}
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,dayGridWeek,timeGridDay",
-          }}
-          buttonText={{ today: "Hoje", month: "Mês", week: "Semana", day: "Dia" }}
-          eventContent={(arg) => {
-            const isNoMaid = arg.event.title === "Sem diarista";
+    <div
+      className={`rounded-2xl p-5 ${bgCard} transition-all duration-300`}
+    >
+      <h2 className={`text-lg font-bold mb-4 ${headerText}`}>{title}</h2>
 
-            // paleta diferente por tema
-            const stylesLight = {
-              borderColor: isNoMaid ? "#fca5a5" : "#93c5fd",
-              backgroundColor: isNoMaid ? "#fee2e2" : "#dbeafe",
-              color: isNoMaid ? "#b91c1c" : "#1e3a8a",
-            };
+      <FullCalendar
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        initialView="dayGridWeek"
+        locale="pt-br"
+        events={events}
+        height={500}
+        headerToolbar={{
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,dayGridWeek,timeGridDay",
+        }}
+        buttonText={{
+          today: "Hoje",
+          month: "Mês",
+          week: "Semana",
+          day: "Dia",
+        }}
+        buttonIcons={{
+          prev: "chevron-left",
+          next: "chevron-right",
+        }}
+        themeSystem="standard"
+        dayMaxEvents={3}
+        fixedWeekCount={false}
+        eventClassNames={() => "border-none"} // removemos border padrão
+        dayHeaderClassNames={() =>
+          isDark
+            ? "bg-slate-800 text-slate-200"
+            : "bg-gray-100 text-gray-700"
+        }
+        dayCellClassNames={() =>
+          isDark
+            ? "hover:bg-slate-800/50 transition-colors"
+            : "hover:bg-gray-50 transition-colors"
+        }
+        eventContent={(arg) => {
+          const isNoMaid = arg.event.title === "Sem diarista";
 
-            const stylesDark = {
-              borderColor: isNoMaid ? "#f97373" : "#60a5fa",
-              backgroundColor: isNoMaid ? "#7f1d1d" : "#1e3a8a",
-              color: isNoMaid ? "#fee2e2" : "#e0f2fe",
-            };
+          const styleLight = {
+            background: isNoMaid ? "#fee2e2" : "linear-gradient(135deg,#bfdbfe,#93c5fd)",
+            color: isNoMaid ? "#991b1b" : "#1e3a8a",
+          };
 
-            const styles = isDark ? stylesDark : stylesLight;
+          const styleDark = {
+            background: isNoMaid
+              ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
+              : "linear-gradient(135deg,#1e3a8a,#3b82f6)",
+            color: "#e0f2fe",
+          };
 
-            return (
-              <div
-                className="px-2 py-1 rounded-lg text-xs font-medium truncate"
-                style={{
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  border: "1px solid",
-                  ...styles,
-                }}
-                title={arg.event.title}
-              >
-                {arg.event.title}
-              </div>
-            );
-          }}
-          eventClick={(info) => {
-            const detalhes =
-              info.event.extendedProps.details?.join("\n") || "Sem detalhes";
-            alert(`📋 ${info.event.title}\n\n${detalhes}`);
-          }}
-        />
-        {!events?.length && (
-          <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-4">
-            {emptyText}
-          </p>
-        )}
-      </div>
+          return (
+            <div
+              className={`${eventBase}`}
+              style={isDark ? styleDark : styleLight}
+              title={arg.event.title}
+            >
+              {arg.event.title}
+            </div>
+          );
+        }}
+        eventClick={(info) => {
+          const detalhes =
+            info.event.extendedProps.details?.join("\n") || "Sem detalhes";
+          alert(`📋 ${info.event.title}\n\n${detalhes}`);
+        }}
+        customButtons={{
+          today: { text: "Hoje", click: () => calendar.today() },
+        }}
+        viewDidMount={(arg) => {
+          const toolbar = arg.el
+            .querySelector(".fc-toolbar-chunk")
+            ?.querySelectorAll("button");
+
+          toolbar?.forEach((btn) => {
+            btn.classList.add(...toolbarBtn.split(" "));
+          });
+        }}
+      />
+
+      {!events?.length && (
+        <div
+          className="text-center py-6 opacity-70 text-sm mt-4 
+                     border rounded-xl dark:border-slate-700"
+        >
+          {emptyText}
+        </div>
+      )}
     </div>
   );
 }
