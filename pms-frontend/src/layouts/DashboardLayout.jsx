@@ -38,7 +38,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
       <NavLink
         to={to}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out
+          `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ease-out
           ${
             isActive
               ? highlight
@@ -53,17 +53,15 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
         {Icon && (
           <Icon
             size={18}
-            className={`transition-all duration-300 ease-out ${
-              showText
-                ? "opacity-0 animate-fade-in-blur-slow"
-                : "opacity-0 animate-fade-in-blur"
-            } ${highlight ? "text-indigo-300 group-hover:text-indigo-200" : ""}`}
+            className={`transition-transform duration-200 ${
+              !showText ? "" : ""
+            }`}
           />
         )}
 
         {showText && (
           <span
-            className={`text-sm opacity-0 animate-fade-in-blur-slow ${
+            className={`text-sm ${
               highlight ? "text-indigo-200 font-medium" : ""
             }`}
           >
@@ -82,7 +80,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
             px-2 py-1
             whitespace-nowrap
             opacity-0 group-hover:opacity-100 group-hover:translate-x-1
-            transition-all duration-200
+            transition-all duration-150
             z-50 shadow-lg
           "
         >
@@ -109,7 +107,7 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
               rounded-xl
               bg-white/5 hover:bg-white/15
               border border-white/10
-              transition-all duration-300
+              transition-colors duration-200
             "
           >
             {Icon && <Icon size={18} className="text-slate-100" />}
@@ -123,7 +121,7 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
               px-2 py-1
               whitespace-nowrap
               opacity-0 group-hover:opacity-100 group-hover:translate-x-1
-              transition-all duration-200
+              transition-all duration-150
               z-50 shadow-lg
             "
           >
@@ -148,7 +146,7 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
           text-slate-100/70
           bg-white/5 hover:bg-white/10
           border border-white/10
-          transition-all duration-300
+          transition-colors duration-200
         "
       >
         <div className="flex items-center gap-2">
@@ -157,7 +155,7 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
         </div>
         <ChevronDown
           size={16}
-          className={`transition-transform duration-300 ${
+          className={`transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -165,7 +163,8 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
 
       <div
         className={`
-          mt-2 space-y-1 overflow-hidden transition-all duration-300
+          mt-2 space-y-1 overflow-hidden
+          transition-all duration-200
           ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
         `}
       >
@@ -194,7 +193,7 @@ export default function DashboardLayout() {
   // Sincroniza texto com expansão/recolhimento
   useEffect(() => {
     if (!collapsed) {
-      const timer = setTimeout(() => setShowText(true), 380);
+      const timer = setTimeout(() => setShowText(true), 250);
       return () => clearTimeout(timer);
     } else {
       setShowText(false);
@@ -277,7 +276,7 @@ export default function DashboardLayout() {
           from-sky-800 to-sky-950
           dark:from-slate-950 dark:to-slate-900
           text-white flex flex-col shadow-xl
-          transition-[width] duration-400 ease-out overflow-hidden
+          transition-[width] duration-300 ease-out overflow-hidden
           sticky top-0
           ${collapsed ? "w-[72px]" : "w-[260px]"}
         `}
@@ -290,18 +289,20 @@ export default function DashboardLayout() {
               className="text-white transition-transform duration-300 ease-out"
             />
           ) : (
-            <div className="flex flex-col items-center gap-1 opacity-0 animate-fade-in-blur">
-              <div className="text-xl font-bold tracking-wide">PMS</div>
-              <div className="text-xs italic text-sky-200 -rotate-3 font-semibold">
+            <div className="flex items-end gap-2">
+              <span className="text-2xl font-bold tracking-wide leading-none">
+                PMS
+              </span>
+              <span className="text-xl italic text-sky-200 -rotate-2 leading-none">
                 StayCore
-              </div>
+              </span>
             </div>
           )}
         </div>
 
         {/* USUÁRIO */}
         {user && showText && (
-          <div className="px-4 py-2 text-sm text-slate-100/90 border-b border-white/10 opacity-0 animate-fade-in-blur shrink-0">
+          <div className="px-4 py-2 text-sm text-slate-100/90 border-b border-white/10 shrink-0">
             👋 Olá, <span className="font-medium">{user.name}</span>
           </div>
         )}
@@ -417,7 +418,7 @@ export default function DashboardLayout() {
               border border-white/10
               bg-white/5
               hover:bg-white/15
-              transition-all duration-300 ease-out
+              transition-colors duration-200 ease-out
               ${isDark ? "shadow-[0_0_14px_rgba(56,189,248,0.45)]" : ""}
             `}
           >
@@ -425,12 +426,12 @@ export default function DashboardLayout() {
               {isDark ? (
                 <Sun
                   size={18}
-                  className="transition-transform duration-300 group-hover:rotate-12"
+                  className="transition-transform duration-200 group-hover:rotate-12"
                 />
               ) : (
                 <Moon
                   size={18}
-                  className="transition-transform duration-300 group-hover:-rotate-12"
+                  className="transition-transform duration-200 group-hover:-rotate-12"
                 />
               )}
 
@@ -439,7 +440,7 @@ export default function DashboardLayout() {
                   <span className="text-xs uppercase tracking-wide opacity-70">
                     Tema
                   </span>
-                  <span className="text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:translate-y-[1px] transition-all duration-300">
+                  <span className="text-sm font-medium">
                     {isDark ? "Claro" : "Escuro"}
                   </span>
                 </div>
@@ -449,11 +450,11 @@ export default function DashboardLayout() {
 
           <button
             onClick={toggleSidebar}
-            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors duration-300 ease-out"
+            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors duration-200 ease-out"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
             {showText && (
-              <span className="ml-2 text-sm opacity-0 animate-fade-in-blur-slowest">
+              <span className="ml-2 text-sm">
                 Recolher
               </span>
             )}
@@ -461,11 +462,11 @@ export default function DashboardLayout() {
 
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors duration-300 ease-out"
+            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors duration-200 ease-out"
           >
             <LogOut size={18} />
             {showText && (
-              <span className="ml-2 text-sm opacity-0 animate-fade-in-blur-slowest">
+              <span className="ml-2 text-sm">
                 Sair
               </span>
             )}
@@ -512,7 +513,7 @@ export default function DashboardLayout() {
             items-center
             justify-center
             transition-all
-            duration-300
+            duration-200
           "
         >
           <ChevronUp size={18} />
