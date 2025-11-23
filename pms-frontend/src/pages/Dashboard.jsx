@@ -588,7 +588,7 @@ export default function Dashboard() {
               stroke="none"
             >
               <Cell fill="#22c55e" />
-              <Cell fill={isDark ? "#020617" : "#e5e7eb"} />
+              <Cell fill={isDark ? "#e5e7eb" : "#e5e7eb"} />
             </Pie>
             <text
               x="50%"
@@ -597,7 +597,7 @@ export default function Dashboard() {
               dominantBaseline="middle"
               fontSize={20}
               fontWeight="bold"
-              fill={isDark ? "#e5e7eb" : "#111827"}
+              fill={isDark ? "#e5e7eb" : "#e5e7eb"}
             >
               {maintenanceStats.pctDone}%
             </text>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -25,6 +25,7 @@ import {
   Boxes,
   Sun,
   Moon,
+  ChevronUp, // ⬅️ novo ícone
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
@@ -74,6 +75,9 @@ export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
 
+  const [showScrollTop, setShowScrollTop] = useState(false); // botão ^
+  const mainRef = useRef(null);
+
   useEffect(() => {
     if (!collapsed) {
       const timer = setTimeout(() => setShowText(true), 380);
@@ -90,8 +94,32 @@ export default function DashboardLayout() {
 
   const isDark = theme === "dark";
 
+  // Listener de scroll do main (conteúdo)
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      setShowScrollTop(el.scrollTop > 200);
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const handleScrollTop = () => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="h-screen flex overflow-hidden bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
         className={`
@@ -121,7 +149,7 @@ export default function DashboardLayout() {
 
         {/* USUÁRIO */}
         {user && showText && (
-          <div className="px-4 py-2 text-sm text-gray-200 border-b border-white/10 opacity-0 animate-fade-in-blur">
+          <div className="px-4 py-2 text-sm text-gray-200 border-b border-white/10 opacity-0 animate-fade-in-blur shrink-0">
             👋 Olá, <span className="font-medium">{user.name}</span>
           </div>
         )}
@@ -209,9 +237,9 @@ export default function DashboardLayout() {
           </Item>
         </nav>
 
-        {/* BASE FIXA */}
-        <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)]">
-          {/* Toggle Tema - acima do Recolher */}
+        {/* BASE FIXA - sempre no fim da coluna da sidebar */}
+        <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)] shrink-0">
+          {/* Toggle Tema */}
           <button
             onClick={toggleTheme}
             aria-label={`Ativar modo ${isDark ? "claro" : "escuro"}`}
@@ -280,7 +308,10 @@ export default function DashboardLayout() {
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 overflow-y-auto">
+      <main
+        ref={mainRef}
+        className="flex-1 overflow-y-auto relative"
+      >
         <div
           className="
           w-full
@@ -294,6 +325,35 @@ export default function DashboardLayout() {
         >
           <Outlet />
         </div>
+
+        {/* BOTÃO VOLTAR AO TOPO */}
+        {showScrollTop && (
+          <button
+            onClick={handleScrollTop}
+            aria-label="Voltar ao topo"
+            className="
+              fixed
+              bottom-6
+              right-6
+              z-40
+              rounded-full
+              px-3
+              py-3
+              bg-sky-600
+              hover:bg-sky-700
+              dark:bg-sky-500
+              dark:hover:bg-sky-400
+              shadow-lg
+              flex
+              items-center
+              justify-center
+              transition-all
+              duration-300
+            "
+          >
+            <ChevronUp size={18} />
+          </button>
+        )}
       </main>
     </div>
   );
