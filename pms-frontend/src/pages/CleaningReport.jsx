@@ -11,13 +11,22 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const feriadosSP = [
-  "2025-01-01", "2025-04-18", "2025-04-21", "2025-05-01",
-  "2025-09-07", "2025-10-12", "2025-11-02", "2025-11-15", "2025-12-25",
+  "2025-01-01",
+  "2025-04-18",
+  "2025-04-21",
+  "2025-05-01",
+  "2025-09-07",
+  "2025-10-12",
+  "2025-11-02",
+  "2025-11-15",
+  "2025-12-25",
 ];
 
 function isWeekendOrHoliday(date) {
   const d = dayjs(date);
-  return d.day() === 0 || d.day() === 6 || feriadosSP.includes(d.format("YYYY-MM-DD"));
+  return (
+    d.day() === 0 || d.day() === 6 || feriadosSP.includes(d.format("YYYY-MM-DD"))
+  );
 }
 
 export default function RelatorioLimpeza() {
@@ -32,9 +41,10 @@ export default function RelatorioLimpeza() {
 
   // helpers para statusMap
   const keyStatus = (maidId, dateISO) => `${maidId}|${dateISO}`;
-  const getStatus = (maidId, dateISO) => statusMap.get(keyStatus(maidId, dateISO)) || "pendente";
+  const getStatus = (maidId, dateISO) =>
+    statusMap.get(keyStatus(maidId, dateISO)) || "pendente";
   const setStatusLocal = (maidId, dateISO, status) => {
-    setStatusMap(prev => {
+    setStatusMap((prev) => {
       const clone = new Map(prev);
       clone.set(keyStatus(maidId, dateISO), status);
       return clone;
@@ -56,76 +66,77 @@ export default function RelatorioLimpeza() {
   };
 
   useEffect(() => {
-  let isMounted = true; // evita setState depois que o componente desmonta
+    let isMounted = true; // evita setState depois que o componente desmonta
 
-  const fetchData = async () => {
-    try {
-      const start = dayjs(month)
-        .tz("America/Sao_Paulo")
-        .startOf("month")
-        .format("YYYY-MM-DD");
-      const end = dayjs(month)
-        .tz("America/Sao_Paulo")
-        .endOf("month")
-        .format("YYYY-MM-DD");
+    const fetchData = async () => {
+      try {
+        const start = dayjs(month)
+          .tz("America/Sao_Paulo")
+          .startOf("month")
+          .format("YYYY-MM-DD");
+        const end = dayjs(month)
+          .tz("America/Sao_Paulo")
+          .endOf("month")
+          .format("YYYY-MM-DD");
 
-      const [checkouts, maidsRes, statuses] = await Promise.all([
-        api(`/tasks/checkouts?start=${start}&end=${end}`),
-        api("/maids"),
-        api(`/payments/status?start=${start}&end=${end}`).catch(() => []), // caso ainda não exista no backend
-      ]);
+        const [checkouts, maidsRes, statuses] = await Promise.all([
+          api(`/tasks/checkouts?start=${start}&end=${end}`),
+          api("/maids"),
+          api(`/payments/status?start=${start}&end=${end}`).catch(() => []), // caso ainda não exista no backend
+        ]);
 
-      if (!isMounted) return; // interrompe se o componente foi desmontado
+        if (!isMounted) return; // interrompe se o componente foi desmontado
 
-      // === Monta statusMap inicial ===
-      const initialMap = new Map();
-      (statuses || []).forEach((s) => {
-        if (s?.maidId && s?.date && s?.status) {
-          initialMap.set(keyStatus(s.maidId, s.date), s.status);
-        }
-      });
+        // === Monta statusMap inicial ===
+        const initialMap = new Map();
+        (statuses || []).forEach((s) => {
+          if (s?.maidId && s?.date && s?.status) {
+            initialMap.set(keyStatus(s.maidId, s.date), s.status);
+          }
+        });
 
-      setStatusMap((prev) => {
-        const merged = new Map(prev);
-        initialMap.forEach((v, k) => merged.set(k, v));
-        return merged;
-      });
+        setStatusMap((prev) => {
+          const merged = new Map(prev);
+          initialMap.forEach((v, k) => merged.set(k, v));
+          return merged;
+        });
 
-      // === Mapeia checkouts ===
-      const mapped = (checkouts || []).map((t) => {
-        const maidInfo = maidsRes.find((m) => m.id === t.maidId) || null;
-        return {
-          id: t.id,
-          maidId: t.maidId,
-          date: dayjs.utc(t.date).format("YYYY-MM-DD"),
-          stay: t.stay || "Sem Stay",
-          rooms: t.rooms || "Sem identificação",
-          maid: maidInfo
-            ? {
-                name: maidInfo.name,
-                pix: maidInfo.pixKey || "",
-                banco: maidInfo.bank || "",
-              }
-            : { name: "Sem diarista", pix: "", banco: "" },
-        };
-      });
+        // === Mapeia checkouts ===
+        const mapped = (checkouts || []).map((t) => {
+          const maidInfo = maidsRes.find((m) => m.id === t.maidId) || null;
+          return {
+            id: t.id,
+            maidId: t.maidId,
+            date: dayjs.utc(t.date).format("YYYY-MM-DD"),
+            stay: t.stay || "Sem Stay",
+            rooms: t.rooms || "Sem identificação",
+            maid: maidInfo
+              ? {
+                  name: maidInfo.name,
+                  pix: maidInfo.pixKey || "",
+                  banco: maidInfo.bank || "",
+                }
+              : { name: "Sem diarista", pix: "", banco: "" },
+          };
+        });
 
-      setTasks(mapped);
-      setMaids(maidsRes);
-    } catch (err) {
-      console.error("❌ Erro ao carregar dados do relatório de limpeza:", err);
-    }
-  };
+        setTasks(mapped);
+        setMaids(maidsRes);
+      } catch (err) {
+        console.error("❌ Erro ao carregar dados do relatório de limpeza:", err);
+      }
+    };
 
-  fetchData();
+    fetchData();
 
-  return () => {
-    isMounted = false; // cleanup para evitar state updates após unmount
-  };
-}, [month]); //  roda apenas quando o mês muda
+    return () => {
+      isMounted = false; // cleanup para evitar state updates após unmount
+    };
+  }, [month]); //  roda apenas quando o mês muda
 
-
-  const availableStays = [...new Set(tasks.map((t) => t.stay).filter(Boolean))];
+  const availableStays = [
+    ...new Set(tasks.map((t) => t.stay).filter(Boolean)),
+  ];
 
   const filteredTasks =
     selectedStays.length > 0
@@ -172,13 +183,19 @@ export default function RelatorioLimpeza() {
 
   // aplica filtro de status (pendente/pago/ambos)
   if (filtroStatus !== "ambos") {
-    rows = rows.filter(r => r.status === filtroStatus);
+    rows = rows.filter((r) => r.status === filtroStatus);
   }
 
   const totalGeral = rows.reduce((acc, r) => acc + r.valor, 0);
 
   const totaisPorDiarista = rows.reduce((acc, r) => {
-    if (!acc[r.diarista]) acc[r.diarista] = { total: 0, dias: 0, pix: r.pix, banco: r.banco };
+    if (!acc[r.diarista])
+      acc[r.diarista] = {
+        total: 0,
+        dias: 0,
+        pix: r.pix,
+        banco: r.banco,
+      };
     acc[r.diarista].total += r.valor;
     acc[r.diarista].dias += 1;
     return acc;
@@ -202,93 +219,97 @@ export default function RelatorioLimpeza() {
 
   // === Export PDF geral (mantendo seu visual + evitando quebrar blocos) ===
   const exportPDF = () => {
-  const doc = new jsPDF();
-  doc.setFillColor(59, 130, 246);
-  doc.rect(0, 0, 210, 25, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(`Relatório de Limpeza - ${dayjs(month).format("MMMM/YYYY")}`, 14, 16);
+    const doc = new jsPDF();
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, 210, 25, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(
+      `Relatório de Limpeza - ${dayjs(month).format("MMMM/YYYY")}`,
+      14,
+      16
+    );
 
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-  let y = 35;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    let y = 35;
 
-  const pageHeight = doc.internal.pageSize.height;
-  
-   const diaristasOrdem = Object.keys(totaisPorDiarista).sort((a, b) =>
-    a.localeCompare(b, "pt-BR", { sensitivity: "base" })
-  );
+    const pageHeight = doc.internal.pageSize.height;
 
-  for (const nome of diaristasOrdem) {
-    const info = totaisPorDiarista[nome];
-    const linhas = rows.filter(r => r.diarista === nome);
-    const linhasAltura = linhas.length * 6 + 40; // ~6px por linha + header
-    const blocoAltura = 30 + linhasAltura; // margem + subtotal + cabeçalho
+    const diaristasOrdem = Object.keys(totaisPorDiarista).sort((a, b) =>
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+    );
 
-    // 👇 se o bloco inteiro não couber, pula pra nova página antes de imprimir
-    if (y + blocoAltura > pageHeight - 10) {
-      doc.addPage();
-      y = 20;
+    for (const nome of diaristasOrdem) {
+      const info = totaisPorDiarista[nome];
+      const linhas = rows.filter((r) => r.diarista === nome);
+      const linhasAltura = linhas.length * 6 + 40; // ~6px por linha + header
+      const blocoAltura = 30 + linhasAltura; // margem + subtotal + cabeçalho
+
+      // 👇 se o bloco inteiro não couber, pula pra nova página antes de imprimir
+      if (y + blocoAltura > pageHeight - 10) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // ==== Cabeçalho do diarista ====
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${nome}`, 14, y);
+      y += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      const pix = info.pix || "Não informado";
+      const banco = info.banco || "Não informado";
+      const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
+
+      doc.text(`Banco: ${banco}`, 14, y);
+      y += 5;
+      doc.text(`Chave Pix: ${pix}`, 14, y);
+      y += 5;
+      doc.text(`Último pagamento: ${ultimo}`, 14, y);
+      y += 7;
+
+      // ==== Tabela ====
+      const tabela = linhas.map((r) => [
+        r.stays,
+        r.rooms,
+        r.date,
+        `R$ ${r.valor},00`,
+      ]);
+
+      autoTable(doc, {
+        head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
+        body: tabela,
+        startY: y,
+        theme: "grid",
+        headStyles: {
+          fillColor: [243, 244, 246],
+          textColor: [17, 24, 39],
+          fontSize: 10,
+        },
+        bodyStyles: { fontSize: 9, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 14, right: 14 },
+        pageBreak: "avoid",
+      });
+
+      // posição após a tabela
+      y = doc.lastAutoTable.finalY + 10;
+
+      // ==== Subtotal ====
+      doc.setFont("helvetica", "bold");
+      doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
+      y += 15;
     }
-
-   
-
-    // ==== Cabeçalho do diarista ====
+    // ==== Total Geral ====
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text(`${nome}`, 14, y);
-    y += 6;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    const pix = info.pix || "Não informado";
-    const banco = info.banco || "Não informado";
-    const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
-
-    doc.text(`Banco: ${banco}`, 14, y);
-    y += 5;
-    doc.text(`Chave Pix: ${pix}`, 14, y);
-    y += 5;
-    doc.text(`Último pagamento: ${ultimo}`, 14, y);
-    y += 7;
-
-    // ==== Tabela ====
-    const tabela = linhas.map(r => [
-      r.stays,
-      r.rooms,
-      r.date,
-      `R$ ${r.valor},00`,
-    ]);
-
-    autoTable(doc, {
-      head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
-      body: tabela,
-      startY: y,
-      theme: "grid",
-      headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39], fontSize: 10 },
-      bodyStyles: { fontSize: 9, cellPadding: 3 },
-      alternateRowStyles: { fillColor: [249, 250, 251] },
-      margin: { left: 14, right: 14 },
-      pageBreak: "avoid",
-    });
-
-    // posição após a tabela
-    y = doc.lastAutoTable.finalY + 10;
-
-    // ==== Subtotal ====
-    doc.setFont("helvetica", "bold");
-    doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
-    y += 15;
-  }
-    // ==== Total Geral ====
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+    doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
     doc.save(`Relatorio-Limpeza-${month}.pdf`);
- 
-};
-
+  };
 
   // === Export individual (agora lista dias + total dias, respeitando filtroStatus atual) ===
   const exportIndividualPDF = (nome) => {
@@ -311,12 +332,11 @@ export default function RelatorioLimpeza() {
     const banco = dados.banco || "Não informado";
     const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
 
-    // dias trabalhados 
+    // dias trabalhados
     const diasTrabalhados = rows
-  .filter(r => r.diarista === nome)
-  .map(r => dayjs(r.dateISO).format("DD"))
-  .sort((a,b) => Number(a) - Number(b));
-
+      .filter((r) => r.diarista === nome)
+      .map((r) => dayjs(r.dateISO).format("DD"))
+      .sort((a, b) => Number(a) - Number(b));
 
     doc.text(`Banco: ${banco}`, 14, 40);
     doc.text(`Chave Pix: ${pix}`, 14, 46);
@@ -324,243 +344,261 @@ export default function RelatorioLimpeza() {
     doc.text(`Total diárias: ${diasTrabalhados.length} dias`, 14, 58);
     doc.text(`Último pagamento: ${ultimo}`, 14, 70);
 
-        const linhas = rows
-  .filter(r => r.diarista === nome)
-  .map(r => [r.stays, r.rooms, dayjs(r.dateISO).format("DD/MM/YYYY"), `R$ ${r.valor},00`]);
+    const linhas = rows
+      .filter((r) => r.diarista === nome)
+      .map((r) => [
+        r.stays,
+        r.rooms,
+        dayjs(r.dateISO).format("DD/MM/YYYY"),
+        `R$ ${r.valor},00`,
+      ]);
 
-autoTable(doc, {
-  head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
-  body: linhas,
-  startY: 78,
-  theme: "grid",
-  headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39], fontSize: 10 },
-  bodyStyles: { fontSize: 9, cellPadding: 3 },
-  alternateRowStyles: { fillColor: [249, 250, 251] },
-  margin: { left: 14, right: 14 },
-});
+    autoTable(doc, {
+      head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
+      body: linhas,
+      startY: 78,
+      theme: "grid",
+      headStyles: {
+        fillColor: [243, 244, 246],
+        textColor: [17, 24, 39],
+        fontSize: 10,
+      },
+      bodyStyles: { fontSize: 9, cellPadding: 3 },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      margin: { left: 14, right: 14 },
+    });
 
-      doc.text(`Valor total: R$ ${dados.total},00`, 14, 64);
+    doc.text(`Valor total: R$ ${dados.total},00`, 14, 64);
 
     doc.save(`Recibo-${nome}-${month}.pdf`);
   };
 
   // altera status de uma linha (persistente)
   const handleChangeStatusRow = async (maidId, dateISO, newStatus) => {
-  // Aplica instantaneamente no front
-  setStatusLocal(maidId, dateISO, newStatus);
+    // Aplica instantaneamente no front
+    setStatusLocal(maidId, dateISO, newStatus);
 
-  // Persiste no backend (sem bloquear UI)
-  try {
-    await saveStatus(maidId, dateISO, newStatus);
-  } catch (e) {
-    // Reverte se der erro
-    console.error("Falha ao salvar status", e);
-    alert("Erro ao salvar status. Revertendo...");
-    setStatusLocal(maidId, dateISO, getStatus(maidId, dateISO));
-  }
-};
-
+    // Persiste no backend (sem bloquear UI)
+    try {
+      await saveStatus(maidId, dateISO, newStatus);
+    } catch (e) {
+      // Reverte se der erro
+      console.error("Falha ao salvar status", e);
+      alert("Erro ao salvar status. Revertendo...");
+      setStatusLocal(maidId, dateISO, getStatus(maidId, dateISO));
+    }
+  };
 
   return (
-  <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
-    {/* Header */}
-    <div className="flex flex-wrap items-center justify-between mb-6">
-      <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-        📋 Relatório Mensal de Diaristas
-      </h1>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={exportCSV}
-          className="btn btn-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
-        >
-          ⬇ Exportar CSV
-        </button>
-        <button
-          onClick={exportPDF}
-          className="btn btn-sm bg-blue-600 text-white border-none hover:bg-blue-700"
-        >
-          ⬇ Exportar PDF
-        </button>
-      </div>
-    </div>
-
-    {/* Filtros */}
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
-      <div className="flex flex-wrap gap-5 items-center">
-        {/* Mês */}
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold text-gray-600 mb-1">
-            Mês de referência
-          </label>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="input input-bordered input-sm w-48"
-          />
-        </div>
-
-        {/* Status */}
-        <div className="flex flex-col">
-          <label className="text-sm font-semibold text-gray-600 mb-1">
-            Status das diárias
-          </label>
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="select select-bordered select-sm w-48"
-          >
-            <option value="pendente">Somente pendentes</option>
-            <option value="pago">Somente pagos</option>
-            <option value="ambos">Todos</option>
-          </select>
-        </div>
-
-        {/* Empreendimentos */}
-        <div className="flex flex-col flex-1 min-w-[300px]">
-          <label className="text-sm font-semibold text-gray-600 mb-1">
-            Empreendimentos
-          </label>
-          <div className="flex flex-wrap gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-28 overflow-y-auto">
-            {availableStays.map((s) => (
-              <label
-                key={s}
-                className="flex items-center gap-2 cursor-pointer text-sm text-gray-700"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedStays.includes(s)}
-                  onChange={() => {
-                    setSelectedStays((prev) =>
-                      prev.includes(s)
-                        ? prev.filter((stay) => stay !== s)
-                        : [...prev, s]
-                    );
-                  }}
-                  className="checkbox checkbox-sm"
-                />
-                {s}
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Tabela */}
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      <table className="table w-full table-auto">
-        <thead className="bg-gray-100 text-gray-700 text-sm uppercase font-semibold">
-          <tr>
-            <th className="px-4 py-3 text-left">Diarista</th>
-            <th className="px-4 py-3 text-left">Empreendimento</th>
-            <th className="px-4 py-3 text-left">Acomodações</th>
-            <th className="px-4 py-3 text-center">Dia</th>
-            <th className="px-4 py-3 text-center">Valor</th>
-            <th className="px-4 py-3 text-center">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length > 0 ? (
-            rows.map((r, idx) => (
-              <tr
-                key={`${r.maidId}-${r.dateISO}-${idx}`}
-                className="hover:bg-gray-50 border-t border-gray-100 text-sm"
-              >
-                <td className="px-4 py-2 font-medium text-gray-800">
-                  {r.diarista}
-                </td>
-                <td className="px-4 py-2 text-gray-600">{r.stays}</td>
-                <td className="px-4 py-2 text-gray-600">{r.rooms}</td>
-                <td className="px-4 py-2 text-center text-gray-700">
-                  {r.date}
-                </td>
-                <td className="px-4 py-2 text-center font-semibold text-gray-800">
-                  R$ {r.valor},00
-                </td>
-                <td className="px-4 py-2 text-center">
-                  <select
-                    className={`select select-xs rounded-md ${
-                      r.status === "pago"
-                        ? "bg-green-50 border-green-500 text-green-700"
-                        : "bg-yellow-50 border-yellow-500 text-yellow-700"
-                    }`}
-                    value={r.status}
-                    onChange={(e) =>
-                      handleChangeStatusRow(r.maidId, r.dateISO, e.target.value)
-                    }
-                  >
-                    <option value="pendente">Pendente</option>
-                    <option value="pago">Pago</option>
-                  </select>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan="6"
-                className="text-center text-gray-400 py-8 text-sm"
-              >
-                Nenhum registro encontrado
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Cards individuais */}
-    <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-      {Object.keys(totaisPorDiarista).map((d) => (
-        <div
-          key={d}
-          className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-all"
-        >
-          <h3 className="font-semibold text-lg text-gray-800 mb-3 flex items-center justify-between">
-            {d}
-            <span className="text-sm font-normal text-gray-500">
-              {totaisPorDiarista[d].dias} dia(s)
-            </span>
-          </h3>
-
-          <div className="space-y-2">
-            <input
-              type="text"
-              className="input input-sm input-bordered w-full bg-gray-100 text-gray-700"
-              value={totaisPorDiarista[d].banco || "Não informado"}
-              readOnly
-            />
-            <input
-              type="text"
-              className="input input-sm input-bordered w-full bg-gray-100 text-gray-700"
-              value={totaisPorDiarista[d].pix || "Não informado"}
-              readOnly
-            />
-            <input
-              type="text"
-              placeholder="Último pagamento"
-              className="input input-sm input-bordered w-full"
-              value={extras[d]?.ultimoPagamento || ""}
-              onChange={(e) =>
-                setExtras((prev) => ({
-                  ...prev,
-                  [d]: { ...prev[d], ultimoPagamento: e.target.value },
-                }))
-              }
-            />
-          </div>
-
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-slate-950 dark:to-slate-950 p-8 text-slate-900 dark:text-slate-100">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-3">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100 tracking-tight">
+          📋 Relatório Mensal de Diaristas
+        </h1>
+        <div className="flex flex-wrap gap-2">
           <button
-            className="btn btn-sm mt-4 w-full bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
-            onClick={() => exportIndividualPDF(d)}
+            onClick={exportCSV}
+            className="btn btn-sm bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
           >
-            ⬇ PDF Individual
+            ⬇ Exportar CSV
+          </button>
+          <button
+            onClick={exportPDF}
+            className="btn btn-sm bg-blue-600 text-white border-none hover:bg-blue-700 dark:bg-sky-600 dark:hover:bg-sky-500"
+          >
+            ⬇ Exportar PDF
           </button>
         </div>
-      ))}
-    </div>
-  </div>
-);
+      </div>
 
+      {/* Filtros */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 p-5 mb-6">
+        <div className="flex flex-wrap gap-5 items-center">
+          {/* Mês */}
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-600 dark:text-slate-300 mb-1">
+              Mês de referência
+            </label>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="input input-bordered input-sm w-48 bg-white/80 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            />
+          </div>
+
+          {/* Status */}
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-600 dark:text-slate-300 mb-1">
+              Status das diárias
+            </label>
+            <select
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value)}
+              className="select select-bordered select-sm w-48 bg-white/80 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            >
+              <option value="pendente">Somente pendentes</option>
+              <option value="pago">Somente pagos</option>
+              <option value="ambos">Todos</option>
+            </select>
+          </div>
+
+          {/* Empreendimentos */}
+          <div className="flex flex-col flex-1 min-w-[300px]">
+            <label className="text-sm font-semibold text-gray-600 dark:text-slate-300 mb-1">
+              Empreendimentos
+            </label>
+            <div className="flex flex-wrap gap-3 bg-gray-50 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800 rounded-xl p-3 max-h-28 overflow-y-auto">
+              {availableStays.map((s) => (
+                <label
+                  key={s}
+                  className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-slate-200"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedStays.includes(s)}
+                    onChange={() => {
+                      setSelectedStays((prev) =>
+                        prev.includes(s)
+                          ? prev.filter((stay) => stay !== s)
+                          : [...prev, s]
+                      );
+                    }}
+                    className="checkbox checkbox-sm checkbox-primary"
+                  />
+                  {s}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md border border-gray-200 dark:border-slate-800 overflow-hidden">
+        <table className="table w-full table-auto">
+          <thead className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-100 text-sm uppercase font-semibold">
+            <tr>
+              <th className="px-4 py-3 text-left">Diarista</th>
+              <th className="px-4 py-3 text-left">Empreendimento</th>
+              <th className="px-4 py-3 text-left">Acomodações</th>
+              <th className="px-4 py-3 text-center">Dia</th>
+              <th className="px-4 py-3 text-center">Valor</th>
+              <th className="px-4 py-3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length > 0 ? (
+              rows.map((r, idx) => (
+                <tr
+                  key={`${r.maidId}-${r.dateISO}-${idx}`}
+                  className="hover:bg-gray-50 dark:hover:bg-slate-800 border-t border-gray-100 dark:border-slate-800 text-sm"
+                >
+                  <td className="px-4 py-2 font-medium text-gray-800 dark:text-slate-100">
+                    {r.diarista}
+                  </td>
+                  <td className="px-4 py-2 text-gray-600 dark:text-slate-300">
+                    {r.stays}
+                  </td>
+                  <td className="px-4 py-2 text-gray-600 dark:text-slate-300">
+                    {r.rooms}
+                  </td>
+                  <td className="px-4 py-2 text-center text-gray-700 dark:text-slate-200">
+                    {r.date}
+                  </td>
+                  <td className="px-4 py-2 text-center font-semibold text-gray-800 dark:text-slate-100">
+                    R$ {r.valor},00
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    <select
+                      className={`select select-xs rounded-md ${
+                        r.status === "pago"
+                          ? "bg-green-50 border-green-500 text-green-700 dark:bg-emerald-900/40 dark:border-emerald-400 dark:text-emerald-200"
+                          : "bg-yellow-50 border-yellow-500 text-yellow-700 dark:bg-amber-900/40 dark:border-amber-400 dark:text-amber-200"
+                      }`}
+                      value={r.status}
+                      onChange={(e) =>
+                        handleChangeStatusRow(
+                          r.maidId,
+                          r.dateISO,
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="pago">Pago</option>
+                    </select>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="text-center text-gray-400 dark:text-slate-500 py-8 text-sm"
+                >
+                  Nenhum registro encontrado
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Cards individuais */}
+      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {Object.keys(totaisPorDiarista).map((d) => (
+          <div
+            key={d}
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 p-5 hover:shadow-md dark:hover:shadow-slate-900/70 transition-all"
+          >
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-slate-100 mb-3 flex items-center justify-between">
+              {d}
+              <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
+                {totaisPorDiarista[d].dias} dia(s)
+              </span>
+            </h3>
+
+            <div className="space-y-2">
+              <input
+                type="text"
+                className="input input-sm input-bordered w-full bg-gray-100 dark:bg-slate-800 dark:border-slate-700 text-gray-700 dark:text-slate-100"
+                value={totaisPorDiarista[d].banco || "Não informado"}
+                readOnly
+              />
+              <input
+                type="text"
+                className="input input-sm input-bordered w-full bg-gray-100 dark:bg-slate-800 dark:border-slate-700 text-gray-700 dark:text-slate-100"
+                value={totaisPorDiarista[d].pix || "Não informado"}
+                readOnly
+              />
+              <input
+                type="text"
+                placeholder="Último pagamento"
+                className="input input-sm input-bordered w-full bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+                value={extras[d]?.ultimoPagamento || ""}
+                onChange={(e) =>
+                  setExtras((prev) => ({
+                    ...prev,
+                    [d]: {
+                      ...prev[d],
+                      ultimoPagamento: e.target.value,
+                    },
+                  }))
+                }
+              />
+            </div>
+
+            <button
+              className="btn btn-sm mt-4 w-full bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100 dark:bg-sky-900/60 dark:text-sky-200 dark:border-sky-500 dark:hover:bg-sky-900"
+              onClick={() => exportIndividualPDF(d)}
+            >
+              ⬇ PDF Individual
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

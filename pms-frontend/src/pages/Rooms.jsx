@@ -110,16 +110,13 @@ export default function Rooms() {
     }
   };
 
-  // Upload da imagem (nova função)
+  // Upload Imagem
   const handleImageUpload = async (id, file) => {
     if (!file) return;
     try {
       const formData = new FormData();
       formData.append("image", file);
-
       await api.post(`/rooms/${id}/image`, formData);
-
-
       fetchRoomsAndStays();
     } catch (err) {
       console.error("Erro ao enviar imagem:", err);
@@ -127,21 +124,25 @@ export default function Rooms() {
     }
   };
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return <p className="text-slate-700 dark:text-slate-200">Carregando...</p>;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Unidades Habitacionais (UH)</h1>
+    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <h1 className="text-3xl font-bold mb-6">Unidades Habitacionais (UH)</h1>
 
       {/* Formulário */}
       <form
         onSubmit={handleCreate}
-        className="mb-6 grid grid-cols-2 gap-4 bg-white p-4 rounded shadow"
+        className="mb-6 grid grid-cols-2 gap-4 bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-4 rounded shadow"
       >
         <input
           type="text"
           placeholder="Título"
-          className="border p-2 rounded col-span-2"
+          className="border p-2 rounded col-span-2
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           required
@@ -150,7 +151,10 @@ export default function Rooms() {
         <input
           type="text"
           placeholder="Categoria"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.category}
           onChange={(e) =>
             setFormData({ ...formData, category: e.target.value })
@@ -161,7 +165,10 @@ export default function Rooms() {
         <input
           type="text"
           placeholder="Posição"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.position}
           onChange={(e) =>
             setFormData({ ...formData, position: e.target.value })
@@ -170,7 +177,10 @@ export default function Rooms() {
 
         <textarea
           placeholder="Descrição"
-          className="border p-2 rounded col-span-2"
+          className="border p-2 rounded col-span-2
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.description}
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
@@ -189,7 +199,10 @@ export default function Rooms() {
         </label>
 
         <select
-          className="border p-2 rounded col-span-2"
+          className="border p-2 rounded col-span-2
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.stayId}
           onChange={(e) => setFormData({ ...formData, stayId: e.target.value })}
         >
@@ -210,22 +223,26 @@ export default function Rooms() {
       </form>
 
       {/* Tabela */}
-      <table className="w-full bg-white shadow rounded">
+      <table className="w-full bg-white dark:bg-slate-900 dark:border dark:border-slate-700 shadow rounded">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-left">Imagem</th>
-            <th className="p-2 text-left">Título</th>
-            <th className="p-2 text-left">Categoria</th>
-            <th className="p-2 text-left">Posição</th>
-            <th className="p-2 text-left">Descrição</th>
-            <th className="p-2 text-left">Empreendimento</th>
-            <th className="p-2 text-center">Ativo?</th>
-            <th className="p-2 text-center">Ações</th>
+          <tr className="bg-gray-200 dark:bg-slate-800">
+            <th className="p-2 text-left dark:text-slate-100">Imagem</th>
+            <th className="p-2 text-left dark:text-slate-100">Título</th>
+            <th className="p-2 text-left dark:text-slate-100">Categoria</th>
+            <th className="p-2 text-left dark:text-slate-100">Posição</th>
+            <th className="p-2 text-left dark:text-slate-100">Descrição</th>
+            <th className="p-2 text-left dark:text-slate-100">Empreendimento</th>
+            <th className="p-2 text-center dark:text-slate-100">Ativo?</th>
+            <th className="p-2 text-center dark:text-slate-100">Ações</th>
           </tr>
         </thead>
+
         <tbody>
           {rooms.map((room) => (
-            <tr key={room.id} className="border-t">
+            <tr
+              key={room.id}
+              className="border-t border-gray-200 dark:border-slate-700"
+            >
               {editId === room.id ? (
                 <>
                   {/* Imagem */}
@@ -237,40 +254,57 @@ export default function Rooms() {
                         className="w-20 h-16 object-cover rounded"
                       />
                     ) : (
-                      <span className="text-gray-400 text-sm">Sem imagem</span>
+                      <span className="text-gray-400 dark:text-slate-400 text-sm">
+                        Sem imagem
+                      </span>
                     )}
                   </td>
 
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.title}
                       onChange={(e) =>
                         setEditData({ ...editData, title: e.target.value })
                       }
                     />
                   </td>
+
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.category}
                       onChange={(e) =>
                         setEditData({ ...editData, category: e.target.value })
                       }
                     />
                   </td>
+
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.position}
                       onChange={(e) =>
                         setEditData({ ...editData, position: e.target.value })
                       }
                     />
                   </td>
+
                   <td className="p-2">
                     <textarea
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.description}
                       onChange={(e) =>
                         setEditData({
@@ -280,9 +314,13 @@ export default function Rooms() {
                       }
                     />
                   </td>
+
                   <td className="p-2">
                     <select
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.stayId}
                       onChange={(e) =>
                         setEditData({ ...editData, stayId: e.target.value })
@@ -295,6 +333,7 @@ export default function Rooms() {
                       ))}
                     </select>
                   </td>
+
                   <td className="p-2 text-center">
                     <input
                       type="checkbox"
@@ -304,6 +343,7 @@ export default function Rooms() {
                       }
                     />
                   </td>
+
                   <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleUpdate(room.id)}
@@ -321,15 +361,14 @@ export default function Rooms() {
                 </>
               ) : (
                 <>
-                  {/* Imagem com upload */}
                   <td className="p-2 text-center">
                     <div className="flex flex-col items-center gap-1">
                       <img
                         src={room.imageUrl || "/placeholder.jpg"}
                         alt={room.title}
-                        className="w-20 h-16 object-cover rounded border border-gray-200"
+                        className="w-20 h-16 object-cover rounded border border-gray-200 dark:border-slate-700"
                       />
-                      <label className="text-xs text-sky-700 hover:underline cursor-pointer">
+                      <label className="text-xs text-sky-700 dark:text-sky-400 hover:underline cursor-pointer">
                         <input
                           type="file"
                           accept="image/*"
@@ -343,14 +382,30 @@ export default function Rooms() {
                     </div>
                   </td>
 
-                  <td className="p-2">{room.title}</td>
-                  <td className="p-2">{room.category}</td>
-                  <td className="p-2">{room.position}</td>
-                  <td className="p-2">{room.description}</td>
-                  <td className="p-2">{room.stay?.name || "-"}</td>
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {room.title}
+                  </td>
+
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {room.category}
+                  </td>
+
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {room.position}
+                  </td>
+
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {room.description}
+                  </td>
+
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {room.stay?.name || "-"}
+                  </td>
+
                   <td className="p-2 text-center">
                     {room.active ? "✅" : "❌"}
                   </td>
+
                   <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleEdit(room)}
@@ -358,6 +413,7 @@ export default function Rooms() {
                     >
                       Editar
                     </button>
+
                     <button
                       onClick={() => handleDelete(room.id)}
                       className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 w-24"
@@ -369,9 +425,13 @@ export default function Rooms() {
               )}
             </tr>
           ))}
+
           {rooms.length === 0 && (
             <tr>
-              <td colSpan="8" className="p-4 text-center text-gray-500">
+              <td
+                colSpan="8"
+                className="p-4 text-center text-gray-500 dark:text-slate-400"
+              >
                 Nenhuma UH cadastrada.
               </td>
             </tr>

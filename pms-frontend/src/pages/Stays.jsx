@@ -31,9 +31,7 @@ export default function Stays() {
       await api.post("/stays", {
         name: formData.name,
         position:
-          formData.position !== ""
-            ? parseInt(formData.position, 10)
-            : null,
+          formData.position !== "" ? parseInt(formData.position, 10) : null,
       });
       setFormData({ name: "", position: "" });
       fetchStays();
@@ -72,9 +70,7 @@ export default function Stays() {
       await api.put(`/stays/${id}`, {
         name: editData.name,
         position:
-          editData.position !== ""
-            ? parseInt(editData.position, 10)
-            : null,
+          editData.position !== "" ? parseInt(editData.position, 10) : null,
       });
       setEditId(null);
       fetchStays();
@@ -83,62 +79,89 @@ export default function Stays() {
     }
   };
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return (
+      <p className="p-6 text-slate-700 dark:text-slate-200">
+        Carregando...
+      </p>
+    );
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Empreendimentos</h1>
+    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <h1 className="text-3xl font-bold mb-6">Empreendimentos</h1>
 
       {/* Formulário */}
       <form
         onSubmit={handleCreate}
-        className="mb-6 grid grid-cols-3 gap-4 bg-white p-4 rounded shadow"
+        className="mb-6 grid grid-cols-3 gap-4 bg-white p-4 rounded shadow
+                   dark:bg-slate-900 dark:border dark:border-slate-700"
       >
         <input
           type="text"
           placeholder="Nome do Empreendimento"
-          className="border p-2 rounded col-span-2"
+          className="border p-2 rounded col-span-2
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.name}
           onChange={(e) =>
             setFormData({ ...formData, name: e.target.value })
           }
           required
         />
+
         <input
           type="number"
           placeholder="Posição"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.position}
           onChange={(e) =>
             setFormData({ ...formData, position: e.target.value })
           }
         />
+
         <button
           type="submit"
-          className="col-span-3 bg-sky-700 text-white py-2 rounded hover:bg-sky-800"
+          className="col-span-3 bg-sky-700 text-white py-2 rounded hover:bg-sky-800 transition-colors"
         >
           Cadastrar
         </button>
       </form>
 
       {/* Tabela */}
-      <table className="w-full bg-white shadow rounded">
+      <table className="w-full bg-white shadow rounded
+                        dark:bg-slate-900 dark:border dark:border-slate-700">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-center w-24">Posição</th>
-            <th className="p-2 text-left">Nome</th>
-            <th className="p-2 text-center w-40">Ações</th>
+          <tr className="bg-gray-200 dark:bg-slate-800">
+            <th className="p-2 text-center w-24 text-slate-800 dark:text-slate-100">
+              Posição
+            </th>
+            <th className="p-2 text-left text-slate-800 dark:text-slate-100">
+              Nome
+            </th>
+            <th className="p-2 text-center w-40 text-slate-800 dark:text-slate-100">
+              Ações
+            </th>
           </tr>
         </thead>
         <tbody>
           {stays.map((stay) => (
-            <tr key={stay.id} className="border-t">
+            <tr
+              key={stay.id}
+              className="border-t border-gray-200 dark:border-slate-700"
+            >
               {editId === stay.id ? (
                 <>
                   <td className="p-2 text-center">
                     <input
                       type="number"
-                      className="border p-1 rounded w-20 text-center"
+                      className="border p-1 rounded w-20 text-center
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.position}
                       onChange={(e) =>
                         setEditData({
@@ -150,7 +173,10 @@ export default function Stays() {
                   </td>
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.name}
                       onChange={(e) =>
                         setEditData({
@@ -177,10 +203,12 @@ export default function Stays() {
                 </>
               ) : (
                 <>
-                  <td className="p-2 text-center">
+                  <td className="p-2 text-center text-slate-800 dark:text-slate-100">
                     {stay.position ?? "-"}
                   </td>
-                  <td className="p-2">{stay.name}</td>
+                  <td className="p-2 text-slate-800 dark:text-slate-100">
+                    {stay.name}
+                  </td>
                   <td className="p-2 flex gap-2 justify-center">
                     <button
                       onClick={() => handleEdit(stay)}
@@ -201,7 +229,10 @@ export default function Stays() {
           ))}
           {stays.length === 0 && (
             <tr>
-              <td colSpan="3" className="p-4 text-center text-gray-500">
+              <td
+                colSpan="3"
+                className="p-4 text-center text-gray-500 dark:text-slate-400"
+              >
                 Nenhum empreendimento cadastrado.
               </td>
             </tr>

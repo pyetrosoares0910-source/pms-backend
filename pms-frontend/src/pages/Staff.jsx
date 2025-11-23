@@ -81,21 +81,29 @@ export default function Staff() {
     }
   };
 
-  if (loading) return <p>Carregando...</p>;
+  if (loading)
+    return (
+      <p className="text-slate-700 dark:text-slate-200">
+        Carregando...
+      </p>
+    );
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Funcionários</h1>
+    <div className="p-6 min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <h1 className="text-3xl font-bold mb-6">Funcionários</h1>
 
       {/* Formulário */}
       <form
         onSubmit={handleCreate}
-        className="mb-6 grid grid-cols-3 gap-4 bg-white p-4 rounded shadow"
+        className="mb-6 grid grid-cols-3 gap-4 bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-4 rounded shadow"
       >
         <input
           type="text"
           placeholder="Nome"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           required
@@ -103,7 +111,10 @@ export default function Staff() {
         <input
           type="text"
           placeholder="Função"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
           required
@@ -111,9 +122,14 @@ export default function Staff() {
         <input
           type="text"
           placeholder="Telefone"
-          className="border p-2 rounded"
+          className="border p-2 rounded
+                     bg-white dark:bg-slate-900
+                     border-gray-300 dark:border-slate-700
+                     text-slate-900 dark:text-slate-100"
           value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, phone: e.target.value })
+          }
         />
         <button
           type="submit"
@@ -124,23 +140,29 @@ export default function Staff() {
       </form>
 
       {/* Tabela */}
-      <table className="w-full bg-white shadow rounded">
+      <table className="w-full bg-white dark:bg-slate-900 dark:border dark:border-slate-700 shadow rounded">
         <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-left">Nome</th>
-            <th className="p-2 text-left">Função</th>
-            <th className="p-2 text-left">Telefone</th>
-            <th className="p-2 text-center">Ações</th>
+          <tr className="bg-gray-200 dark:bg-slate-800">
+            <th className="p-2 text-left dark:text-slate-100">Nome</th>
+            <th className="p-2 text-left dark:text-slate-100">Função</th>
+            <th className="p-2 text-left dark:text-slate-100">Telefone</th>
+            <th className="p-2 text-center dark:text-slate-100">Ações</th>
           </tr>
         </thead>
         <tbody>
           {staff.map((employee) => (
-            <tr key={employee.id} className="border-t">
+            <tr
+              key={employee.id}
+              className="border-t border-gray-200 dark:border-slate-700"
+            >
               {editId === employee.id ? (
                 <>
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.name}
                       onChange={(e) =>
                         setEditData({ ...editData, name: e.target.value })
@@ -149,7 +171,10 @@ export default function Staff() {
                   </td>
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.role}
                       onChange={(e) =>
                         setEditData({ ...editData, role: e.target.value })
@@ -158,7 +183,10 @@ export default function Staff() {
                   </td>
                   <td className="p-2">
                     <input
-                      className="border p-1 rounded w-full"
+                      className="border p-1 rounded w-full
+                                 bg-white dark:bg-slate-900
+                                 border-gray-300 dark:border-slate-700
+                                 text-slate-900 dark:text-slate-100"
                       value={editData.phone}
                       onChange={(e) =>
                         setEditData({ ...editData, phone: e.target.value })
@@ -182,9 +210,15 @@ export default function Staff() {
                 </>
               ) : (
                 <>
-                  <td className="p-2">{employee.name}</td>
-                  <td className="p-2">{employee.role}</td>
-                  <td className="p-2">{employee.phone}</td>
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {employee.name}
+                  </td>
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {employee.role}
+                  </td>
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
+                    {employee.phone}
+                  </td>
                   <td className="p-2 flex gap-2 justify-center">
                     <button
                       onClick={() => handleEdit(employee)}
@@ -205,7 +239,10 @@ export default function Staff() {
           ))}
           {staff.length === 0 && (
             <tr>
-              <td colSpan="4" className="p-4 text-center text-gray-500">
+              <td
+                colSpan="4"
+                className="p-4 text-center text-gray-500 dark:text-slate-400"
+              >
                 Nenhum funcionário cadastrado.
               </td>
             </tr>

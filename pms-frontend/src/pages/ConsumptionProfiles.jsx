@@ -4,7 +4,6 @@ import { Button, Input, Checkbox } from "react-daisyui";
 
 const API = `${import.meta.env.VITE_API_URL}/api`;
 
-
 export default function ConsumptionProfiles() {
   const [profiles, setProfiles] = useState([]);
   const [products, setProducts] = useState([]);
@@ -43,25 +42,41 @@ export default function ConsumptionProfiles() {
   }, []);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
       <h2 className="text-2xl font-bold">🧹 Perfis de Consumo</h2>
 
-      <form onSubmit={createProfile} className="grid grid-cols-6 gap-2 bg-base-200 p-4 rounded-xl">
+      {/* FORM */}
+      <form
+        onSubmit={createProfile}
+        className="
+          grid grid-cols-6 gap-2 
+          bg-base-200 dark:bg-slate-900 
+          p-4 rounded-xl shadow 
+          dark:border dark:border-slate-800
+        "
+      >
         <Input
           placeholder="Stay ID"
           value={form.stayId}
           onChange={(e) => setForm({ ...form, stayId: e.target.value })}
           required
+          className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
         />
+
         <Input
           placeholder="Room ID (opcional)"
           value={form.roomId}
           onChange={(e) => setForm({ ...form, roomId: e.target.value })}
+          className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
         />
+
         <select
           value={form.productId}
           onChange={(e) => setForm({ ...form, productId: e.target.value })}
-          className="col-span-2 select select-bordered"
+          className="
+            col-span-2 select select-bordered 
+            dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100
+          "
           required
         >
           <option value="">Produto</option>
@@ -71,29 +86,48 @@ export default function ConsumptionProfiles() {
             </option>
           ))}
         </select>
+
         <Input
           type="number"
           placeholder="Consumo (ml/un)"
           value={form.consumptionPerCleaning}
-          onChange={(e) => setForm({ ...form, consumptionPerCleaning: e.target.value })}
+          onChange={(e) =>
+            setForm({ ...form, consumptionPerCleaning: e.target.value })
+          }
           required
+          className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
         />
-        <label className="flex items-center gap-2">
+
+        <label className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
           <Checkbox
             checked={form.appliesToCommonAreas}
             onChange={(e) =>
               setForm({ ...form, appliesToCommonAreas: e.target.checked })
             }
+            className="checkbox checkbox-primary"
           />
           Áreas Comuns
         </label>
-        <Button color="primary" type="submit" className="col-span-6">
+
+        <Button
+          color="primary"
+          type="submit"
+          className="col-span-6"
+        >
           + Adicionar Perfil
         </Button>
       </form>
 
-      <table className="table table-zebra w-full">
-        <thead>
+      {/* TABELA */}
+      <table
+        className="
+          table table-zebra w-full 
+          bg-white dark:bg-slate-900 
+          rounded-xl overflow-hidden 
+          border border-gray-200 dark:border-slate-800
+        "
+      >
+        <thead className="bg-gray-200 dark:bg-slate-800 dark:text-slate-200">
           <tr>
             <th>Stay</th>
             <th>Room</th>
@@ -102,9 +136,10 @@ export default function ConsumptionProfiles() {
             <th>Comum?</th>
           </tr>
         </thead>
-        <tbody>
+
+        <tbody className="dark:[&>tr:nth-child(even)]:bg-slate-800/40">
           {profiles.map((p) => (
-            <tr key={p.id}>
+            <tr key={p.id} className="dark:hover:bg-slate-800 transition">
               <td>{p.stayId}</td>
               <td>{p.roomId || "—"}</td>
               <td>{p.product?.name}</td>
