@@ -74,106 +74,101 @@ export default function Dashboard() {
   const [maintenance, setMaintenance] = useState([]);
   const [tasksMonthPrev, setTasksMonthPrev] = useState([]);
 
- 
   useEffect(() => {
-  let isMounted = true;
+    let isMounted = true;
 
-  const fetchData = async () => {
-    try {
-      // ✅ intervalo semanal (para calendários)
-      const startWeek = dayjs().startOf("week").format("YYYY-MM-DD");
-      const endWeek = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
+    const fetchData = async () => {
+      try {
+        // ✅ intervalo semanal (para calendários)
+        const startWeek = dayjs().startOf("week").format("YYYY-MM-DD");
+        const endWeek = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
 
-      // ✅ intervalo mensal (para KPIs reais)
-      const startMonth = dayjs().startOf("month").format("YYYY-MM-DD");
-      const endMonth = dayjs().endOf("month").format("YYYY-MM-DD");
+        // ✅ intervalo mensal (para KPIs reais)
+        const startMonth = dayjs().startOf("month").format("YYYY-MM-DD");
+        const endMonth = dayjs().endOf("month").format("YYYY-MM-DD");
 
-      // ✅ mês anterior (para comparativo de diárias de limpeza)
-      const prevMonthStart = dayjs()
-        .subtract(1, "month")
-        .startOf("month")
-        .format("YYYY-MM-DD");
-      const prevMonthEnd = dayjs()
-        .subtract(1, "month")
-        .endOf("month")
-        .format("YYYY-MM-DD");
+        // ✅ mês anterior (para comparativo de diárias de limpeza)
+        const prevMonthStart = dayjs()
+          .subtract(1, "month")
+          .startOf("month")
+          .format("YYYY-MM-DD");
+        const prevMonthEnd = dayjs()
+          .subtract(1, "month")
+          .endOf("month")
+          .format("YYYY-MM-DD");
 
-      const [
-        rsv,
-        rms,
-        sts,
-        checkoutsWeek,
-        maidsRes,
-        maint,
-        checkoutsMonth,
-        checkoutsPrevMonth,
-      ] = await Promise.all([
-        api("/reservations"),
-        api("/rooms"),
-        api("/stays"),
-        api(`/tasks/checkouts?start=${startWeek}&end=${endWeek}`),
-        api("/maids"),
-        api("/maintenance"),
-        api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`),
-        api(`/tasks/checkouts?start=${prevMonthStart}&end=${prevMonthEnd}`),
-      ]);
+        const [
+          rsv,
+          rms,
+          sts,
+          checkoutsWeek,
+          maidsRes,
+          maint,
+          checkoutsMonth,
+          checkoutsPrevMonth,
+        ] = await Promise.all([
+          api("/reservations"),
+          api("/rooms"),
+          api("/stays"),
+          api(`/tasks/checkouts?start=${startWeek}&end=${endWeek}`),
+          api("/maids"),
+          api("/maintenance"),
+          api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`),
+          api(`/tasks/checkouts?start=${prevMonthStart}&end=${prevMonthEnd}`),
+        ]);
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      // ✅ Mapeamento semanal
-      const mappedWeek = (checkoutsWeek || []).map((t) => ({
-        id: t.id,
-        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
-        stay: t.stay || "Sem Stay",
-        rooms: t.rooms || "Sem identificação",
-        maid: t.maid || null,
-        maidId: t.maidId || null,
-      }));
+        // ✅ Mapeamento semanal
+        const mappedWeek = (checkoutsWeek || []).map((t) => ({
+          id: t.id,
+          date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
+          stay: t.stay || "Sem Stay",
+          rooms: t.rooms || "Sem identificação",
+          maid: t.maid || null,
+          maidId: t.maidId || null,
+        }));
 
-      // ✅ Mapeamento do mês atual
-      const mappedMonth = (checkoutsMonth || []).map((t) => ({
-        id: t.id,
-        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
-        stay: t.stay || "Sem Stay",
-        rooms: t.rooms || "Sem identificação",
-        maid: t.maid || null,
-        maidId: t.maidId || null,
-      }));
+        // ✅ Mapeamento do mês atual
+        const mappedMonth = (checkoutsMonth || []).map((t) => ({
+          id: t.id,
+          date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
+          stay: t.stay || "Sem Stay",
+          rooms: t.rooms || "Sem identificação",
+          maid: t.maid || null,
+          maidId: t.maidId || null,
+        }));
 
-      // ✅ Mapeamento do mês anterior
-      const mappedPrevMonth = (checkoutsPrevMonth || []).map((t) => ({
-        id: t.id,
-        date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
-        stay: t.stay || "Sem Stay",
-        rooms: t.rooms || "Sem identificação",
-        maid: t.maid || null,
-        maidId: t.maidId || null,
-      }));
+        // ✅ Mapeamento do mês anterior
+        const mappedPrevMonth = (checkoutsPrevMonth || []).map((t) => ({
+          id: t.id,
+          date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
+          stay: t.stay || "Sem Stay",
+          rooms: t.rooms || "Sem identificação",
+          maid: t.maid || null,
+          maidId: t.maidId || null,
+        }));
 
-      setReservations(rsv || []);
-      setRooms(rms || []);
-      setStays(sts || []);
-      setTasks(mappedWeek);
-      setTasksMonth(mappedMonth);       // mês atual
-      setTasksMonthPrev(mappedPrevMonth); // mês anterior
-      setMaids(maidsRes || []);
-      setMaintenance(maint || []);
-    } catch (err) {
-      console.error("Erro ao carregar dashboard:", err);
-    }
-  };
+        setReservations(rsv || []);
+        setRooms(rms || []);
+        setStays(sts || []);
+        setTasks(mappedWeek);
+        setTasksMonth(mappedMonth); // mês atual
+        setTasksMonthPrev(mappedPrevMonth); // mês anterior
+        setMaids(maidsRes || []);
+        setMaintenance(maint || []);
+      } catch (err) {
+        console.error("Erro ao carregar dashboard:", err);
+      }
+    };
 
-  fetchData();
-  return () => {
-    isMounted = false;
-  };
-}, []);
+    fetchData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-
-
-
-
-  const today = dayjs().startOf("day");
+  const todayLocal = dayjs().startOf("day");
   const { start: mStart, end: mEnd, daysInMonth } = monthBounds();
 
   // === Ocupação por empreendimento ===
@@ -222,249 +217,255 @@ export default function Dashboard() {
     return { rows: occRows, avg };
   }, [rooms, reservations, mStart, mEnd, daysInMonth]);
 
-// === Ocupação geral do mês atual ===
-const ocupacaoGeral = useMemo(() => {
-  const { start, end, daysInMonth } = monthBounds();
+  // === Ocupação geral do mês atual ===
+  const ocupacaoGeral = useMemo(() => {
+    const { start, end, daysInMonth } = monthBounds();
 
-  const totalNoites = reservations.reduce((sum, r) => {
-    if (r.status === "cancelada") return sum;
-    return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
-  }, 0);
+    const totalNoites = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
+    }, 0);
 
-  const capacidadeTotal = rooms.length * daysInMonth;
+    const capacidadeTotal = rooms.length * daysInMonth;
 
-  return capacidadeTotal > 0
-    ? Math.round((totalNoites / capacidadeTotal) * 100)
-    : 0;
-}, [reservations, rooms]);
+    return capacidadeTotal > 0
+      ? Math.round((totalNoites / capacidadeTotal) * 100)
+      : 0;
+  }, [reservations, rooms]);
 
-// === Ocupação geral do mês anterior ===
-const ocupacaoGeralPrev = useMemo(() => {
-  const { start, end, daysInMonth } = monthBounds(dayjs().subtract(1, "month"));
+  // === Ocupação geral do mês anterior ===
+  const ocupacaoGeralPrev = useMemo(() => {
+    const { start, end, daysInMonth } = monthBounds(
+      dayjs().subtract(1, "month")
+    );
 
-  const totalNoites = reservations.reduce((sum, r) => {
-    if (r.status === "cancelada") return sum;
-    return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
-  }, 0);
+    const totalNoites = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
+    }, 0);
 
-  const capacidadeTotal = rooms.length * daysInMonth;
+    const capacidadeTotal = rooms.length * daysInMonth;
 
-  return capacidadeTotal > 0
-    ? Math.round((totalNoites / capacidadeTotal) * 100)
-    : 0;
-}, [reservations, rooms]);
+    return capacidadeTotal > 0
+      ? Math.round((totalNoites / capacidadeTotal) * 100)
+      : 0;
+  }, [reservations, rooms]);
 
+  // === KPIs principais ===
+  const kpis = useMemo(() => {
+    const { start: mStart, end: mEnd } = monthBounds();
+    const { start: prevStart, end: prevEnd } = monthBounds(
+      dayjs().subtract(1, "month")
+    );
 
-// === KPIs principais ===
-const kpis = useMemo(() => {
-  const { start: mStart, end: mEnd } = monthBounds();
-  const { start: prevStart, end: prevEnd } = monthBounds(dayjs().subtract(1, "month"));
+    // === RESERVAS HOJE ===
+    const activeToday = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkinDate).isSameOrBefore(todayLocal) &&
+        dayjs.utc(r.checkoutDate).isAfter(todayLocal)
+    ).length;
 
-  // === RESERVAS HOJE ===
-  const activeToday = reservations.filter(
-    (r) =>
-      r.status !== "cancelada" &&
-      dayjs.utc(r.checkinDate).isSameOrBefore(today) &&
-      dayjs.utc(r.checkoutDate).isAfter(today)
-  ).length;
+    const checkinsToday = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkinDate).isSame(todayLocal, "day")
+    ).length;
 
-  const checkinsToday = reservations.filter(
-    (r) =>
-      r.status !== "cancelada" &&
-      dayjs.utc(r.checkinDate).isSame(today, "day")
-  ).length;
-
-  const checkoutsToday = reservations.filter(
-    (r) =>
-      r.status !== "cancelada" &&
-      dayjs.utc(r.checkoutDate).isSame(today, "day")
-  ).length;
+    const checkoutsToday = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkoutDate).isSame(todayLocal, "day")
+    ).length;
 
     // === CÁLCULOS DO MÊS ATUAL ===
-  const nightsInMonth = reservations.reduce((sum, r) => {
-    if (r.status === "cancelada") return sum;
-    return sum + overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
-  }, 0);
+    const nightsInMonth = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return sum + overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
+    }, 0);
 
-  const totalReservas = reservations.length;
+    const totalReservas = reservations.length;
 
-  const reservasMes = reservations.filter((r) => {
-    if (!r.checkinDate || !r.checkoutDate) return false;
-    const ci = dayjs(r.checkinDate);
-    const co = dayjs(r.checkoutDate);
-    return (
-      r.status !== "cancelada" &&
-      (ci.isBetween(mStart, mEnd, null, "[]") ||
-        co.isBetween(mStart, mEnd, null, "[]"))
-    );
-  }).length;
+    const reservasMes = reservations.filter((r) => {
+      if (!r.checkinDate || !r.checkoutDate) return false;
+      const ci = dayjs(r.checkinDate);
+      const co = dayjs(r.checkoutDate);
+      return (
+        r.status !== "cancelada" &&
+        (ci.isBetween(mStart, mEnd, null, "[]") ||
+          co.isBetween(mStart, mEnd, null, "[]"))
+      );
+    }).length;
 
-  const checkoutsDoMes = reservations.filter(
-    (r) =>
-      r.status !== "cancelada" &&
-      dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
-  ).length;
+    const checkoutsDoMes = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
+    ).length;
 
-  // 🔹 DIÁRIAS DE LIMPEZA – mês atual
-  // 1 diária = (diarista, dia) 
-  const diariasLimpeza = (() => {
-    const set = new Set();
-    (tasksMonth || []).forEach((t) => {
-      if (!t.maid && !t.maidId) return;
-      const key = `${t.date}-${t.maidId || t.maid}`;
-      set.add(key);
-    });
-    return set.size;
-  })();
+    // 🔹 DIÁRIAS DE LIMPEZA – mês atual
+    const diariasLimpeza = (() => {
+      const set = new Set();
+      (tasksMonth || []).forEach((t) => {
+        if (!t.maid && !t.maidId) return;
+        const key = `${t.date}-${t.maidId || t.maid}`;
+        set.add(key);
+      });
+      return set.size;
+    })();
 
-  const diariasLimpezaMes = diariasLimpeza; 
+    const diariasLimpezaMes = diariasLimpeza;
 
+    const eficienciaLimpeza =
+      diariasLimpeza > 0 ? (checkoutsDoMes / diariasLimpeza).toFixed(1) : "-";
 
-  const eficienciaLimpeza =
-    diariasLimpeza > 0 ? (checkoutsDoMes / diariasLimpeza).toFixed(1) : "-";
+    const mediaDiariasReserva =
+      reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
 
+    const maiorOcupacao =
+      occupancy.rows?.length > 0
+        ? occupancy.rows.reduce((a, b) => (a.ocupacao > b.ocupacao ? a : b))
+        : null;
 
+    const menorOcupacao =
+      occupancy.rows?.length > 0
+        ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
+        : null;
 
-  const mediaDiariasReserva =
-    reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
+    // ============================================================
+    // ✅ MÊS ANTERIOR (prev)
+    // ============================================================
 
-  const maiorOcupacao =
-    occupancy.rows?.length > 0
-      ? occupancy.rows.reduce((a, b) => (a.ocupacao > b.ocupacao ? a : b))
-      : null;
+    const nightsPrev = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return (
+        sum + overlapDays(r.checkinDate, r.checkoutDate, prevStart, prevEnd)
+      );
+    }, 0);
 
-  const menorOcupacao =
-    occupancy.rows?.length > 0
-      ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
-      : null;
+    const reservasPrev = reservations.filter((r) => {
+      if (r.status === "cancelada") return false;
+      const ci = dayjs(r.checkinDate);
+      const co = dayjs(r.checkoutDate);
+      return (
+        ci.isBetween(prevStart, prevEnd, null, "[]") ||
+        co.isBetween(prevStart, prevEnd, null, "[]")
+      );
+    }).length;
 
-  // ============================================================
-  // ✅ MÊS ANTERIOR (prev)
-  // ============================================================
+    const mediaPrev =
+      reservasPrev > 0 ? (nightsPrev / reservasPrev).toFixed(1) : null;
 
-  const nightsPrev = reservations.reduce((sum, r) => {
-    if (r.status === "cancelada") return sum;
-    return sum + overlapDays(r.checkinDate, r.checkoutDate, prevStart, prevEnd);
-  }, 0);
+    const checkoutsPrev = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
+    ).length;
 
-  const reservasPrev = reservations.filter((r) => {
-    if (r.status === "cancelada") return false;
-    const ci = dayjs(r.checkinDate);
-    const co = dayjs(r.checkoutDate);
-    return (
-      ci.isBetween(prevStart, prevEnd, null, "[]") ||
-      co.isBetween(prevStart, prevEnd, null, "[]")
-    );
-  }).length;
+    const diariasLimpezaPrev = (() => {
+      const set = new Set();
+      (tasksMonthPrev || []).forEach((t) => {
+        if (!t.maid && !t.maidId) return;
+        const key = `${t.date}-${t.maidId || t.maid}`;
+        set.add(key);
+      });
+      return set.size;
+    })();
 
-  const mediaPrev =
-    reservasPrev > 0 ? (nightsPrev / reservasPrev).toFixed(1) : null;
+    const eficienciaLimpezaPrev =
+      diariasLimpezaPrev > 0
+        ? (checkoutsPrev / diariasLimpezaPrev).toFixed(1)
+        : null;
 
-  const checkoutsPrev = reservations.filter(
-    (r) =>
-      r.status !== "cancelada" &&
-      dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
-  ).length;
-
-
-  const diariasLimpezaPrev = (() => {
-    const set = new Set();
-    (tasksMonthPrev || []).forEach((t) => {
-      if (!t.maid && !t.maidId) return;
-      const key = `${t.date}-${t.maidId || t.maid}`;
-      set.add(key);
-    });
-    return set.size;
-  })();
-
-  const eficienciaLimpezaPrev =
-    diariasLimpezaPrev > 0
-      ? (checkoutsPrev / diariasLimpezaPrev).toFixed(1)
-      : null;
-
-  const prev = {
-    nightsInMonth: nightsPrev,
-    reservasMes: reservasPrev,
-    mediaDiariasReserva: mediaPrev,
-    diariasLimpeza: diariasLimpezaPrev,
-    eficienciaLimpeza: eficienciaLimpezaPrev,
-  };
-
-
-/// === EFICIÊNCIA DE TODOS OS QUARTOS ===
-const allEfficiency = useMemo(() => {
-  const roomMap = {};
-
-  reservations.forEach((r) => {
-    if (r.status === "cancelada") return;
-
-    const overlap = overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
-    if (overlap <= 0) return;
-
-    if (!roomMap[r.roomId]) {
-      roomMap[r.roomId] = {
-        roomId: r.roomId,
-        noites: 0,
-        capacidade: daysInMonth,
-      };
-    }
-
-    roomMap[r.roomId].noites += overlap;
-  });
-
-  // ✅ Transforma roomMap em lista completa
-  return rooms.map((room) => {
-    const data = roomMap[room.id] || { noites: 0, capacidade: daysInMonth };
-    return {
-      roomId: room.id,
-      label: room?.title || room?.name || `Quarto ${room.id}`,
-      image: room?.imageUrl || room?.image || "/placeholder.jpg",
-      ocupacao: Math.min(100, Math.round((data.noites / data.capacidade) * 100)),
+    const prev = {
+      nightsInMonth: nightsPrev,
+      reservasMes: reservasPrev,
+      mediaDiariasReserva: mediaPrev,
+      diariasLimpeza: diariasLimpezaPrev,
+      eficienciaLimpeza: eficienciaLimpezaPrev,
     };
-  });
-}, [reservations, rooms, mStart, mEnd, daysInMonth]);
 
-// ✅ Top 10 melhores
-const topEfficiency = allEfficiency
-  .slice()
-  .sort((a, b) => b.ocupacao - a.ocupacao)
-  .slice(0, 10);
+    // === EFICIÊNCIA DE TODOS OS QUARTOS ===
+    const allEfficiency = (() => {
+      const roomMap = {};
 
-// ✅ Top 10 piores
-const worstEfficiency = allEfficiency
-  .slice()
-  .sort((a, b) => a.ocupacao - b.ocupacao)
-  .slice(0, 10);
+      reservations.forEach((r) => {
+        if (r.status === "cancelada") return;
 
+        const overlap = overlapDays(
+          r.checkinDate,
+          r.checkoutDate,
+          mStart,
+          mEnd
+        );
+        if (overlap <= 0) return;
 
+        if (!roomMap[r.roomId]) {
+          roomMap[r.roomId] = {
+            roomId: r.roomId,
+            noites: 0,
+            capacidade: daysInMonth,
+          };
+        }
 
-  // === RETORNO FINAL ===
-  return {
-    activeToday,
-    checkinsToday,
-    checkoutsToday,
-    nightsInMonth,
-    reservasMes,
-    totalReservas,
-    eficienciaLimpeza,
-    mediaDiariasReserva,
-    maiorOcupacao,
-    menorOcupacao,
-    diariasLimpeza,
-    topEfficiency,
-    checkoutsDoMes,
-    diariasLimpezaMes,
-    topEfficiency,
-    worstEfficiency,
-    allEfficiency,
+        roomMap[r.roomId].noites += overlap;
+      });
 
-    // ✅ Comparativos
-    prev,
-  };
-}, [reservations, occupancy.rows, tasksMonth, tasksMonthPrev, rooms, today]);
+      return rooms.map((room) => {
+        const data = roomMap[room.id] || {
+          noites: 0,
+          capacidade: daysInMonth,
+        };
+        return {
+          roomId: room.id,
+          label: room?.title || room?.name || `Quarto ${room.id}`,
+          image: room?.imageUrl || room?.image || "/placeholder.jpg",
+          ocupacao: Math.min(
+            100,
+            Math.round((data.noites / data.capacidade) * 100)
+          ),
+        };
+      });
+    })();
 
+    const topEfficiency = allEfficiency
+      .slice()
+      .sort((a, b) => b.ocupacao - a.ocupacao)
+      .slice(0, 10);
 
+    const worstEfficiency = allEfficiency
+      .slice()
+      .sort((a, b) => a.ocupacao - b.ocupacao)
+      .slice(0, 10);
 
+    return {
+      activeToday,
+      checkinsToday,
+      checkoutsToday,
+      nightsInMonth,
+      reservasMes,
+      totalReservas,
+      eficienciaLimpeza,
+      mediaDiariasReserva,
+      maiorOcupacao,
+      menorOcupacao,
+      diariasLimpeza,
+      topEfficiency,
+      checkoutsDoMes,
+      diariasLimpezaMes,
+      worstEfficiency,
+      allEfficiency,
+      prev,
+    };
+  }, [
+    reservations,
+    occupancy.rows,
+    tasksMonth,
+    tasksMonthPrev,
+    rooms,
+    todayLocal,
+    daysInMonth,
+  ]);
 
   // === Eventos (Limpeza) ===
   const cleaningEvents = useMemo(() => {
@@ -487,44 +488,38 @@ const worstEfficiency = allEfficiency
 
   // === Eventos (Manutenção) ===
   const maintenanceEvents = useMemo(
-  () =>
-    (maintenance || []).map((t) => {
-      let raw = t.dueDate || t.createdAt;
+    () =>
+      (maintenance || []).map((t) => {
+        let raw = t.dueDate || t.createdAt;
 
-      if (typeof raw === "string" && raw.endsWith("Z")) {
-        raw = raw.slice(0, -1);
-      }
+        if (typeof raw === "string" && raw.endsWith("Z")) {
+          raw = raw.slice(0, -1);
+        }
 
-      const date = new Date(raw);
-      date.setHours(12, 0, 0, 0); // garante meio-dia local
+        const date = new Date(raw);
+        date.setHours(12, 0, 0, 0); // garante meio-dia local
 
-      return {
-        id: t.id,
-        title: `${t.title}${t.responsible ? " – " + t.responsible : ""}`,
-        start: date,
-        allDay: true,
-      };
-    }),
-  [maintenance]
-);
+        return {
+          id: t.id,
+          title: `${t.title}${t.responsible ? " – " + t.responsible : ""}`,
+          start: date,
+          allDay: true,
+        };
+      }),
+    [maintenance]
+  );
 
-// === GERAR TOP E WORST EFFICIENCY NO FRONT ===
-//
-// Já calculados dentro de kpis.useMemo()
-// Aqui apenas garantimos variáveis seguras para uso na renderização.
+  // === GERAR TOP E WORST EFFICIENCY NO FRONT ===
+  const topEfficiency = Array.isArray(kpis?.topEfficiency)
+    ? kpis.topEfficiency
+    : [];
 
-const topEfficiency = Array.isArray(kpis?.topEfficiency)
-  ? kpis.topEfficiency
-  : [];
+  const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
+    ? kpis.worstEfficiency
+    : [];
 
-const worstEfficiency = Array.isArray(kpis?.worstEfficiency)
-  ? kpis.worstEfficiency
-  : [];
-
-console.log("🔥 topEfficiency:", topEfficiency.length);
-console.log("🔥 worstEfficiency:", worstEfficiency.length);
-
-
+  console.log("🔥 topEfficiency:", topEfficiency.length);
+  console.log("🔥 worstEfficiency:", worstEfficiency.length);
 
   // === Progresso de manutenção ===
   const maintenanceStats = useMemo(() => {
@@ -541,348 +536,443 @@ console.log("🔥 worstEfficiency:", worstEfficiency.length);
     };
   }, [maintenance]);
 
- // === Diaristas (Hoje e Amanhã) ===
-const todayStr = dayjs().format("YYYY-MM-DD");
-const tomorrowStr = dayjs().add(1, "day").format("YYYY-MM-DD");
+  // === Diaristas (Hoje e Amanhã) ===
+  const todayStr = dayjs().format("YYYY-MM-DD");
+  const tomorrowStr = dayjs().add(1, "day").format("YYYY-MM-DD");
 
-const maidsToday = useMemo(() => {
-  const acc = {};
-  tasks.forEach((t) => {
-    const taskDate = dayjs(t.date).format("YYYY-MM-DD");
-    if (taskDate === todayStr && t.maid) {
-      if (!acc[t.maid]) acc[t.maid] = [];
-      acc[t.maid].push(`${t.stay} – ${t.rooms}`);
-    }
-  });
-  return acc;
-}, [tasks, todayStr]);
+  const maidsToday = useMemo(() => {
+    const acc = {};
+    tasks.forEach((t) => {
+      const taskDate = dayjs(t.date).format("YYYY-MM-DD");
+      if (taskDate === todayStr && t.maid) {
+        if (!acc[t.maid]) acc[t.maid] = [];
+        acc[t.maid].push(`${t.stay} – ${t.rooms}`);
+      }
+    });
+    return acc;
+  }, [tasks, todayStr]);
 
-const maidsTomorrow = useMemo(() => {
-  const acc = {};
-  tasks.forEach((t) => {
-    const taskDate = dayjs(t.date).format("YYYY-MM-DD");
-    if (taskDate === tomorrowStr && t.maid) {
-      if (!acc[t.maid]) acc[t.maid] = [];
-      acc[t.maid].push(`${t.stay} – ${t.rooms}`);
-    }
-  });
-  return acc;
-}, [tasks, tomorrowStr]);
-
+  const maidsTomorrow = useMemo(() => {
+    const acc = {};
+    tasks.forEach((t) => {
+      const taskDate = dayjs(t.date).format("YYYY-MM-DD");
+      if (taskDate === tomorrowStr && t.maid) {
+        if (!acc[t.maid]) acc[t.maid] = [];
+        acc[t.maid].push(`${t.stay} – ${t.rooms}`);
+      }
+    });
+    return acc;
+  }, [tasks, tomorrowStr]);
 
   return (
-  <div className="p-6 space-y-8 bg-base-100 min-h-screen">
-    <h1 className="text-3xl font-bold text-neutral mb-2">Dashboard</h1>
+    <div className="p-6 space-y-8 min-h-screen bg-base-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+      <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-50">
+        Dashboard
+      </h1>
 
-    {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
-    <div>
-      <DashboardKPIGrid kpis={kpis} />
-    </div>
-
-    {/* ==== LINHA: OCUPAÇÃO + MANUTENÇÃO + TOTAL ==== */}
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      {/* ✅ Ocupação Geral — 2 colunas */}
-      <div className="lg:col-span-2">
-        <KpiGaugeOcupacao value={ocupacaoGeral} previous={ocupacaoGeralPrev} />
+      {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
+      <div>
+        <DashboardKPIGrid kpis={kpis} />
       </div>
 
-      {/* ✅ Manutenção — 1 col */}
-      <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center">
-        <h2 className="font-semibold text-neutral mb-4">🛠️ Progresso da Manutenção</h2>
-        <PieChart width={160} height={160}>
-          <Pie
-            data={[
-              { name: "Concluídas", value: maintenanceStats.done },
-              { name: "Pendentes", value: maintenanceStats.total - maintenanceStats.done },
-            ]}
-            dataKey="value"
-            innerRadius={55}
-            outerRadius={75}
-            paddingAngle={3}
-            stroke="none"
-          >
-            <Cell fill="#22c55e"/>
-            <Cell fill="#e5e7eb"/>
-          </Pie>
-          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
-            fontSize={20} fontWeight="bold">
-            {maintenanceStats.pctDone}%
-          </text>
-        </PieChart>
-        <p className="text-sm text-gray-500 mt-2">
-          {maintenanceStats.done} concluídas de {maintenanceStats.total}
-        </p>
-      </div>
+      {/* ==== LINHA: OCUPAÇÃO + MANUTENÇÃO + TOTAL ==== */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* ✅ Ocupação Geral — 2 colunas */}
+        <div className="lg:col-span-2">
+          <KpiGaugeOcupacao
+            value={ocupacaoGeral}
+            previous={ocupacaoGeralPrev}
+          />
+        </div>
 
-      {/* ✅ Total Reservas — 1 col */}
-      <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center">
-        <h2 className="font-semibold text-neutral mb-3 text-lg">🏅 Total de Reservas</h2>
-        <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
-          {kpis.totalReservas + 1963}
-        </p>
-        <p className="text-sm text-gray-500">Inclui 1.963 reservas do PMS anterior</p>
-      </div>
-    </div>
+        {/* ✅ Manutenção — 1 col */}
+        <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+          <h2 className="font-semibold mb-4 text-slate-900 dark:text-slate-100">
+            🛠️ Progresso da Manutenção
+          </h2>
+          <PieChart width={160} height={160}>
+            <Pie
+              data={[
+                { name: "Concluídas", value: maintenanceStats.done },
+                {
+                  name: "Pendentes",
+                  value: maintenanceStats.total - maintenanceStats.done,
+                },
+              ]}
+              dataKey="value"
+              innerRadius={55}
+              outerRadius={75}
+              paddingAngle={3}
+              stroke="none"
+            >
+              <Cell fill="#22c55e" />
+              <Cell fill="#e5e7eb" />
+            </Pie>
+            <text
+              x="50%"
+              y="50%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={20}
+              fontWeight="bold"
+            >
+              {maintenanceStats.pctDone}%
+            </text>
+          </PieChart>
+          <p className="text-sm mt-2 text-gray-500 dark:text-slate-400">
+            {maintenanceStats.done} concluídas de {maintenanceStats.total}
+          </p>
+        </div>
 
-    {/* ==== LINHA: TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-      {/* 📊 MELHOR EFICIÊNCIA */}
-      <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-        <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
-          📊 Acomodações com Melhor Eficiência
-        </h2>
-
-        <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-
-          {/* 🥇🥈🥉 TOP 3 VISUAL */}
-          <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-            {topEfficiency.slice(0, 3).map((item, i) => {
-              const colors = [
-                "from-yellow-400 to-yellow-300",
-                "from-gray-300 to-gray-200",
-                "from-amber-700 to-amber-600",
-              ];
-              const numColor =
-                i === 0 ? "text-yellow-500"
-                : i === 1 ? "text-gray-400"
-                : "text-amber-700";
-
-              const height = i === 0 ? "h-24" : "h-20";
-              const width = "w-40";
-              const radius = "rounded-3xl";
-
-              return (
-                <div key={i} className="relative flex flex-col items-center">
-                  <div
-                    className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
-                  >
-                    <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent"/>
-                    <div className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}>
-                      <img src={item.image || "/placeholder.jpg"} alt={item.label} className="w-full h-full object-cover"/>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
-                  <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* 📊 GRÁFICO TOP 10 */}
-          <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
-            <ResponsiveContainer width="100%" height={340}>
-              <BarChart
-                data={topEfficiency.map((item, index) => ({
-                  ...item,
-                  posicao: `${index + 1}º`,
-                }))}
-                layout="vertical"
-                barCategoryGap={4}
-                margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
-              >
-                <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false}/>
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}/>
-                <YAxis type="category" dataKey="posicao" axisLine={false} tickLine={false} width={40}
-                  tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}/>
-                <RechartsTooltip formatter={(v) => `${v}%`} contentStyle={{
-                  backgroundColor: "#ffffff", borderRadius: "8px", border: "1px solid #e2e8f0" }}/>
-
-                <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
-                  {topEfficiency.map((_, index) => {
-                    let color = "#22c55e";
-                    if (index === 0) color = "#22c55e";
-                    else if (index === 1) color = "#22c55e";
-                    else if (index === 2) color = "#22c55e";
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                  <LabelList dataKey="label" position="insideLeft" style={{ fill: "#ffffff", fontWeight: 600, fontSize: 12 }}/>
-                  <LabelList dataKey="ocupacao" position="right" formatter={(v) => `${v}%`}
-                    style={{ fill: "#082f49", fontWeight: 700, fontSize: 12 }}/>
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        {/* ✅ Total Reservas — 1 col */}
+        <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+          <h2 className="font-semibold mb-3 text-lg text-slate-900 dark:text-slate-100">
+            🏅 Total de Reservas
+          </h2>
+          <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
+            {kpis.totalReservas + 1963}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">
+            Inclui 1.963 reservas do PMS anterior
+          </p>
         </div>
       </div>
 
-      {/* 📉 PIOR EFICIÊNCIA */}
-<div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col">
-  <h2 className="font-semibold text-neutral text-lg tracking-tight mt-6 mb-2 ml-[30%]">
-    📉 Acomodações com Pior Eficiência
-  </h2>
+      {/* ==== LINHA: TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 📊 MELHOR EFICIÊNCIA */}
+        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+            📊 Acomodações com Melhor Eficiência
+          </h2>
 
-  <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+            {/* 🥇🥈🥉 TOP 3 VISUAL */}
+            <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+              {topEfficiency.slice(0, 3).map((item, i) => {
+                const colors = [
+                  "from-yellow-400 to-yellow-300",
+                  "from-gray-300 to-gray-200",
+                  "from-amber-700 to-amber-600",
+                ];
+                const numColor =
+                  i === 0
+                    ? "text-yellow-500"
+                    : i === 1
+                    ? "text-gray-400"
+                    : "text-amber-700";
 
-    {/* 🥇🥈🥉 PIORES 3 VISUAL */}
-    <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-      {worstEfficiency.slice(0, 3).map((item, i) => {
-        // gradações de vermelho para o top 3
-        const colors = [
-          "from-red-600 to-red-500",   // 1º pior — vermelho destaque
-          "from-red-600 to-red-500",   // 2º pior — vermelho neutro
-          "from-red-600 to-red-500",   // 3º pior — vermelho pastel
-        ];
-        const numColor =
-          i === 0 ? "text-red-600"
-          : i === 1 ? "text-red-400"
-          : "text-red-400";
+                const height = i === 0 ? "h-24" : "h-20";
+                const width = "w-40";
+                const radius = "rounded-3xl";
 
-        const height = i === 0 ? "h-24" : "h-20";
-        const width = "w-40";
-        const radius = "rounded-3xl";
-
-        return (
-          <div key={i} className="relative flex flex-col items-center">
-            <div
-              className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
-            >
-              <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-              <div
-                className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
-              >
-                <img
-                  src={item.image || "/placeholder.jpg"}
-                  alt={item.label}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+                return (
+                  <div key={i} className="relative flex flex-col items-center">
+                    <div
+                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                      <div
+                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                      >
+                        <img
+                          src={item.image || "/placeholder.jpg"}
+                          alt={item.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {item.label}
+                    </p>
+                    <span className={`text-xs font-bold ${numColor}`}>
+                      {i + 1}º
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <p className="mt-2 text-sm font-semibold text-neutral">{item.label}</p>
-            <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
+
+            {/* 📊 GRÁFICO TOP 10 */}
+            <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+              <ResponsiveContainer width="100%" height={340}>
+                <BarChart
+                  data={topEfficiency.map((item, index) => ({
+                    ...item,
+                    posicao: `${index + 1}º`,
+                  }))}
+                  layout="vertical"
+                  barCategoryGap={4}
+                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    stroke="#f1f5f9"
+                    strokeDasharray="2 2"
+                    vertical={false}
+                  />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tickFormatter={(v) => `${v}%`}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="posicao"
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                    tick={{
+                      fill: "#334155",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  />
+                  <RechartsTooltip
+                    formatter={(v) => `${v}%`}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="ocupacao"
+                    radius={[0, 6, 6, 0]}
+                    barSize={22}
+                    isAnimationActive={false}
+                  >
+                    {topEfficiency.map((_, index) => {
+                      let color = "#22c55e";
+                      if (index === 0) color = "#22c55e";
+                      else if (index === 1) color = "#22c55e";
+                      else if (index === 2) color = "#22c55e";
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                    <LabelList
+                      dataKey="label"
+                      position="insideLeft"
+                      style={{
+                        fill: "#ffffff",
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    />
+                    <LabelList
+                      dataKey="ocupacao"
+                      position="right"
+                      formatter={(v) => `${v}%`}
+                      style={{
+                        fill: "#082f49",
+                        fontWeight: 700,
+                        fontSize: 12,
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        );
-      })}
-    </div>
+        </div>
 
-    {/* 📊 GRÁFICO TOP 10 PIORES */}
-    <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
-      <ResponsiveContainer width="100%" height={340}>
-        <BarChart
-          data={worstEfficiency.map((item, index) => ({
-            ...item,
-            posicao: `${index + 1}º`,
-          }))}
-          layout="vertical"
-          barCategoryGap={4}
-          margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
-        >
-          <CartesianGrid stroke="#f1f5f9" strokeDasharray="2 2" vertical={false} />
-          <XAxis
-            type="number"
-            domain={[0, 60]}
-            tickFormatter={(v) => `${v}%`}
-            axisLine={false}
-            tickLine={false}
-            tick={{ fill: "#64748b", fontSize: 12 }}
-          />
-          <YAxis
-            type="category"
-            dataKey="posicao"
-            axisLine={false}
-            tickLine={false}
-            width={40}
-            tick={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}
-          />
-          <RechartsTooltip
-            formatter={(v) => `${v}%`}
-            contentStyle={{
-              backgroundColor: "#ffffff",
-              borderRadius: "8px",
-              border: "1px solid #e2e8f0",
-            }}
-          />
+        {/* 📉 PIOR EFICIÊNCIA */}
+        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+            📉 Acomodações com Pior Eficiência
+          </h2>
 
-          <Bar dataKey="ocupacao" radius={[0, 6, 6, 0]} barSize={22} isAnimationActive={false}>
-            {worstEfficiency.map((_, index) => {
-              let color = "#dc2626"; // azul padrão
-              if (index === 0) color = "#dc2626";   // pior
-              else if (index === 1) color = "#dc2626"; // segundo
-              else if (index === 2) color = "#dc2626"; // terceiro
-              return <Cell key={`cell-${index}`} fill={color} />;
-            })}
-            <LabelList
-              dataKey="label"
-              position="insideLeft"
-              style={{ fill: "#ffffff", fontWeight: 600, fontSize: 12 }}
-            />
-            <LabelList
-              dataKey="ocupacao"
-              position="right"
-              formatter={(v) => `${v}%`}
-              style={{ fill: "#7f1d1d", fontWeight: 700, fontSize: 12 }}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-</div>
+          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+            {/* 🥇🥈🥉 PIORES 3 VISUAL */}
+            <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+              {worstEfficiency.slice(0, 3).map((item, i) => {
+                const colors = [
+                  "from-red-600 to-red-500",
+                  "from-red-600 to-red-500",
+                  "from-red-600 to-red-500",
+                ];
+                const numColor =
+                  i === 0
+                    ? "text-red-600"
+                    : i === 1
+                    ? "text-red-400"
+                    : "text-red-400";
 
+                const height = i === 0 ? "h-24" : "h-20";
+                const width = "w-40";
+                const radius = "rounded-3xl";
 
-    </div>
+                return (
+                  <div key={i} className="relative flex flex-col items-center">
+                    <div
+                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                      <div
+                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                      >
+                        <img
+                          src={item.image || "/placeholder.jpg"}
+                          alt={item.label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {item.label}
+                    </p>
+                    <span className={`text-xs font-bold ${numColor}`}>
+                      {i + 1}º
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
+            {/* 📊 GRÁFICO TOP 10 PIORES */}
+            <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+              <ResponsiveContainer width="100%" height={340}>
+                <BarChart
+                  data={worstEfficiency.map((item, index) => ({
+                    ...item,
+                    posicao: `${index + 1}º`,
+                  }))}
+                  layout="vertical"
+                  barCategoryGap={4}
+                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    stroke="#f1f5f9"
+                    strokeDasharray="2 2"
+                    vertical={false}
+                  />
+                  <XAxis
+                    type="number"
+                    domain={[0, 60]}
+                    tickFormatter={(v) => `${v}%`}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="posicao"
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                    tick={{
+                      fill: "#334155",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  />
+                  <RechartsTooltip
+                    formatter={(v) => `${v}%`}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  />
+
+                  <Bar
+                    dataKey="ocupacao"
+                    radius={[0, 6, 6, 0]}
+                    barSize={22}
+                    isAnimationActive={false}
+                  >
+                    {worstEfficiency.map((_, index) => {
+                      let color = "#dc2626";
+                      if (index === 0) color = "#dc2626";
+                      else if (index === 1) color = "#dc2626";
+                      else if (index === 2) color = "#dc2626";
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                    <LabelList
+                      dataKey="label"
+                      position="insideLeft"
+                      style={{
+                        fill: "#ffffff",
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    />
+                    <LabelList
+                      dataKey="ocupacao"
+                      position="right"
+                      formatter={(v) => `${v}%`}
+                      style={{
+                        fill: "#7f1d1d",
+                        fontWeight: 700,
+                        fontSize: 12,
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ==== GRÁFICOS + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ocupação */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2">
+        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold text-neutral mb-4">
+            <h2 className="card-title text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
               📈 Ocupação por empreendimento{" "}
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 dark:text-slate-400">
                 (média geral: {occupancy.avg}%)
               </span>
             </h2>
             <ResponsiveContainer width="100%" height={350}>
-  <BarChart
-    data={occupancy.rows}
-    barSize={55} 
-    margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-  >
-    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-    <XAxis
-      dataKey="label"
-      tick={{ fill: "#6b7280", fontSize: 13 }}
-      interval={0}
-      tickMargin={10}
-    />
-    <YAxis
-      domain={[0, 100]}
-      type="number"
-      allowDecimals={false}
-      tickFormatter={(v) => `${v}%`}
-      tick={{ fill: "#6b7280", fontSize: 12 }}
-      padding={{ top: 0 }}
-    />
-    <RechartsTooltip
-      formatter={(v) => `${v}%`}
-      labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
-      contentStyle={{
-        borderRadius: "8px",
-        borderColor: "#e5e7eb",
-      }}
-    />
-    <Bar
-      dataKey="ocupacao"
-      name="Ocupação (%)"
-      fill="#3B82F6"
-      radius={[6, 6, 0, 0]} // cantos suaves
-      isAnimationActive={false}
-    />
-  </BarChart>
-</ResponsiveContainer>
-
-
-
+              <BarChart
+                data={occupancy.rows}
+                barSize={55}
+                margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#6b7280", fontSize: 13 }}
+                  interval={0}
+                  tickMargin={10}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  type="number"
+                  allowDecimals={false}
+                  tickFormatter={(v) => `${v}%`}
+                  tick={{ fill: "#6b7280", fontSize: 12 }}
+                  padding={{ top: 0 }}
+                />
+                <RechartsTooltip
+                  formatter={(v) => `${v}%`}
+                  labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
+                  contentStyle={{
+                    borderRadius: "8px",
+                    borderColor: "#e5e7eb",
+                  }}
+                />
+                <Bar
+                  dataKey="ocupacao"
+                  name="Ocupação (%)"
+                  fill="#3B82F6"
+                  radius={[6, 6, 0, 0]}
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
         {/* Diaristas */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100">
+        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
           <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold text-neutral mb-3">
+            <h2 className="card-title text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">
               👥 Diaristas
             </h2>
 
@@ -892,7 +982,7 @@ const maidsTomorrow = useMemo(() => {
               color="blue"
               empty="Nenhuma diarista ativa hoje"
             />
-            <hr className="my-3" />
+            <hr className="my-3 border-gray-100 dark:border-slate-700" />
             <DiaristaList
               title="Confirmadas para amanhã"
               data={maidsTomorrow}
@@ -924,13 +1014,14 @@ const maidsTomorrow = useMemo(() => {
    COMPONENTES AUXILIARES
 ============================ */
 
-
 function DiaristaList({ title, data, color, empty }) {
   return (
     <div>
-      <div className="text-xs uppercase text-gray-400 mb-2">{title}</div>
+      <div className="text-xs uppercase text-gray-400 dark:text-slate-500 mb-2">
+        {title}
+      </div>
       {Object.keys(data).length ? (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-gray-100 dark:divide-slate-700">
           {Object.entries(data).map(([nome, locais]) => (
             <li key={nome} className="flex items-center justify-between py-2">
               <div className="flex items-start gap-3">
@@ -941,14 +1032,21 @@ function DiaristaList({ title, data, color, empty }) {
                       : "bg-amber-100 text-amber-700"
                   }`}
                 >
-                  <span className="text-sm font-medium">{nome.charAt(0)}</span>
+                  <span className="text-sm font-medium">
+                    {nome.charAt(0)}
+                  </span>
                 </div>
                 <div>
-                  <p className="font-medium text-neutral">{nome}</p>
-                  <p className="text-xs text-gray-500">
-  {locais.map((txt) => txt.split("–")[1]?.trim() || txt).join(" | ")}
-</p>
-
+                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                    {nome}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">
+                    {locais
+                      .map(
+                        (txt) => txt.split("–")[1]?.trim() || txt
+                      )
+                      .join(" | ")}
+                  </p>
                 </div>
               </div>
               <span
@@ -962,7 +1060,9 @@ function DiaristaList({ title, data, color, empty }) {
           ))}
         </ul>
       ) : (
-        <p className="text-gray-400 text-sm text-center py-2">{empty}</p>
+        <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-2">
+          {empty}
+        </p>
       )}
     </div>
   );
@@ -970,9 +1070,9 @@ function DiaristaList({ title, data, color, empty }) {
 
 function CalendarCard({ title, events, emptyText }) {
   return (
-    <div className="card bg-white shadow-xl rounded-2xl border border-gray-100">
+    <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
       <div className="card-body px-6">
-        <h2 className="card-title text-lg font-semibold text-neutral mb-2">
+        <h2 className="card-title text-lg font-semibold mb-2 text-slate-900 dark:text-slate-100">
           {title}
         </h2>
         <FullCalendar
@@ -988,33 +1088,35 @@ function CalendarCard({ title, events, emptyText }) {
           }}
           buttonText={{ today: "Hoje", month: "Mês", week: "Semana", day: "Dia" }}
           eventContent={(arg) => (
-  <div
-    className={`px-2 py-1 rounded-lg text-xs font-medium truncate`}
-    style={{
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      border: "1px solid",
-      borderColor:
-        arg.event.title === "Sem diarista" ? "#fca5a5" : "#93c5fd",
-      backgroundColor:
-        arg.event.title === "Sem diarista" ? "#fee2e2" : "#dbeafe",
-      color:
-        arg.event.title === "Sem diarista" ? "#b91c1c" : "#1e3a8a",
-    }}
-    title={arg.event.title}
-  >
-    {arg.event.title}
-  </div>
-)}
-
+            <div
+              className={`px-2 py-1 rounded-lg text-xs font-medium truncate`}
+              style={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                border: "1px solid",
+                borderColor:
+                  arg.event.title === "Sem diarista" ? "#fca5a5" : "#93c5fd",
+                backgroundColor:
+                  arg.event.title === "Sem diarista" ? "#fee2e2" : "#dbeafe",
+                color:
+                  arg.event.title === "Sem diarista" ? "#b91c1c" : "#1e3a8a",
+              }}
+              title={arg.event.title}
+            >
+              {arg.event.title}
+            </div>
+          )}
           eventClick={(info) => {
-            const detalhes = info.event.extendedProps.details?.join("\n") || "Sem detalhes";
+            const detalhes =
+              info.event.extendedProps.details?.join("\n") || "Sem detalhes";
             alert(`📋 ${info.event.title}\n\n${detalhes}`);
           }}
         />
         {!events?.length && (
-          <p className="text-gray-400 text-sm text-center py-4">{emptyText}</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-4">
+            {emptyText}
+          </p>
         )}
       </div>
     </div>
