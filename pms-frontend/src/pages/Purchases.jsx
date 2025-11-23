@@ -11,7 +11,6 @@ export default function Purchases() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ======== dados da compra =========
   const [purchaseHeader, setPurchaseHeader] = useState({
     stayId: "",
     purchaseDate: new Date().toISOString().split("T")[0],
@@ -19,7 +18,6 @@ export default function Purchases() {
     notes: "",
   });
 
-  // ======== itens da compra =========
   const [items, setItems] = useState([
     {
       productId: "",
@@ -30,7 +28,6 @@ export default function Purchases() {
     },
   ]);
 
-  // ========================= LOAD =========================
   async function load() {
     const [staysRes, productsRes, purchasesRes] = await Promise.all([
       axios.get(`${API.replace("/api", "")}/stays`),
@@ -46,7 +43,6 @@ export default function Purchases() {
     load();
   }, []);
 
-  // ========================= ITENS =========================
   const addItem = () => {
     setItems([
       ...items,
@@ -77,7 +73,6 @@ export default function Purchases() {
     return acc + subtotal;
   }, 0);
 
-  // ========================= SALVAR =========================
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
@@ -123,7 +118,6 @@ export default function Purchases() {
     }
   }
 
-  // ========================= UI =========================
   return (
     <div className="p-6 space-y-8 bg-gray-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
       <h2 className="text-2xl font-bold">🧾 Compras / Entradas de Estoque</h2>
@@ -143,7 +137,11 @@ export default function Purchases() {
             onChange={(e) =>
               setPurchaseHeader({ ...purchaseHeader, stayId: e.target.value })
             }
-            className="col-span-2 select select-bordered"
+            className="
+              col-span-2 select select-bordered
+              bg-white dark:bg-slate-950 
+              dark:border-slate-700 dark:text-slate-100
+            "
             required
           >
             <option value="">Selecione o Empreendimento</option>
@@ -163,7 +161,11 @@ export default function Purchases() {
                 purchaseDate: e.target.value,
               })
             }
-            className="col-span-2"
+            className="
+              col-span-2 
+              bg-white dark:bg-slate-950 
+              dark:border-slate-700 dark:text-slate-100
+            "
             required
           />
 
@@ -172,7 +174,11 @@ export default function Purchases() {
             onChange={(e) =>
               setPurchaseHeader({ ...purchaseHeader, status: e.target.value })
             }
-            className="col-span-2 select select-bordered"
+            className="
+              col-span-2 select select-bordered
+              bg-white dark:bg-slate-950 
+              dark:border-slate-700 dark:text-slate-100
+            "
           >
             <option value="pago">Pago</option>
             <option value="pendente">Pendente</option>
@@ -210,7 +216,11 @@ export default function Purchases() {
                 onChange={(e) =>
                   updateItem(index, "productId", e.target.value)
                 }
-                className="col-span-2 select select-bordered"
+                className="
+                  col-span-2 select select-bordered
+                  bg-white dark:bg-slate-950 
+                  dark:border-slate-700 dark:text-slate-100
+                "
               >
                 <option value="">Produto cadastrado...</option>
                 {products.map((p) => (
@@ -227,7 +237,11 @@ export default function Purchases() {
                 onChange={(e) =>
                   updateItem(index, "customDescription", e.target.value)
                 }
-                className="col-span-3"
+                className="
+                  col-span-3
+                  bg-white dark:bg-slate-950 
+                  dark:border-slate-700 dark:text-slate-100
+                "
               />
 
               <Input
@@ -236,12 +250,20 @@ export default function Purchases() {
                 value={i.quantity}
                 onChange={(e) => updateItem(index, "quantity", e.target.value)}
                 required
+                className="
+                  bg-white dark:bg-slate-950 
+                  dark:border-slate-700 dark:text-slate-100
+                "
               />
 
               <Select
                 value={i.unit}
                 onChange={(e) => updateItem(index, "unit", e.target.value)}
-                className="select select-bordered"
+                className="
+                  select select-bordered
+                  bg-white dark:bg-slate-950 
+                  dark:border-slate-700 dark:text-slate-100
+                "
               >
                 <option>ml</option>
                 <option>L</option>
@@ -257,6 +279,10 @@ export default function Purchases() {
                 onChange={(e) =>
                   updateItem(index, "unitPrice", e.target.value)
                 }
+                className="
+                  bg-white dark:bg-slate-950 
+                  dark:border-slate-700 dark:text-slate-100
+                "
               />
 
               <div className="text-right text-sm font-semibold">
@@ -286,7 +312,11 @@ export default function Purchases() {
             onChange={(e) =>
               setPurchaseHeader({ ...purchaseHeader, notes: e.target.value })
             }
-            className="col-span-4 h-20"
+            className="
+              col-span-4 h-20
+              bg-white dark:bg-slate-950 
+              dark:border-slate-700 dark:text-slate-100
+            "
           />
           <div className="col-span-2 text-right pr-4">
             <p className="text-gray-500 dark:text-slate-400 text-sm">
@@ -435,7 +465,7 @@ export default function Purchases() {
                   </p>
                 </div>
 
-                {/* Status (por enquanto default pendente) */}
+                {/* Status */}
                 <div className="flex justify-end items-center text-xs text-gray-500 dark:text-slate-400">
                   Status:{" "}
                   <span className="font-semibold ml-1 text-yellow-600 dark:text-yellow-400">
@@ -443,7 +473,7 @@ export default function Purchases() {
                   </span>
                 </div>
 
-                {/* Detalhe visual de recibo */}
+                {/* Detalhe recibo */}
                 <div className="absolute bottom-0 left-0 right-0 h-2 bg-[repeating-linear-gradient(45deg,#e5e7eb_0_4px,transparent_4px_8px)] dark:bg-[repeating-linear-gradient(45deg,#1f2937_0_4px,transparent_4px_8px)] opacity-50 rounded-b-xl"></div>
               </div>
             );

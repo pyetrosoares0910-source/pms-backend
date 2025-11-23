@@ -588,7 +588,7 @@ export default function Dashboard() {
               stroke="none"
             >
               <Cell fill="#22c55e" />
-              <Cell fill={isDark ? "#e5e7eb" : "#e5e7eb"} />
+              <Cell fill={isDark ? "#e5e7eb" : "#111111ff"} />
             </Pie>
             <text
               x="50%"
