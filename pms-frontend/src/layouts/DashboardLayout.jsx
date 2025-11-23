@@ -30,47 +30,111 @@ import {
 } from "lucide-react";
 
 // ======================= COMPONENTE ITEM =======================
-const Item = ({ to, children, icon: Icon, showText, highlight }) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out
-      ${
-        isActive
-          ? highlight
-            ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
-            : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
-          : highlight
-          ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
-          : "text-slate-100/80 hover:bg-white/10 hover:text-white"
-      }`
-    }
-  >
-    {Icon && (
-      <Icon
-        size={18}
-        className={`transition-all duration-300 ease-out ${
-          showText
-            ? "opacity-0 animate-fade-in-blur-slow"
-            : "opacity-0 animate-fade-in-blur"
-        } ${highlight ? "text-indigo-300 group-hover:text-indigo-200" : ""}`}
-      />
-    )}
+const Item = ({ to, children, icon: Icon, showText, highlight }) => {
+  const label = typeof children === "string" ? children : "";
 
-    {showText && (
-      <span
-        className={`text-sm opacity-0 animate-fade-in-blur-slow ${
-          highlight ? "text-indigo-200 font-medium" : ""
-        }`}
+  return (
+    <div className="relative group">
+      <NavLink
+        to={to}
+        className={({ isActive }) =>
+          `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-300 ease-out
+          ${
+            isActive
+              ? highlight
+                ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
+                : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
+              : highlight
+              ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
+              : "text-slate-100/80 hover:bg-white/10 hover:text-white"
+          }`
+        }
       >
-        {children}
-      </span>
-    )}
-  </NavLink>
-);
+        {Icon && (
+          <Icon
+            size={18}
+            className={`transition-all duration-300 ease-out ${
+              showText
+                ? "opacity-0 animate-fade-in-blur-slow"
+                : "opacity-0 animate-fade-in-blur"
+            } ${highlight ? "text-indigo-300 group-hover:text-indigo-200" : ""}`}
+          />
+        )}
+
+        {showText && (
+          <span
+            className={`text-sm opacity-0 animate-fade-in-blur-slow ${
+              highlight ? "text-indigo-200 font-medium" : ""
+            }`}
+          >
+            {children}
+          </span>
+        )}
+      </NavLink>
+
+      {/* Tooltip somente quando a barra está recolhida */}
+      {!showText && label && (
+        <span
+          className="
+            pointer-events-none
+            absolute left-full top-1/2 -translate-y-1/2 ml-3
+            rounded-md bg-slate-900 text-white text-xs
+            px-2 py-1
+            whitespace-nowrap
+            opacity-0 group-hover:opacity-100 group-hover:translate-x-1
+            transition-all duration-200
+            z-50 shadow-lg
+          "
+        >
+          {label}
+        </span>
+      )}
+    </div>
+  );
+};
 
 // ======================= GRUPO DE NAVEGAÇÃO =======================
-const NavGroup = ({ label, icon: Icon, isOpen, onToggle, children }) => {
+const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) => {
+  // Modo barra recolhida: só ícone com tooltip
+  if (!showText) {
+    return (
+      <div className="mt-3">
+        <div className="relative group flex justify-center">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="
+              w-10 h-10
+              flex items-center justify-center
+              rounded-xl
+              bg-white/5 hover:bg-white/15
+              border border-white/10
+              transition-all duration-300
+            "
+          >
+            {Icon && <Icon size={18} className="text-slate-100" />}
+          </button>
+
+          <span
+            className="
+              pointer-events-none
+              absolute left-full top-1/2 -translate-y-1/2 ml-3
+              rounded-md bg-slate-900 text-white text-xs
+              px-2 py-1
+              whitespace-nowrap
+              opacity-0 group-hover:opacity-100 group-hover:translate-x-1
+              transition-all duration-200
+              z-50 shadow-lg
+            "
+          >
+            {label}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Modo barra expandida: botão + lista de itens
   return (
     <div className="mt-3">
       <button
@@ -99,7 +163,6 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, children }) => {
         />
       </button>
 
-      {/* Conteúdo do grupo */}
       <div
         className={`
           mt-2 space-y-1 overflow-hidden transition-all duration-300
@@ -166,10 +229,9 @@ export default function DashboardLayout() {
       "/consumption",
     ].includes(path);
 
-    const inRelatorios = [
-      "/cleaning-report",
-      "/performance-report",
-    ].includes(path);
+    const inRelatorios = ["/cleaning-report", "/performance-report"].includes(
+      path
+    );
 
     setGroupsOpen((prev) => ({
       cadastros: inCadastros || prev.cadastros,
@@ -210,13 +272,13 @@ export default function DashboardLayout() {
       {/* SIDEBAR */}
       <aside
         className={`
+          h-dvh
           bg-gradient-to-b 
           from-sky-800 to-sky-950
           dark:from-slate-950 dark:to-slate-900
           text-white flex flex-col shadow-xl
           transition-[width] duration-400 ease-out overflow-hidden
           sticky top-0
-          min-h-dvh md:h-auto
           ${collapsed ? "w-[72px]" : "w-[260px]"}
         `}
       >
@@ -228,11 +290,12 @@ export default function DashboardLayout() {
               className="text-white transition-transform duration-300 ease-out"
             />
           ) : (
-            showText && (
-              <div className="text-xl font-bold tracking-wide opacity-0 animate-fade-in-blur">
-                PMS
+            <div className="flex flex-col items-center gap-1 opacity-0 animate-fade-in-blur">
+              <div className="text-xl font-bold tracking-wide">PMS</div>
+              <div className="text-xs italic text-sky-200 -rotate-3 font-semibold">
+                StayCore
               </div>
-            )
+            </div>
           )}
         </div>
 
@@ -263,99 +326,84 @@ export default function DashboardLayout() {
             Agenda de Atividades
           </Item>
 
-          {/* Grupos só aparecem quando o texto está visível (sidebar expandida) */}
-          {showText && (
-            <div className="mt-4 space-y-2">
-              {/* CADASTROS */}
-              <NavGroup
-                label="Cadastros"
-                icon={ClipboardList}
-                isOpen={groupsOpen.cadastros}
-                onToggle={() => toggleGroup("cadastros")}
-              >
-                <Item
-                  to="/maintenance"
-                  icon={Wrench}
-                  showText={showText}
-                >
-                  Atividades
-                </Item>
-                <Item
-                  to="/reservations"
-                  icon={ClipboardList}
-                  showText={showText}
-                >
-                  Reservas
-                </Item>
-                <Item to="/guests" icon={Users} showText={showText}>
-                  Hóspedes
-                </Item>
-                <Item to="/stays" icon={Building} showText={showText}>
-                  Empreendimentos
-                </Item>
-                <Item to="/rooms" icon={Bed} showText={showText}>
-                  Quartos
-                </Item>
-                <Item to="/staff" icon={UserCog} showText={showText}>
-                  Funcionários
-                </Item>
-                <Item to="/maids" icon={UsersRound} showText={showText}>
-                  Diaristas
-                </Item>
-              </NavGroup>
+          {/* Grupos */}
+          <div className="mt-4 space-y-2">
+            {/* CADASTROS */}
+            <NavGroup
+              label="Cadastros"
+              icon={ClipboardList}
+              isOpen={groupsOpen.cadastros}
+              onToggle={() => toggleGroup("cadastros")}
+              showText={showText}
+            >
+              <Item to="/maintenance" icon={Wrench} showText={showText}>
+                Atividades
+              </Item>
+              <Item to="/reservations" icon={ClipboardList} showText={showText}>
+                Reservas
+              </Item>
+              <Item to="/guests" icon={Users} showText={showText}>
+                Hóspedes
+              </Item>
+              <Item to="/stays" icon={Building} showText={showText}>
+                Empreendimentos
+              </Item>
+              <Item to="/rooms" icon={Bed} showText={showText}>
+                Quartos
+              </Item>
+              <Item to="/staff" icon={UserCog} showText={showText}>
+                Funcionários
+              </Item>
+              <Item to="/maids" icon={UsersRound} showText={showText}>
+                Diaristas
+              </Item>
+            </NavGroup>
 
-              {/* ESTOQUE */}
-              <NavGroup
-                label="Estoque"
-                icon={Boxes}
-                isOpen={groupsOpen.estoque}
-                onToggle={() => toggleGroup("estoque")}
-              >
-                <Item to="/products" icon={Package} showText={showText}>
-                  Produtos
-                </Item>
-                <Item to="/inventory" icon={Boxes} showText={showText}>
-                  Inventário
-                </Item>
-                <Item
-                  to="/purchases"
-                  icon={ShoppingCart}
-                  showText={showText}
-                >
-                  Compras
-                </Item>
-                <Item
-                  to="/consumption"
-                  icon={Settings2}
-                  showText={showText}
-                >
-                  Perfis de Consumo
-                </Item>
-              </NavGroup>
+            {/* ESTOQUE */}
+            <NavGroup
+              label="Estoque"
+              icon={Boxes}
+              isOpen={groupsOpen.estoque}
+              onToggle={() => toggleGroup("estoque")}
+              showText={showText}
+            >
+              <Item to="/products" icon={Package} showText={showText}>
+                Produtos
+              </Item>
+              <Item to="/inventory" icon={Boxes} showText={showText}>
+                Inventário
+              </Item>
+              <Item to="/purchases" icon={ShoppingCart} showText={showText}>
+                Compras
+              </Item>
+              <Item to="/consumption" icon={Settings2} showText={showText}>
+                Perfis de Consumo
+              </Item>
+            </NavGroup>
 
-              {/* RELATÓRIOS */}
-              <NavGroup
-                label="Relatórios"
+            {/* RELATÓRIOS */}
+            <NavGroup
+              label="Relatórios"
+              icon={BarChart3}
+              isOpen={groupsOpen.relatorios}
+              onToggle={() => toggleGroup("relatorios")}
+              showText={showText}
+            >
+              <Item to="/cleaning-report" icon={Brush} showText={showText}>
+                Relatório de Limpeza
+              </Item>
+              <Item
+                to="/performance-report"
                 icon={BarChart3}
-                isOpen={groupsOpen.relatorios}
-                onToggle={() => toggleGroup("relatorios")}
+                showText={showText}
               >
-                <Item to="/cleaning-report" icon={Brush} showText={showText}>
-                  Relatório de Limpeza
-                </Item>
-                <Item
-                  to="/performance-report"
-                  icon={BarChart3}
-                  showText={showText}
-                >
-                  Relatório de Desempenho
-                </Item>
-              </NavGroup>
-            </div>
-          )}
+                Relatório de Desempenho
+              </Item>
+            </NavGroup>
+          </div>
         </nav>
 
-        {/* BASE FIXA */}
+        {/* BASE FIXA – sempre visível */}
         <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)] shrink-0">
           {/* Toggle Tema */}
           <button
