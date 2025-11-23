@@ -79,15 +79,12 @@ export default function Dashboard() {
 
     const fetchData = async () => {
       try {
-        // ✅ intervalo semanal (para calendários)
         const startWeek = dayjs().startOf("week").format("YYYY-MM-DD");
         const endWeek = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
 
-        // ✅ intervalo mensal (para KPIs reais)
         const startMonth = dayjs().startOf("month").format("YYYY-MM-DD");
         const endMonth = dayjs().endOf("month").format("YYYY-MM-DD");
 
-        // ✅ mês anterior (para comparativo de diárias de limpeza)
         const prevMonthStart = dayjs()
           .subtract(1, "month")
           .startOf("month")
@@ -119,7 +116,6 @@ export default function Dashboard() {
 
         if (!isMounted) return;
 
-        // ✅ Mapeamento semanal
         const mappedWeek = (checkoutsWeek || []).map((t) => ({
           id: t.id,
           date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
@@ -129,7 +125,6 @@ export default function Dashboard() {
           maidId: t.maidId || null,
         }));
 
-        // ✅ Mapeamento do mês atual
         const mappedMonth = (checkoutsMonth || []).map((t) => ({
           id: t.id,
           date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
@@ -139,7 +134,6 @@ export default function Dashboard() {
           maidId: t.maidId || null,
         }));
 
-        // ✅ Mapeamento do mês anterior
         const mappedPrevMonth = (checkoutsPrevMonth || []).map((t) => ({
           id: t.id,
           date: dayjs.utc(t.date || t.checkoutDate).format("YYYY-MM-DD"),
@@ -153,8 +147,8 @@ export default function Dashboard() {
         setRooms(rms || []);
         setStays(sts || []);
         setTasks(mappedWeek);
-        setTasksMonth(mappedMonth); // mês atual
-        setTasksMonthPrev(mappedPrevMonth); // mês anterior
+        setTasksMonth(mappedMonth);
+        setTasksMonthPrev(mappedPrevMonth);
         setMaids(maidsRes || []);
         setMaintenance(maint || []);
       } catch (err) {
@@ -258,7 +252,6 @@ export default function Dashboard() {
       dayjs().subtract(1, "month")
     );
 
-    // === RESERVAS HOJE ===
     const activeToday = reservations.filter(
       (r) =>
         r.status !== "cancelada" &&
@@ -278,7 +271,6 @@ export default function Dashboard() {
         dayjs.utc(r.checkoutDate).isSame(todayLocal, "day")
     ).length;
 
-    // === CÁLCULOS DO MÊS ATUAL ===
     const nightsInMonth = reservations.reduce((sum, r) => {
       if (r.status === "cancelada") return sum;
       return sum + overlapDays(r.checkinDate, r.checkoutDate, mStart, mEnd);
@@ -303,7 +295,6 @@ export default function Dashboard() {
         dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
     ).length;
 
-    // 🔹 DIÁRIAS DE LIMPEZA – mês atual
     const diariasLimpeza = (() => {
       const set = new Set();
       (tasksMonth || []).forEach((t) => {
@@ -331,10 +322,6 @@ export default function Dashboard() {
       occupancy.rows?.length > 0
         ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
         : null;
-
-    // ============================================================
-    // ✅ MÊS ANTERIOR (prev)
-    // ============================================================
 
     const nightsPrev = reservations.reduce((sum, r) => {
       if (r.status === "cancelada") return sum;
@@ -385,7 +372,6 @@ export default function Dashboard() {
       eficienciaLimpeza: eficienciaLimpezaPrev,
     };
 
-    // === EFICIÊNCIA DE TODOS OS QUARTOS ===
     const allEfficiency = (() => {
       const roomMap = {};
 
@@ -497,7 +483,7 @@ export default function Dashboard() {
         }
 
         const date = new Date(raw);
-        date.setHours(12, 0, 0, 0); // garante meio-dia local
+        date.setHours(12, 0, 0, 0);
 
         return {
           id: t.id,
@@ -509,7 +495,7 @@ export default function Dashboard() {
     [maintenance]
   );
 
-  // === GERAR TOP E WORST EFFICIENCY NO FRONT ===
+  // === TOP/WORST para render ===
   const topEfficiency = Array.isArray(kpis?.topEfficiency)
     ? kpis.topEfficiency
     : [];
@@ -606,7 +592,7 @@ export default function Dashboard() {
               stroke="none"
             >
               <Cell fill="#22c55e" />
-              <Cell fill="#e5e7eb" />
+              <Cell fill="#1f2933" />
             </Pie>
             <text
               x="50%"
@@ -615,6 +601,7 @@ export default function Dashboard() {
               dominantBaseline="middle"
               fontSize={20}
               fontWeight="bold"
+              className="fill-current text-slate-900 dark:text-slate-50"
             >
               {maintenanceStats.pctDone}%
             </text>
@@ -705,18 +692,17 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
-                  <CartesianGrid
-                    stroke="#f1f5f9"
-                    strokeDasharray="2 2"
-                    vertical={false}
-                  />
+                  {/* removemos linhas horizontais; só linha de base no eixo X */}
                   <XAxis
                     type="number"
                     domain={[0, 100]}
                     tickFormatter={(v) => `${v}%`}
-                    axisLine={false}
+                    axisLine={{
+                      stroke: "#4b5563",
+                      strokeDasharray: "3 3",
+                    }}
                     tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    tick={{ fill: "#9ca3af", fontSize: 12 }}
                   />
                   <YAxis
                     type="category"
@@ -725,7 +711,7 @@ export default function Dashboard() {
                     tickLine={false}
                     width={40}
                     tick={{
-                      fill: "#334155",
+                      fill: "#e5e7eb",
                       fontSize: 12,
                       fontWeight: 600,
                     }}
@@ -733,9 +719,10 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: "#ffffff",
+                      backgroundColor: "#020617",
                       borderRadius: "8px",
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid #1f2937",
+                      color: "#e5e7eb",
                     }}
                   />
 
@@ -746,10 +733,7 @@ export default function Dashboard() {
                     isAnimationActive={false}
                   >
                     {topEfficiency.map((_, index) => {
-                      let color = "#22c55e";
-                      if (index === 0) color = "#22c55e";
-                      else if (index === 1) color = "#22c55e";
-                      else if (index === 2) color = "#22c55e";
+                      const color = "#22c55e";
                       return <Cell key={`cell-${index}`} fill={color} />;
                     })}
                     <LabelList
@@ -766,7 +750,7 @@ export default function Dashboard() {
                       position="right"
                       formatter={(v) => `${v}%`}
                       style={{
-                        fill: "#082f49",
+                        fill: "#e5e7eb",
                         fontWeight: 700,
                         fontSize: 12,
                       }}
@@ -795,10 +779,10 @@ export default function Dashboard() {
                 ];
                 const numColor =
                   i === 0
-                    ? "text-red-600"
-                    : i === 1
                     ? "text-red-400"
-                    : "text-red-400";
+                    : i === 1
+                    ? "text-red-300"
+                    : "text-red-300";
 
                 const height = i === 0 ? "h-24" : "h-20";
                 const width = "w-40";
@@ -843,18 +827,17 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
-                  <CartesianGrid
-                    stroke="#f1f5f9"
-                    strokeDasharray="2 2"
-                    vertical={false}
-                  />
+                  {/* remove horizontais, mantém base eixos */}
                   <XAxis
                     type="number"
                     domain={[0, 60]}
                     tickFormatter={(v) => `${v}%`}
-                    axisLine={false}
+                    axisLine={{
+                      stroke: "#4b5563",
+                      strokeDasharray: "3 3",
+                    }}
                     tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    tick={{ fill: "#9ca3af", fontSize: 12 }}
                   />
                   <YAxis
                     type="category"
@@ -863,7 +846,7 @@ export default function Dashboard() {
                     tickLine={false}
                     width={40}
                     tick={{
-                      fill: "#334155",
+                      fill: "#e5e7eb",
                       fontSize: 12,
                       fontWeight: 600,
                     }}
@@ -871,9 +854,10 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: "#ffffff",
+                      backgroundColor: "#020617",
                       borderRadius: "8px",
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid #1f2937",
+                      color: "#e5e7eb",
                     }}
                   />
 
@@ -884,10 +868,7 @@ export default function Dashboard() {
                     isAnimationActive={false}
                   >
                     {worstEfficiency.map((_, index) => {
-                      let color = "#dc2626";
-                      if (index === 0) color = "#dc2626";
-                      else if (index === 1) color = "#dc2626";
-                      else if (index === 2) color = "#dc2626";
+                      const color = "#dc2626";
                       return <Cell key={`cell-${index}`} fill={color} />;
                     })}
                     <LabelList
@@ -904,7 +885,7 @@ export default function Dashboard() {
                       position="right"
                       formatter={(v) => `${v}%`}
                       style={{
-                        fill: "#7f1d1d",
+                        fill: "#fecaca",
                         fontWeight: 700,
                         fontSize: 12,
                       }}
@@ -934,10 +915,10 @@ export default function Dashboard() {
                 barSize={55}
                 margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "#6b7280", fontSize: 13 }}
+                  tick={{ fill: "#cbd5f5", fontSize: 13 }}
                   interval={0}
                   tickMargin={10}
                 />
@@ -946,7 +927,7 @@ export default function Dashboard() {
                   type="number"
                   allowDecimals={false}
                   tickFormatter={(v) => `${v}%`}
-                  tick={{ fill: "#6b7280", fontSize: 12 }}
+                  tick={{ fill: "#9ca3af", fontSize: 12 }}
                   padding={{ top: 0 }}
                 />
                 <RechartsTooltip
@@ -954,7 +935,9 @@ export default function Dashboard() {
                   labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
                   contentStyle={{
                     borderRadius: "8px",
-                    borderColor: "#e5e7eb",
+                    borderColor: "#1f2937",
+                    backgroundColor: "#020617",
+                    color: "#e5e7eb",
                   }}
                 />
                 <Bar
@@ -1087,26 +1070,27 @@ function CalendarCard({ title, events, emptyText }) {
             right: "dayGridMonth,dayGridWeek,timeGridDay",
           }}
           buttonText={{ today: "Hoje", month: "Mês", week: "Semana", day: "Dia" }}
-          eventContent={(arg) => (
-            <div
-              className={`px-2 py-1 rounded-lg text-xs font-medium truncate`}
-              style={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                border: "1px solid",
-                borderColor:
-                  arg.event.title === "Sem diarista" ? "#fca5a5" : "#93c5fd",
-                backgroundColor:
-                  arg.event.title === "Sem diarista" ? "#fee2e2" : "#dbeafe",
-                color:
-                  arg.event.title === "Sem diarista" ? "#b91c1c" : "#1e3a8a",
-              }}
-              title={arg.event.title}
-            >
-              {arg.event.title}
-            </div>
-          )}
+          eventContent={(arg) => {
+            const isNoMaid = arg.event.title === "Sem diarista";
+
+            return (
+              <div
+                className="px-2 py-1 rounded-lg text-xs font-medium truncate"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  border: "1px solid",
+                  borderColor: isNoMaid ? "#f97373" : "#60a5fa",
+                  backgroundColor: isNoMaid ? "#7f1d1d" : "#1e3a8a",
+                  color: isNoMaid ? "#fee2e2" : "#e0f2fe",
+                }}
+                title={arg.event.title}
+              >
+                {arg.event.title}
+              </div>
+            );
+          }}
           eventClick={(info) => {
             const detalhes =
               info.event.extendedProps.details?.join("\n") || "Sem detalhes";
