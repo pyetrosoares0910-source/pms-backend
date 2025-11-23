@@ -6,10 +6,15 @@ function Modal({ open, onClose, title, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="px-5 py-4 border-b flex justify-between items-center">
+      <div className="relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-neutral-200 dark:border-slate-700">
+        <div className="px-5 py-4 border-b border-neutral-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-neutral-600">✕</button>
+          <button
+            onClick={onClose}
+            className="text-neutral-600 dark:text-slate-300"
+          >
+            ✕
+          </button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -66,13 +71,11 @@ export default function Maintenance() {
   }
 
   function openEdit(task) {
-  setSelected(task);
-  setEditStatus(task.status || "pendente");
-  // usa direto a string, sem converter pra UTC
-  const d = task.dueDate ? task.dueDate.slice(0, 10) : "";
-  setEditDate(d);
-}
-
+    setSelected(task);
+    setEditStatus(task.status || "pendente");
+    const d = task.dueDate ? task.dueDate.slice(0, 10) : "";
+    setEditDate(d);
+  }
 
   async function handleUpdate() {
     if (!selected) return;
@@ -81,7 +84,6 @@ export default function Maintenance() {
         method: "PUT",
         body: JSON.stringify({
           status: editStatus,
-          // manda null se vazio pra limpar o prazo no backend (se você quiser manter vazio)
           dueDate: editDate || null,
         }),
       });
@@ -95,7 +97,8 @@ export default function Maintenance() {
 
   async function handleDelete() {
     if (!selected) return;
-    if (!window.confirm("Tem certeza que deseja excluir esta atividade?")) return;
+    if (!window.confirm("Tem certeza que deseja excluir esta atividade?"))
+      return;
     try {
       setDeleting(true);
       await api(`/maintenance/${selected.id}`, { method: "DELETE" });
@@ -113,20 +116,20 @@ export default function Maintenance() {
     e.preventDefault();
     try {
       await api("/maintenance", {
-  method: "POST",
-  body: JSON.stringify({
-    title: form.title,
-    description: form.description,
-    stayId: form.stayId || null,
-    roomId: form.roomId || null,
-    responsible: form.responsible,
-    status: form.status,
-    type: form.type,
-    dueDate: form.dueDate || null,
-    isRecurring: form.isRecurring,
-    recurrence: form.isRecurring ? form.recurrence : null,
-  }),
-});
+        method: "POST",
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          stayId: form.stayId || null,
+          roomId: form.roomId || null,
+          responsible: form.responsible,
+          status: form.status,
+          type: form.type,
+          dueDate: form.dueDate || null,
+          isRecurring: form.isRecurring,
+          recurrence: form.isRecurring ? form.recurrence : null,
+        }),
+      });
 
       setModalOpen(false);
       setForm({
@@ -165,10 +168,14 @@ export default function Maintenance() {
   function colorByStatus(status, type) {
     if (type === "preventiva") return "bg-neutral-400 text-white";
     switch (status) {
-      case "pendente": return "bg-yellow-400 text-black";
-      case "andamento": return "bg-blue-500 text-white";
-      case "concluido": return "bg-emerald-600 text-white";
-      default: return "bg-gray-300";
+      case "pendente":
+        return "bg-yellow-400 text-black";
+      case "andamento":
+        return "bg-blue-500 text-white";
+      case "concluido":
+        return "bg-emerald-600 text-white";
+      default:
+        return "bg-gray-300";
     }
   }
 
@@ -180,7 +187,7 @@ export default function Maintenance() {
   );
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-gray-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Atividades</h1>
         <button
@@ -195,9 +202,11 @@ export default function Maintenance() {
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           {/* Modelos recorrentes */}
-          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-xl shadow-sm p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-500">Modelos recorrentes</p>
+              <p className="text-sm text-neutral-500 dark:text-slate-400">
+                Modelos recorrentes
+              </p>
               <p className="text-xl font-semibold text-emerald-700">
                 {tasks.filter((t) => t.isRecurring).length}
               </p>
@@ -206,9 +215,11 @@ export default function Maintenance() {
           </div>
 
           {/* Atividades ativas */}
-          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-xl shadow-sm p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-500">Atividades ativas</p>
+              <p className="text-sm text-neutral-500 dark:text-slate-400">
+                Atividades ativas
+              </p>
               <p className="text-xl font-semibold text-blue-600">
                 {
                   tasks.filter(
@@ -223,9 +234,11 @@ export default function Maintenance() {
           </div>
 
           {/* Concluídas */}
-          <div className="bg-white border rounded-xl shadow-sm p-4 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-700 rounded-xl shadow-sm p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-neutral-500">Concluídas</p>
+              <p className="text-sm text-neutral-500 dark:text-slate-400">
+                Concluídas
+              </p>
               <p className="text-xl font-semibold text-emerald-600">
                 {tasks.filter((t) => t.status === "concluido").length}
               </p>
@@ -236,9 +249,9 @@ export default function Maintenance() {
       )}
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-3 mb-4 bg-white p-3 rounded shadow-sm">
+      <div className="flex flex-wrap gap-3 mb-4 bg-white dark:bg-slate-900 p-3 rounded shadow-sm border border-neutral-200 dark:border-slate-800">
         <select
-          className="border rounded-lg px-3 py-2"
+          className="border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
         >
@@ -249,7 +262,7 @@ export default function Maintenance() {
         </select>
 
         <select
-          className="border rounded-lg px-3 py-2"
+          className="border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
           value={filters.type}
           onChange={(e) => setFilters({ ...filters, type: e.target.value })}
         >
@@ -259,13 +272,15 @@ export default function Maintenance() {
         </select>
 
         <select
-          className="border rounded-lg px-3 py-2"
+          className="border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
           value={filters.stayId}
           onChange={(e) => setFilters({ ...filters, stayId: e.target.value })}
         >
           <option value="">Empreendimento (todos)</option>
           {stays.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
           ))}
         </select>
       </div>
@@ -274,9 +289,9 @@ export default function Maintenance() {
       {loading ? (
         <p>Carregando tarefas...</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
           <table className="w-full">
-            <thead className="bg-neutral-100 text-sm">
+            <thead className="bg-neutral-100 dark:bg-slate-800 text-sm text-neutral-800 dark:text-slate-100">
               <tr>
                 <th className="px-3 py-2 text-left">Código</th>
                 <th className="px-3 py-2 text-left">Título</th>
@@ -291,43 +306,60 @@ export default function Maintenance() {
             </thead>
             <tbody>
               {filtered.map((t) => (
-                <tr key={t.id} className={`border-t text-sm ${t.isRecurring ? "bg-emerald-50" : ""}`}>
+                <tr
+                  key={t.id}
+                  className={`border-t border-neutral-200 dark:border-slate-800 text-sm ${
+                    t.isRecurring
+                      ? "bg-emerald-50 dark:bg-emerald-950/40"
+                      : "bg-white dark:bg-slate-900"
+                  }`}
+                >
                   <td className="p-2">{t.code}</td>
                   <td className="p-2">
                     {t.title}
                     {t.isRecurring && (
-                      <span title="Modelo recorrente" className="ml-2 text-emerald-600 text-xs">♻️</span>
+                      <span
+                        title="Modelo recorrente"
+                        className="ml-2 text-emerald-600 text-xs"
+                      >
+                        ♻️
+                      </span>
                     )}
                   </td>
                   <td className="p-2">{t.stay?.name || "-"}</td>
                   <td className="p-2">{t.room?.title || "-"}</td>
                   <td className="p-2">{t.responsible || "-"}</td>
                   <td className="p-2 text-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorByStatus(t.status, t.type)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${colorByStatus(
+                        t.status,
+                        t.type
+                      )}`}
+                    >
                       {t.status}
                     </span>
                   </td>
                   <td className="p-2 text-center capitalize">{t.type}</td>
                   <td className="p-2 text-center">
                     {t.dueDate
-                        ? t.dueDate.slice(0, 10).split("-").reverse().join("/") 
-                       : t.isRecurring
-                        ? "Modelo"
-                       : "-"}
-                        </td>
+                      ? t.dueDate.slice(0, 10).split("-").reverse().join("/")
+                      : t.isRecurring
+                      ? "Modelo"
+                      : "-"}
+                  </td>
 
                   <td className="p-2 text-center">
                     <div className="flex items-center justify-center gap-3">
                       <button
                         onClick={() => openEdit(t)}
-                        className="text-blue-600 hover:underline text-xs"
+                        className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
                       >
                         Editar
                       </button>
                       {t.isRecurring && (
                         <button
                           onClick={() => handleGenerate(t.id)}
-                          className="text-emerald-700 hover:underline text-xs"
+                          className="text-emerald-700 dark:text-emerald-400 hover:underline text-xs"
                         >
                           Gerar próximas
                         </button>
@@ -342,12 +374,16 @@ export default function Maintenance() {
       )}
 
       {/* Modal de criação */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nova Atividade">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Nova Atividade"
+      >
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="text-sm">Título</label>
             <input
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               required
@@ -357,22 +393,26 @@ export default function Maintenance() {
           <div className="col-span-2">
             <label className="text-sm">Descrição</label>
             <textarea
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
           </div>
 
           <div>
             <label className="text-sm">Empreendimento</label>
             <select
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.stayId}
               onChange={(e) => setForm({ ...form, stayId: e.target.value })}
             >
               <option value="">Selecione...</option>
               {stays.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
           </div>
@@ -380,13 +420,15 @@ export default function Maintenance() {
           <div>
             <label className="text-sm">Unidade (opcional)</label>
             <select
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.roomId}
               onChange={(e) => setForm({ ...form, roomId: e.target.value })}
             >
               <option value="">Nenhuma</option>
               {rooms.map((r) => (
-                <option key={r.id} value={r.id}>{r.title}</option>
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
               ))}
             </select>
           </div>
@@ -394,9 +436,11 @@ export default function Maintenance() {
           <div>
             <label className="text-sm">Responsável</label>
             <input
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.responsible}
-              onChange={(e) => setForm({ ...form, responsible: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, responsible: e.target.value })
+              }
             />
           </div>
 
@@ -404,16 +448,18 @@ export default function Maintenance() {
             <label className="text-sm">Prazo</label>
             <input
               type="date"
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, dueDate: e.target.value })
+              }
             />
           </div>
 
           <div>
             <label className="text-sm">Status</label>
             <select
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
             >
@@ -426,7 +472,7 @@ export default function Maintenance() {
           <div>
             <label className="text-sm">Tipo</label>
             <select
-              className="mt-1 w-full border rounded-lg px-3 py-2"
+              className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
@@ -436,31 +482,41 @@ export default function Maintenance() {
           </div>
 
           {/* Recorrência */}
-          <div className="col-span-2 border-t pt-3 mt-2">
+          <div className="col-span-2 border-t border-neutral-200 dark:border-slate-700 pt-3 mt-2">
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={form.isRecurring}
-                onChange={(e) => setForm({ ...form, isRecurring: e.target.checked })}
+                onChange={(e) =>
+                  setForm({ ...form, isRecurring: e.target.checked })
+                }
               />
               <span className="font-medium">Tornar recorrente</span>
             </label>
 
             {form.isRecurring && (
-              <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg border p-3 bg-neutral-50">
+              <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg border border-neutral-200 dark:border-slate-700 p-3 bg-neutral-50 dark:bg-slate-900">
                 <div className="col-span-2">
                   <label className="text-sm">Modo</label>
                   <select
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
+                    className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                     value={form.recurrence.mode}
                     onChange={(e) =>
-                      setForm({ ...form, recurrence: { ...form.recurrence, mode: e.target.value } })
+                      setForm({
+                        ...form,
+                        recurrence: {
+                          ...form.recurrence,
+                          mode: e.target.value,
+                        },
+                      })
                     }
                   >
                     <option value="monthly_by_day">Mensal (dia fixo)</option>
                     <option value="monthly_twice">Mensal (2x no mês)</option>
                     <option value="biweekly">Quinzenal</option>
-                    <option value="yearly_firstWeek">Anual (1ª semana)</option>
+                    <option value="yearly_firstWeek">
+                      Anual (1ª semana)
+                    </option>
                   </select>
                 </div>
 
@@ -468,27 +524,36 @@ export default function Maintenance() {
                   <label className="text-sm">Data inicial</label>
                   <input
                     type="date"
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
+                    className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                     value={form.recurrence.startDate}
                     onChange={(e) =>
-                      setForm({ ...form, recurrence: { ...form.recurrence, startDate: e.target.value } })
+                      setForm({
+                        ...form,
+                        recurrence: {
+                          ...form.recurrence,
+                          startDate: e.target.value,
+                        },
+                      })
                     }
                   />
                 </div>
 
-                {(form.recurrence.mode === "monthly_by_day" || form.recurrence.mode === "monthly_twice") && (
+                {(form.recurrence.mode === "monthly_by_day" ||
+                  form.recurrence.mode === "monthly_twice") && (
                   <div className="col-span-2">
                     <label className="text-sm">Dia(s) do mês</label>
                     <input
                       placeholder="Ex.: 5,20"
-                      className="mt-1 w-full border rounded-lg px-3 py-2"
+                      className="mt-1 w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                       value={form.recurrence.days.join(",")}
                       onChange={(e) =>
                         setForm({
                           ...form,
                           recurrence: {
                             ...form.recurrence,
-                            days: e.target.value.split(",").map((d) => Number(d.trim())),
+                            days: e.target.value
+                              .split(",")
+                              .map((d) => Number(d.trim())),
                           },
                         })
                       }
@@ -500,10 +565,17 @@ export default function Maintenance() {
           </div>
 
           <div className="col-span-2 flex justify-end gap-2 mt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-lg">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 border rounded-lg bg-white dark:bg-slate-900 dark:border-slate-700"
+            >
               Cancelar
             </button>
-            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-lg">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            >
               Salvar
             </button>
           </div>
@@ -520,26 +592,32 @@ export default function Maintenance() {
           <div className="space-y-4 text-sm">
             <div>
               <strong className="block text-lg mb-1">{selected.title}</strong>
-              <p className="text-neutral-600 mb-2">
+              <p className="text-neutral-600 dark:text-slate-300 mb-2">
                 {selected.stay?.name || "-"}{" "}
                 {selected.room?.title ? `– ${selected.room?.title}` : ""}
               </p>
-              <p className="text-neutral-500 mb-2">
-                {selected.type === "preventiva" ? "🗓 Preventiva" : "🧰 Corretiva"}
+              <p className="text-neutral-500 dark:text-slate-400 mb-2">
+                {selected.type === "preventiva"
+                  ? "🗓 Preventiva"
+                  : "🧰 Corretiva"}
               </p>
 
               {/* Descrição (somente leitura, com fallback) */}
               <div className="mb-3">
-                <label className="block text-sm font-medium mb-1">Descrição</label>
-                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                <label className="block text-sm font-medium mb-1">
+                  Descrição
+                </label>
+                <p className="text-neutral-700 dark:text-slate-200 border border-neutral-200 dark:border-slate-700 rounded-lg p-2 bg-neutral-50 dark:bg-slate-900">
                   {selected.description || "Sem descrição"}
                 </p>
               </div>
 
               {/* Responsável (somente leitura, com fallback) */}
               <div className="mb-3">
-                <label className="block text-sm font-medium mb-1">Responsável</label>
-                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                <label className="block text-sm font-medium mb-1">
+                  Responsável
+                </label>
+                <p className="text-neutral-700 dark:text-slate-200 border border-neutral-200 dark:border-slate-700 rounded-lg p-2 bg-neutral-50 dark:bg-slate-900">
                   {selected.responsible || "—"}
                 </p>
               </div>
@@ -551,7 +629,7 @@ export default function Maintenance() {
               <select
                 value={editStatus}
                 onChange={(e) => setEditStatus(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
               >
                 <option value="pendente">Pendente</option>
                 <option value="andamento">Em andamento</option>
@@ -569,10 +647,10 @@ export default function Maintenance() {
                   type="date"
                   value={editDate}
                   onChange={(e) => setEditDate(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2 bg-white dark:bg-slate-950 dark:border-slate-700 dark:text-slate-100"
                 />
               ) : (
-                <p className="text-neutral-700 border rounded-lg p-2 bg-neutral-50">
+                <p className="text-neutral-700 dark:text-slate-200 border border-neutral-200 dark:border-slate-700 rounded-lg p-2 bg-neutral-50 dark:bg-slate-900">
                   Sem prazo definido
                 </p>
               )}
@@ -582,7 +660,7 @@ export default function Maintenance() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-70"
               >
                 {deleting ? "Excluindo..." : "Excluir"}
               </button>
@@ -590,13 +668,13 @@ export default function Maintenance() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelected(null)}
-                  className="px-4 py-2 border rounded-lg"
+                  className="px-4 py-2 border rounded-lg bg-white dark:bg-slate-900 dark:border-slate-700"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleUpdate}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg"
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
                 >
                   Salvar
                 </button>
