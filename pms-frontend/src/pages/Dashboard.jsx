@@ -3,6 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { Sparkles, ClipboardList } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -987,12 +988,14 @@ export default function Dashboard() {
       {/* ==== AGENDAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CalendarCard
-          title="🫧 Cronograma de Limpeza 🫧"
+           title="Cronograma de Limpeza"
+           icon={Sparkles}
           events={cleaningEvents}
           emptyText="Sem diaristas programadas"
         />
         <CalendarCard
-          title="📒 Cronograma de Atividades"
+          title="Cronograma de Atividades"
+         icon={ClipboardList}
           events={maintenanceEvents}
           emptyText="Sem tarefas de manutenção"
         />
@@ -1059,116 +1062,208 @@ function DiaristaList({ title, data, color, empty }) {
   );
 }
 
-function CalendarCard({ title, events, emptyText }) {
+function CalendarCard({ title, events, emptyText, icon: Icon }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const bgCard = isDark
-    ? "bg-slate-900/60 backdrop-blur-xl border border-slate-700"
-    : "bg-white border border-gray-200 shadow-sm";
+  const cardBase = isDark
+    ? "bg-slate-950/60 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]"
+    : "bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.08)]";
 
-  const headerText = isDark ? "text-slate-100" : "text-slate-900";
-
-  const toolbarBtn =
-    "rounded-lg px-3 py-1 text-xs font-medium transition-all border " +
-    (isDark
-      ? "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
-      : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200");
-
-  const eventBase =
-    "px-2 py-1 rounded-md text-xs font-semibold shadow-sm truncate";
+  const headerText = isDark ? "text-slate-50" : "text-slate-900";
+  const subText = isDark ? "text-slate-400" : "text-slate-500";
 
   return (
     <div
-      className={`rounded-2xl p-5 ${bgCard} transition-all duration-300`}
+      className={`rounded-2xl p-5 transition-colors duration-300 ${cardBase}`}
     >
-      <h2 className={`text-lg font-bold mb-4 ${headerText}`}>{title}</h2>
-
-      <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="dayGridWeek"
-        locale="pt-br"
-        events={events}
-        height={500}
-        headerToolbar={{
-          left: "prev,next today",
-          center: "title",
-          right: "dayGridMonth,dayGridWeek,timeGridDay",
-        }}
-        buttonText={{
-          today: "Hoje",
-          month: "Mês",
-          week: "Semana",
-          day: "Dia",
-        }}
-        buttonIcons={{
-          prev: "chevron-left",
-          next: "chevron-right",
-        }}
-        themeSystem="standard"
-        dayMaxEvents={3}
-        fixedWeekCount={false}
-        eventClassNames={() => "border-none"} // removemos border padrão
-        dayHeaderClassNames={() =>
-          isDark
-            ? "bg-slate-800 text-slate-200"
-            : "bg-gray-100 text-gray-700"
-        }
-        dayCellClassNames={() =>
-          isDark
-            ? "hover:bg-slate-800/50 transition-colors"
-            : "hover:bg-gray-50 transition-colors"
-        }
-        eventContent={(arg) => {
-          const isNoMaid = arg.event.title === "Sem diarista";
-
-          const styleLight = {
-            background: isNoMaid ? "#fee2e2" : "linear-gradient(135deg,#bfdbfe,#93c5fd)",
-            color: isNoMaid ? "#991b1b" : "#1e3a8a",
-          };
-
-          const styleDark = {
-            background: isNoMaid
-              ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
-              : "linear-gradient(135deg,#1e3a8a,#3b82f6)",
-            color: "#e0f2fe",
-          };
-
-          return (
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          {Icon && (
             <div
-              className={`${eventBase}`}
-              style={isDark ? styleDark : styleLight}
-              title={arg.event.title}
+              className={
+                "h-9 w-9 rounded-xl flex items-center justify-center shadow-sm " +
+                (isDark
+                  ? "bg-sky-500/15 text-sky-300 border border-sky-800/60"
+                  : "bg-sky-50 text-sky-600 border border-sky-100")
+              }
             >
-              {arg.event.title}
+              <Icon size={18} />
             </div>
-          );
-        }}
-        eventClick={(info) => {
-          const detalhes =
-            info.event.extendedProps.details?.join("\n") || "Sem detalhes";
-          alert(`📋 ${info.event.title}\n\n${detalhes}`);
-        }}
-        customButtons={{
-          today: { text: "Hoje", click: () => calendar.today() },
-        }}
-        viewDidMount={(arg) => {
-          const toolbar = arg.el
-            .querySelector(".fc-toolbar-chunk")
-            ?.querySelectorAll("button");
+          )}
+          <div>
+            <h2 className={`text-lg font-semibold ${headerText}`}>{title}</h2>
+            <p className={`text-xs ${subText}`}>
+              Visão semanal com todas as escalas do dia
+            </p>
+          </div>
+        </div>
 
-          toolbar?.forEach((btn) => {
-            btn.classList.add(...toolbarBtn.split(" "));
-          });
-        }}
-      />
+        <div
+          className={
+            "hidden md:flex items-center gap-2 text-xs rounded-full px-3 py-1 border " +
+            (isDark
+              ? "border-slate-700 text-slate-300 bg-slate-900/60"
+              : "border-slate-200 text-slate-600 bg-slate-50")
+          }
+        >
+          <span className="w-2 h-2 rounded-full bg-sky-500" />
+          <span>Eventos confirmados</span>
+        </div>
+      </div>
+
+      {/* CALENDÁRIO */}
+      <div
+        className={
+          "rounded-xl overflow-hidden border " +
+          (isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white")
+        }
+      >
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="dayGridWeek"
+          locale="pt-br"
+          events={events}
+          height={480}
+          // 🔹 NENHUM LIMITE – exibe todas as diaristas do dia
+          dayMaxEvents={false}
+          fixedWeekCount={false}
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,dayGridWeek,timeGridDay",
+          }}
+          buttonText={{
+            today: "Hoje",
+            month: "Mês",
+            week: "Semana",
+            day: "Dia",
+          }}
+          viewDidMount={(arg) => {
+            // Estiliza toolbar / botões para ficar mais “premium”
+            const toolbar = arg.el.querySelector(".fc-header-toolbar");
+            if (!toolbar) return;
+
+            const titleEl = toolbar.querySelector(".fc-toolbar-title");
+            if (titleEl) {
+              titleEl.classList.add(
+                "text-sm",
+                "font-semibold",
+                isDark ? "text-slate-100" : "text-slate-800"
+              );
+            }
+
+            toolbar
+              .querySelectorAll("button")
+              .forEach((btn) => {
+                btn.classList.add(
+                  "rounded-lg",
+                  "px-3",
+                  "py-1.5",
+                  "text-xs",
+                  "font-medium",
+                  "transition-all",
+                  "border",
+                  "focus:outline-none",
+                  "focus:ring-2",
+                  "focus:ring-offset-0"
+                );
+                if (isDark) {
+                  btn.classList.add(
+                    "bg-slate-900",
+                    "border-slate-700",
+                    "text-slate-100",
+                    "hover:bg-slate-800"
+                  );
+                } else {
+                  btn.classList.add(
+                    "bg-slate-50",
+                    "border-slate-300",
+                    "text-slate-800",
+                    "hover:bg-slate-100"
+                  );
+                }
+              });
+          }}
+          dayHeaderClassNames={() =>
+            isDark
+              ? "bg-slate-900 text-slate-300 text-xs border-b border-slate-800"
+              : "bg-slate-50 text-slate-600 text-xs border-b border-slate-200"
+          }
+          dayCellClassNames={() =>
+            "text-xs " +
+            (isDark
+              ? "border-slate-900 hover:bg-slate-900/60"
+              : "border-slate-100 hover:bg-slate-50")
+          }
+          eventClassNames={() => "border-0"} // tira borda padrão do FC
+          eventContent={(arg) => {
+            const isNoMaid =
+              arg.event.title === "Sem diarista" ||
+              arg.event.extendedProps?.tipo === "sem_diarista";
+
+            const base =
+              "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
+
+            const styleLight = isNoMaid
+              ? {
+                  background:
+                    "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
+                  color: "#7f1d1d",
+                }
+              : {
+                  background:
+                    "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
+                  color: "#0f172a",
+                };
+
+            const styleDark = isNoMaid
+              ? {
+                  background:
+                    "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
+                  color: "#fee2e2",
+                }
+              : {
+                  background:
+                    "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
+                  color: "#ecfeff",
+                };
+
+            return (
+              <div
+                className={base}
+                style={isDark ? styleDark : styleLight}
+                title={arg.event.title}
+              >
+                {arg.event.title}
+              </div>
+            );
+          }}
+          eventClick={(info) => {
+            const detalhes =
+              info.event.extendedProps.details?.join("\n") || "Sem detalhes";
+            alert(`📋 ${info.event.title}\n\n${detalhes}`);
+          }}
+          // Fonte & suavização
+          contentHeight="auto"
+          dayHeaderFormat={{ weekday: "short" }}
+        />
+      </div>
 
       {!events?.length && (
-        <div
-          className="text-center py-6 opacity-70 text-sm mt-4 
-                     border rounded-xl dark:border-slate-700"
-        >
-          {emptyText}
+        <div className="mt-4 text-center text-sm">
+          <div
+            className={
+              "inline-flex items-center gap-2 px-4 py-2 rounded-full border " +
+              (isDark
+                ? "border-slate-700 text-slate-400 bg-slate-900/70"
+                : "border-slate-200 text-slate-500 bg-slate-50")
+            }
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <span>{emptyText}</span>
+          </div>
         </div>
       )}
     </div>
