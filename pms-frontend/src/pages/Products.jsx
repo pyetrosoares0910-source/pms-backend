@@ -102,38 +102,38 @@ export default function Products() {
           }
           className="bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
         />
-        <Button
-          color="primary"
-          type="submit"
-          className="col-span-6 mt-1"
-        >
+        <Button color="primary" type="submit" className="col-span-6 mt-1">
           + Adicionar
         </Button>
       </form>
 
       {/* TABELA */}
       <div className="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 rounded-xl shadow overflow-hidden">
-        <table className="table table-zebra w-full bg-white dark:bg-slate-900 dark:text-slate-100">
+        <table className="w-full text-sm">
           <thead className="bg-gray-200 dark:bg-slate-800 text-gray-800 dark:text-slate-100">
             <tr>
-              <th>Nome</th>
-              <th>Categoria</th>
-              <th>Unidade</th>
-              <th>Ativo</th>
-              <th>Ação</th>
+              <th className="px-4 py-2 text-left">Nome</th>
+              <th className="px-4 py-2 text-left">Categoria</th>
+              <th className="px-4 py-2 text-left">Unidade</th>
+              <th className="px-4 py-2 text-left">Ativo</th>
+              <th className="px-4 py-2 text-center">Ação</th>
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => (
+            {products.map((p, idx) => (
               <tr
                 key={p.id}
-                className="hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                className={`transition ${
+                  idx % 2 === 0
+                    ? "bg-white dark:bg-slate-900/70"
+                    : "bg-gray-50 dark:bg-slate-800/70"
+                }`}
               >
-                <td>{p.name}</td>
-                <td>{p.category}</td>
-                <td>{p.unitBase}</td>
-                <td>{p.active ? "✅" : "❌"}</td>
-                <td>
+                <td className="px-4 py-2">{p.name}</td>
+                <td className="px-4 py-2">{p.category}</td>
+                <td className="px-4 py-2">{p.unitBase}</td>
+                <td className="px-4 py-2">{p.active ? "✅" : "❌"}</td>
+                <td className="px-4 py-2 text-center">
                   <Button
                     size="sm"
                     onClick={() => toggleActive(p.id)}
@@ -144,6 +144,7 @@ export default function Products() {
                 </td>
               </tr>
             ))}
+
             {products.length === 0 && (
               <tr>
                 <td
