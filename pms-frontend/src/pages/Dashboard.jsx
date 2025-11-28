@@ -828,7 +828,7 @@ export default function Dashboard() {
                 >
                   <XAxis
                     type="number"
-                    domain={[0, 60]}
+                    domain={[0, 75]}
                     tickFormatter={(v) => `${v}%`}
                     axisLine={{
                       stroke: isDark ? "#4b5563" : "#e5e7eb",
