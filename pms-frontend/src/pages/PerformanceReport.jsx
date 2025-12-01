@@ -437,15 +437,23 @@ ${html}
           (b) => normalize(b.querySelector("h3")?.textContent) === normalize(name)
         );
 
-      const addImageCentered = (canvas, y, wMax) => {
-        const wMM = toMM(canvas.width);
-        const hMM = toMM(canvas.height);
-        const w = Math.min(wMax, wMM);
-        const h = (w * hMM) / wMM;
-        const dx = margin.left + (wMax - w) / 2;
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", dx, y, w, h);
-        return h;
-      };
+      const addImageCentered = (canvas, y, wMax, scale = 1) => {
+  const wMM = toMM(canvas.width);
+  const hMM = toMM(canvas.height);
+
+  // largura base respeitando o limite disponível
+  const baseW = Math.min(wMax, wMM);
+
+  // aplica uma escala (ex.: 0.7 para ficar 30% menor)
+  const w = baseW * scale;
+  const h = (w * hMM) / wMM;
+
+  const dx = margin.left + (wMax - w) / 2;
+
+  pdf.addImage(canvas.toDataURL("image/png"), "PNG", dx, y, w, h);
+  return h;
+};
+
 
       let page = 1;
       let first = true;
@@ -528,12 +536,16 @@ ${html}
           );
 
           const usableW = pageWidth - margin.left - margin.right;
-          const chartCanvas = await captureElement(chartEl);
-          const chartHeight = addImageCentered(
-            chartCanvas,
-            margin.top + 8,
-            usableW * 1.25
-          );
+const chartCanvas = await captureElement(chartEl);
+
+// escala 0.7 → gráfico ~30% menor (ajusta se quiser mais/menos)
+const chartHeight = addImageCentered(
+  chartCanvas,
+  margin.top + 10,
+  usableW,
+  0.7
+);
+
 
           const cardsY = margin.top + chartHeight + 9;
           drawOccupancyCards(pdf, stay, cardsY, usableW);
