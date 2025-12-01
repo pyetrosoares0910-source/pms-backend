@@ -543,7 +543,7 @@ const chartHeight = addImageCentered(
   chartCanvas,
   margin.top + 10,
   usableW,
-  0.7
+  0.9
 );
 
 
