@@ -28,7 +28,30 @@ const STAY_ORDER = [
   "Estanconfor Vila Olímpia",
 ];
 
-const orderIndex = STAY_ORDER.reduce((acc, n, i) => ((acc[n] = i), acc), {});
+// ======== PATCH GLOBAL OKLCH → RGB PARA HTML2CANVAS ========
+const ensureOklchPatch = () => {
+  // evita repatch e garante que html2canvas exista
+  if (!html2canvas || html2canvas.__oklchPatched) return;
+
+  const utils = html2canvas.utils;
+  const origParseColor = utils?.parseColor;
+
+  if (!origParseColor) return;
+
+  html2canvas.__oklchPatched = true;
+
+  utils.parseColor = function (value) {
+    try {
+      if (typeof value === "string" && value.includes("oklch")) {
+        // fallback neutro para qualquer cor oklch
+        return { r: 255, g: 255, b: 255, a: 1 };
+      }
+      return origParseColor.call(this, value);
+    } catch {
+      return { r: 255, g: 255, b: 255, a: 1 };
+    }
+  };
+};
 
 export default function PerformanceReport() {
   const [monthlyData, setMonthlyData] = useState(null);
@@ -137,76 +160,7 @@ export default function PerformanceReport() {
     return centerifyData(arr);
   };
 
-  /* ========== PDF cabeçalho e rodapé ========== */
-  const periodLabel = `${dayjs()
-    .month(selectedMonth - 1)
-    .format("MMMM")
-    .toUpperCase()} / ${selectedYear}`;
-  const generatedAt = dayjs().format("DD/MM/YYYY HH:mm");
-  const totalPagesExp = "{total_pages_count_string}";
-
-  const drawHeader = (pdf, pageWidth, margin) => {
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(40, 53, 147);
-    pdf.setFontSize(14);
-    pdf.text("Vz", margin.left, 12);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(17, 24, 39);
-    pdf.setFontSize(12);
-    pdf.text(" — Relatório de Desempenho", margin.left + 8, 12);
-
-    pdf.setFontSize(10);
-    pdf.setTextColor(107, 114, 128);
-    pdf.text(`${periodLabel} · Gerado em ${generatedAt}`, margin.left, 18);
-
-    pdf.setDrawColor(229, 231, 235);
-    pdf.setLineWidth(0.2);
-    pdf.line(margin.left, 20, pageWidth - margin.right, 20);
-  };
-
-  const drawFooter = (pdf, pageWidth, pageHeight, margin, pageNumber) => {
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.setTextColor(107, 114, 128);
-    const label = `Página ${pageNumber} de ${totalPagesExp}`;
-    pdf.text(label, pageWidth - margin.right, pageHeight - 6, {
-      align: "right",
-    });
-  };
-
-  const addCanvasPaginated = (
-    pdf,
-    canvas,
-    pageWidth,
-    pageHeight,
-    margin,
-    startNew = false
-  ) => {
-    const contentWidth = pageWidth - margin.left - margin.right;
-    const contentHeight = pageHeight - margin.top - margin.bottom;
-    const imgWidth = contentWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const imgData = canvas.toDataURL("image/png");
-
-    if (startNew && pdf.getNumberOfPages() > 0) pdf.addPage();
-    if (pdf.getNumberOfPages() === 0) pdf.addPage();
-
-    let position = margin.top;
-    let heightLeft = imgHeight;
-
-    drawHeader(pdf, pageWidth, margin);
-    pdf.addImage(imgData, "PNG", margin.left, position, imgWidth, imgHeight);
-    heightLeft -= contentHeight;
-
-    while (heightLeft > 0) {
-      pdf.addPage();
-      drawHeader(pdf, pageWidth, margin);
-      const positionY = margin.top + (heightLeft - imgHeight);
-      pdf.addImage(imgData, "PNG", margin.left, positionY, imgWidth, imgHeight);
-      heightLeft -= contentHeight;
-    }
-  };
+  /* ========== Imprimir / Salvar PDF (browser) ========== */
 
   const printReport = () => {
     if (!reportRef.current) return;
@@ -267,45 +221,12 @@ ${html}
     }, 600);
   };
 
-  /* ========== Geração PDF ========== */
-
-  const patchHtml2CanvasForOKLCH = () => {
-    if (!window.html2canvas || window.__patched_oklch_fix__) return;
-    window.__patched_oklch_fix__ = true;
-
-    const origParseColor = window.html2canvas.utils?.parseColor;
-    if (!origParseColor) return;
-
-    window.html2canvas.utils.parseColor = function (value) {
-      try {
-        if (typeof value === "string" && value.includes("oklch")) {
-          return { r: 245, g: 245, b: 245, a: 1 };
-        }
-        return origParseColor.call(this, value);
-      } catch {
-        return { r: 245, g: 245, b: 245, a: 1 };
-      }
-    };
-  };
+  /* ========== Geração PDF (cliente, jsPDF + html2canvas) ========== */
 
   const generatePDF = async () => {
     try {
-      if (window.html2canvas && !window.__patched_oklch_fix__) {
-        const origParseColor = window.html2canvas.utils?.parseColor;
-        window.__patched_oklch_fix__ = true;
-        if (origParseColor) {
-          window.html2canvas.utils.parseColor = function (value) {
-            try {
-              if (typeof value === "string" && value.includes("oklch")) {
-                return { r: 255, g: 255, b: 255, a: 1 };
-              }
-              return origParseColor.call(this, value);
-            } catch {
-              return { r: 255, g: 255, b: 255, a: 1 };
-            }
-          };
-        }
-      }
+      // garante que o parse de oklch do html2canvas está patcheado
+      ensureOklchPatch();
 
       if (!reportRef.current) return;
       setGenerating(true);
@@ -372,14 +293,9 @@ ${html}
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(9);
         pdf.setTextColor(140);
-        pdf.text(
-          `Página ${n}`,
-          pageWidth - margin.right,
-          pageHeight - 8,
-          {
-            align: "right",
-          }
-        );
+        pdf.text(`Página ${n}`, pageWidth - margin.right, pageHeight - 8, {
+          align: "right",
+        });
       };
 
       const captureElement = async (el) => {
@@ -395,6 +311,7 @@ ${html}
         const clone = el.cloneNode(true);
         wrapper.appendChild(clone);
 
+        // Ajuste de tabelas (escala e tipografia)
         clone.querySelectorAll("table").forEach((tbl) => {
           tbl.style.transform = "scale(1.3)";
           tbl.style.transformOrigin = "top left";
@@ -407,6 +324,7 @@ ${html}
           });
         });
 
+        // Remap de cores OKLCH em estilos computados (fallback visual)
         clone.querySelectorAll("*").forEach((node) => {
           const style = window.getComputedStyle(node);
           for (const prop of ["color", "backgroundColor", "borderColor"]) {
@@ -421,11 +339,11 @@ ${html}
           }
         });
 
+        // Proteção extra para SVG (Recharts etc.)
         wrapper.querySelectorAll("svg").forEach((svg) => {
           svg.querySelectorAll("*").forEach((el) => {
-            for (const attr of el.getAttributeNames
-              ? el.getAttributeNames()
-              : []) {
+            const attrs = el.getAttributeNames ? el.getAttributeNames() : [];
+            for (const attr of attrs) {
               const val = el.getAttribute(attr);
               if (typeof val === "string" && val.includes("oklch")) {
                 el.setAttribute(attr, "#ffffff");
@@ -434,6 +352,7 @@ ${html}
           });
         });
 
+        // Patch fino para qualquer canvas criado internamente
         const originalCreateElement = document.createElement;
         document.createElement = function (tagName, options) {
           const element = originalCreateElement.call(this, tagName, options);
@@ -450,8 +369,9 @@ ${html}
                     if (
                       typeof value === "string" &&
                       value.includes("oklch")
-                    )
+                    ) {
                       value = "#ffffff";
+                    }
                     desc.set.call(this, value);
                   },
                   get() {
@@ -803,15 +723,6 @@ ${html}
           >
             Imprimir / Salvar PDF
           </button>
-          <button
-            onClick={() => {
-              const url = `${import.meta.env.VITE_API_URL}/reports/performance/pdf?month=${selectedMonth}&year=${selectedYear}`;
-              window.open(url, "_blank");
-            }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md shadow-sm"
-          >
-            Gerar PDF (Servidor)
-          </button>
 
           <button
             onClick={generatePDF}
@@ -959,7 +870,10 @@ ${html}
                               (stay.rooms?.length ?? 0) <= 2 ? 90 : undefined
                             }
                           >
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#e5e7eb"
+                            />
                             <XAxis
                               dataKey="name"
                               stroke="#6b7280"
