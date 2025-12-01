@@ -28,22 +28,18 @@ const STAY_ORDER = [
   "Estanconfor Vila Olímpia",
 ];
 
-// ======== PATCH GLOBAL OKLCH → RGB PARA HTML2CANVAS ========
+// (opcional) marca que já tentamos patchear; não vamos depender só disso
 const ensureOklchPatch = () => {
-  // evita repatch e garante que html2canvas exista
   if (!html2canvas || html2canvas.__oklchPatched) return;
+  html2canvas.__oklchPatched = true;
 
   const utils = html2canvas.utils;
   const origParseColor = utils?.parseColor;
-
   if (!origParseColor) return;
-
-  html2canvas.__oklchPatched = true;
 
   utils.parseColor = function (value) {
     try {
       if (typeof value === "string" && value.includes("oklch")) {
-        // fallback neutro para qualquer cor oklch
         return { r: 255, g: 255, b: 255, a: 1 };
       }
       return origParseColor.call(this, value);
@@ -167,7 +163,6 @@ export default function PerformanceReport() {
 
     const html = reportRef.current.outerHTML;
 
-    // coleta os mesmos CSS carregados na página (Tailwind/DaisyUI)
     const styles = Array.from(
       document.querySelectorAll('link[rel="stylesheet"]')
     )
@@ -189,7 +184,6 @@ export default function PerformanceReport() {
 ${styles}
 ${inlineStyles}
 <style>
-  /* Força orientação horizontal */
   @page {
     size: A4 landscape;
     margin: 12mm;
@@ -201,7 +195,6 @@ ${inlineStyles}
     background: white;
   }
 
-  /* Evita quebras feias e oculta botões */
   .no-print { display: none !important; }
   section, .card, [data-chunk] { page-break-inside: avoid; }
   [data-chunk="monthly"] { page-break-before: always; }
@@ -221,13 +214,147 @@ ${html}
     }, 600);
   };
 
+  /* ========== Captura segura (html2canvas + limpeza de OKLCH) ========== */
+
+  const captureElement = async (el) => {
+    if (!el) throw new Error("Elemento nulo ao capturar.");
+
+    // garante patch extra (não é a única linha de defesa)
+    ensureOklchPatch();
+
+    const marker = `capture-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
+    el.setAttribute("data-html2canvas-capture", marker);
+
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 1.4,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        onclone: (doc) => {
+          // 1) remover regras de CSS com oklch no documento CLONADO
+          Array.from(doc.styleSheets || []).forEach((sheet) => {
+            try {
+              const rules = sheet.cssRules;
+              if (!rules) return;
+              for (let i = rules.length - 1; i >= 0; i--) {
+                const rule = rules[i];
+                if (
+                  rule &&
+                  rule.cssText &&
+                  rule.cssText.toLowerCase().includes("oklch(")
+                ) {
+                  sheet.deleteRule(i);
+                }
+              }
+            } catch {
+              // pode dar DOMException (cross-origin), ignoramos
+            }
+          });
+
+          // 2) encontrar o elemento clonado alvo
+          const clonedEl = doc.querySelector(
+            `[data-html2canvas-capture="${marker}"]`
+          );
+          if (!clonedEl) return;
+
+          // 3) limpar atributos style e outros atributos com "oklch(" no clone
+          const allNodes = clonedEl.querySelectorAll("*");
+          allNodes.forEach((node) => {
+            // style attribute
+            if (node.hasAttribute("style")) {
+              const styleAttr = node.getAttribute("style");
+              if (styleAttr && styleAttr.toLowerCase().includes("oklch(")) {
+                const safe = styleAttr.replace(
+                  /oklch\([^)]*\)/gi,
+                  "rgb(255,255,255)"
+                );
+                node.setAttribute("style", safe);
+              }
+            }
+
+            // qualquer atributo com oklch
+            const attrs = node.getAttributeNames
+              ? node.getAttributeNames()
+              : [];
+            attrs.forEach((attr) => {
+              const val = node.getAttribute(attr);
+              if (
+                typeof val === "string" &&
+                val.toLowerCase().includes("oklch(")
+              ) {
+                node.setAttribute(
+                  attr,
+                  val.replace(/oklch\([^)]*\)/gi, "rgb(255,255,255)")
+                );
+              }
+            });
+          });
+
+          // 4) ajustes visuais de tabela (escala, padding...) no clone
+          clonedEl.querySelectorAll("table").forEach((tbl) => {
+            tbl.style.transform = "scale(1.3)";
+            tbl.style.transformOrigin = "top left";
+            tbl.style.width = "calc(100% / 1.3)";
+
+            tbl.querySelectorAll("td, th").forEach((c) => {
+              c.style.fontSize = "20px";
+              c.style.lineHeight = "1.8";
+              c.style.padding = "12px 10px";
+            });
+          });
+
+          // 5) fallback de cor baseado em computedStyle DO CLONE
+          const getCS = doc.defaultView?.getComputedStyle;
+          if (getCS) {
+            allNodes.forEach((node) => {
+              const style = getCS(node);
+              ["color", "backgroundColor", "borderColor"].forEach((prop) => {
+                const val = style.getPropertyValue(prop);
+                if (val && val.toLowerCase().includes("oklch(")) {
+                  node.style.setProperty(
+                    prop,
+                    prop === "backgroundColor" ? "#ffffff" : "#111827",
+                    "important"
+                  );
+                }
+              });
+            });
+          }
+
+          // 6) proteção extra para SVG (Recharts dentro do clone)
+          clonedEl.querySelectorAll("svg").forEach((svg) => {
+            svg.querySelectorAll("*").forEach((n) => {
+              const attrs = n.getAttributeNames ? n.getAttributeNames() : [];
+              attrs.forEach((attr) => {
+                const val = n.getAttribute(attr);
+                if (
+                  typeof val === "string" &&
+                  val.toLowerCase().includes("oklch(")
+                ) {
+                  n.setAttribute(
+                    attr,
+                    val.replace(/oklch\([^)]*\)/gi, "#ffffff")
+                  );
+                }
+              });
+            });
+          });
+        },
+      });
+
+      return canvas;
+    } finally {
+      el.removeAttribute("data-html2canvas-capture");
+    }
+  };
+
   /* ========== Geração PDF (cliente, jsPDF + html2canvas) ========== */
 
   const generatePDF = async () => {
     try {
-      // garante que o parse de oklch do html2canvas está patcheado
-      ensureOklchPatch();
-
       if (!reportRef.current) return;
       setGenerating(true);
 
@@ -296,109 +423,6 @@ ${html}
         pdf.text(`Página ${n}`, pageWidth - margin.right, pageHeight - 8, {
           align: "right",
         });
-      };
-
-      const captureElement = async (el) => {
-        if (!el) throw new Error("Elemento nulo ao capturar.");
-
-        const wrapper = document.createElement("div");
-        wrapper.style.position = "fixed";
-        wrapper.style.left = "-9999px";
-        wrapper.style.top = "0";
-        wrapper.style.width = "1100px";
-        wrapper.style.background = "#fff";
-        document.body.appendChild(wrapper);
-        const clone = el.cloneNode(true);
-        wrapper.appendChild(clone);
-
-        // Ajuste de tabelas (escala e tipografia)
-        clone.querySelectorAll("table").forEach((tbl) => {
-          tbl.style.transform = "scale(1.3)";
-          tbl.style.transformOrigin = "top left";
-          tbl.style.width = "calc(100% / 1.3)";
-
-          tbl.querySelectorAll("td, th").forEach((c) => {
-            c.style.fontSize = "20px";
-            c.style.lineHeight = "1.8";
-            c.style.padding = "12px 10px";
-          });
-        });
-
-        // Remap de cores OKLCH em estilos computados (fallback visual)
-        clone.querySelectorAll("*").forEach((node) => {
-          const style = window.getComputedStyle(node);
-          for (const prop of ["color", "backgroundColor", "borderColor"]) {
-            const val = style.getPropertyValue(prop);
-            if (val && val.includes("oklch")) {
-              node.style.setProperty(
-                prop,
-                prop === "backgroundColor" ? "#ffffff" : "#111827",
-                "important"
-              );
-            }
-          }
-        });
-
-        // Proteção extra para SVG (Recharts etc.)
-        wrapper.querySelectorAll("svg").forEach((svg) => {
-          svg.querySelectorAll("*").forEach((el) => {
-            const attrs = el.getAttributeNames ? el.getAttributeNames() : [];
-            for (const attr of attrs) {
-              const val = el.getAttribute(attr);
-              if (typeof val === "string" && val.includes("oklch")) {
-                el.setAttribute(attr, "#ffffff");
-              }
-            }
-          });
-        });
-
-        // Patch fino para qualquer canvas criado internamente
-        const originalCreateElement = document.createElement;
-        document.createElement = function (tagName, options) {
-          const element = originalCreateElement.call(this, tagName, options);
-          if (tagName?.toLowerCase() === "canvas") {
-            const ctx = element.getContext("2d");
-            if (ctx) {
-              const desc = Object.getOwnPropertyDescriptor(
-                Object.getPrototypeOf(ctx),
-                "fillStyle"
-              );
-              if (desc) {
-                Object.defineProperty(ctx, "fillStyle", {
-                  set(value) {
-                    if (
-                      typeof value === "string" &&
-                      value.includes("oklch")
-                    ) {
-                      value = "#ffffff";
-                    }
-                    desc.set.call(this, value);
-                  },
-                  get() {
-                    return desc.get.call(this);
-                  },
-                  configurable: true,
-                });
-              }
-            }
-          }
-          return element;
-        };
-
-        let canvas;
-        try {
-          canvas = await html2canvas(wrapper, {
-            scale: 1.4,
-            useCORS: true,
-            backgroundColor: "#ffffff",
-            logging: false,
-          });
-        } finally {
-          document.createElement = originalCreateElement;
-          document.body.removeChild(wrapper);
-        }
-
-        return canvas;
       };
 
       const normalize = (s) =>
@@ -512,12 +536,7 @@ ${html}
           );
 
           const cardsY = margin.top + chartHeight + 9;
-          const cardsHeight = drawOccupancyCards(
-            pdf,
-            stay,
-            cardsY,
-            usableW
-          );
+          drawOccupancyCards(pdf, stay, cardsY, usableW);
 
           const resumoY = pageHeight - margin.bottom - 60;
 
