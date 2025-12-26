@@ -1214,47 +1214,58 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const cardBase = isDark
-    ? "bg-slate-950/60 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]"
-    : "bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.08)]";
-
-  const headerText = isDark ? "text-slate-50" : "text-slate-900";
-  const subText = isDark ? "text-slate-400" : "text-slate-500";
-
   return (
     <div
-      className={`rounded-2xl p-5 transition-colors duration-300 ${cardBase}`}
+      className="
+        relative overflow-hidden
+        rounded-3xl border p-6
+        bg-gradient-to-br
+        from-white via-slate-50 to-white
+        dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+        border-slate-200 dark:border-slate-700/60
+        shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+        transition-colors duration-300
+      "
     >
+      {/* Glow sutil de fundo */}
+      <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
+      <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
+
       {/* HEADER */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           {Icon && (
             <div
-              className={
-                "h-9 w-9 rounded-xl flex items-center justify-center shadow-sm " +
-                (isDark
-                  ? "bg-sky-500/15 text-sky-300 border border-sky-800/60"
-                  : "bg-sky-50 text-sky-600 border border-sky-100")
-              }
+              className="
+                h-10 w-10 rounded-xl flex items-center justify-center
+                bg-gradient-to-br from-sky-400/20 to-violet-400/20
+                ring-1 ring-slate-300/40
+                dark:ring-slate-700/60
+                text-sky-700 dark:text-sky-300
+              "
             >
               <Icon size={18} />
             </div>
           )}
+
           <div>
-            <h2 className={`text-lg font-semibold ${headerText}`}>{title}</h2>
-            <p className={`text-xs ${subText}`}>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              {title}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Visão semanal com todas as escalas do dia
             </p>
           </div>
         </div>
 
+        {/* Badge lateral */}
         <div
-          className={
-            "hidden md:flex items-center gap-2 text-xs rounded-full px-3 py-1 border " +
-            (isDark
-              ? "border-slate-700 text-slate-300 bg-slate-900/60"
-              : "border-slate-200 text-slate-600 bg-slate-50")
-          }
+          className="
+            hidden md:flex items-center gap-2
+            text-xs rounded-full px-3 py-1 border
+            bg-slate-50 border-slate-200 text-slate-600
+            dark:bg-slate-900/70 dark:border-slate-700 dark:text-slate-300
+          "
         >
           <span className="w-2 h-2 rounded-full bg-sky-500" />
           <span>Eventos confirmados</span>
@@ -1263,10 +1274,11 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
 
       {/* CALENDÁRIO */}
       <div
-        className={
-          "rounded-xl overflow-hidden border " +
-          (isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white")
-        }
+        className="
+          rounded-2xl overflow-hidden border
+          bg-white border-slate-200
+          dark:bg-slate-950 dark:border-slate-800
+        "
       >
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -1274,7 +1286,6 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
           locale="pt-br"
           events={events}
           height={480}
-          // 🔹 NENHUM LIMITE – exibe todas as diaristas do dia
           dayMaxEvents={false}
           fixedWeekCount={false}
           headerToolbar={{
@@ -1289,7 +1300,6 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
             day: "Dia",
           }}
           viewDidMount={(arg) => {
-            // Estiliza toolbar / botões para ficar mais “premium”
             const toolbar = arg.el.querySelector(".fc-header-toolbar");
             if (!toolbar) return;
 
@@ -1302,37 +1312,35 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
               );
             }
 
-            toolbar
-              .querySelectorAll("button")
-              .forEach((btn) => {
+            toolbar.querySelectorAll("button").forEach((btn) => {
+              btn.classList.add(
+                "rounded-lg",
+                "px-3",
+                "py-1.5",
+                "text-xs",
+                "font-medium",
+                "transition-all",
+                "border",
+                "focus:outline-none",
+                "focus:ring-2"
+              );
+
+              if (isDark) {
                 btn.classList.add(
-                  "rounded-lg",
-                  "px-3",
-                  "py-1.5",
-                  "text-xs",
-                  "font-medium",
-                  "transition-all",
-                  "border",
-                  "focus:outline-none",
-                  "focus:ring-2",
-                  "focus:ring-offset-0"
+                  "bg-slate-900",
+                  "border-slate-700",
+                  "text-slate-100",
+                  "hover:bg-slate-800"
                 );
-                if (isDark) {
-                  btn.classList.add(
-                    "bg-slate-900",
-                    "border-slate-700",
-                    "text-slate-100",
-                    "hover:bg-slate-800"
-                  );
-                } else {
-                  btn.classList.add(
-                    "bg-slate-50",
-                    "border-slate-300",
-                    "text-slate-800",
-                    "hover:bg-slate-100"
-                  );
-                }
-              });
+              } else {
+                btn.classList.add(
+                  "bg-slate-50",
+                  "border-slate-300",
+                  "text-slate-800",
+                  "hover:bg-slate-100"
+                );
+              }
+            });
           }}
           dayHeaderClassNames={() =>
             isDark
@@ -1345,55 +1353,48 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
               ? "border-slate-900 hover:bg-slate-900/60"
               : "border-slate-100 hover:bg-slate-50")
           }
-          eventClassNames={() => "border-0"} // tira borda padrão do FC
+          eventClassNames={() => "border-0"}
           eventContent={(arg) => {
-            const isNoMaid =
-              arg.event.title === "Sem diarista" ||
+            const isNoEvent =
               arg.event.extendedProps?.tipo === "sem_diarista";
 
             const base =
               "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
 
-            const styleLight = isNoMaid
-              ? {
-                background:
-                  "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
-                color: "#7f1d1d",
-              }
-              : {
-                background:
-                  "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
-                color: "#0f172a",
-              };
-
-            const styleDark = isNoMaid
-              ? {
-                background:
-                  "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
-                color: "#fee2e2",
-              }
-              : {
-                background:
-                  "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
-                color: "#ecfeff",
-              };
+            const style = isDark
+              ? isNoEvent
+                ? {
+                  background:
+                    "linear-gradient(135deg,#7f1d1d,#b91c1c)",
+                  color: "#fee2e2",
+                }
+                : {
+                  background:
+                    "linear-gradient(135deg,#1d4ed8,#38bdf8)",
+                  color: "#ecfeff",
+                }
+              : isNoEvent
+                ? {
+                  background:
+                    "linear-gradient(135deg,#fee2e2,#fecaca)",
+                  color: "#7f1d1d",
+                }
+                : {
+                  background:
+                    "linear-gradient(135deg,#bfdbfe,#60a5fa)",
+                  color: "#0f172a",
+                };
 
             return (
               <div
                 className={base}
-                style={isDark ? styleDark : styleLight}
+                style={style}
                 title={arg.event.title}
               >
                 {arg.event.title}
               </div>
             );
           }}
-          eventClick={(info) => {
-            const detalhes =
-              info.event.extendedProps.details?.join("\n") || "Sem detalhes";
-            alert(`📋 ${info.event.title}\n\n${detalhes}`);
-          }}
-          // Fonte & suavização
           contentHeight="auto"
           dayHeaderFormat={{ weekday: "short" }}
         />
@@ -1402,12 +1403,11 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
       {!events?.length && (
         <div className="mt-4 text-center text-sm">
           <div
-            className={
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full border " +
-              (isDark
-                ? "border-slate-700 text-slate-400 bg-slate-900/70"
-                : "border-slate-200 text-slate-500 bg-slate-50")
-            }
+            className="
+              inline-flex items-center gap-2 px-4 py-2 rounded-full border
+              bg-slate-50 border-slate-200 text-slate-500
+              dark:bg-slate-900/70 dark:border-slate-700 dark:text-slate-400
+            "
           >
             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             <span>{emptyText}</span>
@@ -1417,3 +1417,4 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
     </div>
   );
 }
+
