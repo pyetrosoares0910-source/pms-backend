@@ -57,6 +57,7 @@ export default function PerformanceReport() {
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const reportRef = useRef(null);
+  const [activeRoomIds, setActiveRoomIds] = useState(null);
 
   // fonte Inter
   useEffect(() => {
@@ -74,12 +75,14 @@ export default function PerformanceReport() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [monthlyRes, annualRes] = await Promise.all([
-          api.get(
-            `/reports/performance?month=${selectedMonth}&year=${selectedYear}`
-          ),
+        const [monthlyRes, annualRes, roomsRes] = await Promise.all([
+          api.get(`/reports/performance?month=${selectedMonth}&year=${selectedYear}`),
           api.get(`/reports/performance/annual?year=${selectedYear}`),
+          api.get(`/rooms`), // <- agora vem só active=true pelo seu backend
         ]);
+
+        const ids = new Set((roomsRes.data ?? []).map((r) => r.id).filter(Boolean));
+        setActiveRoomIds(ids);
 
         const normalize = (s) =>
           s
@@ -99,15 +102,36 @@ export default function PerformanceReport() {
             return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
           });
 
+        const roomIdOf = (r) => r?.id || r?.roomId || r?.room?.id;
+
+        const filterStayRooms = (stay) => {
+          const rooms = stay?.rooms ?? [];
+          // se o report não trouxer id nenhum, não dá pra filtrar com segurança
+          const hasAnyId = rooms.some((rr) => !!roomIdOf(rr));
+          if (!hasAnyId) return stay;
+
+          return {
+            ...stay,
+            rooms: rooms.filter((rr) => {
+              const id = roomIdOf(rr);
+              if (!id) return true; // mantém se não tiver id (pra não sumir coisa errada)
+              return ids.has(id);
+            }),
+          };
+        };
+
+        const monthlyStays = sortStays(monthlyRes.data.stays).map(filterStayRooms);
+        const annualStays = sortStays(annualRes.data.stays).map(filterStayRooms);
+
         setMonthlyData({
           month: monthlyRes.data.month,
           year: monthlyRes.data.year,
-          stays: sortStays(monthlyRes.data.stays),
+          stays: monthlyStays,
         });
 
         setAnnualData({
           year: annualRes.data.year,
-          stays: sortStays(annualRes.data.stays),
+          stays: annualStays,
         });
 
         console.log("📊 monthlyData preview:", monthlyRes.data.stays?.[0]);
@@ -438,21 +462,21 @@ ${html}
         );
 
       const addImageCentered = (canvas, y, wMax, scale = 1) => {
-  const wMM = toMM(canvas.width);
-  const hMM = toMM(canvas.height);
+        const wMM = toMM(canvas.width);
+        const hMM = toMM(canvas.height);
 
-  // largura base respeitando o limite disponível
-  const baseW = Math.min(wMax, wMM);
+        // largura base respeitando o limite disponível
+        const baseW = Math.min(wMax, wMM);
 
-  // aplica uma escala (ex.: 0.7 para ficar 30% menor)
-  const w = baseW * scale;
-  const h = (w * hMM) / wMM;
+        // aplica uma escala (ex.: 0.7 para ficar 30% menor)
+        const w = baseW * scale;
+        const h = (w * hMM) / wMM;
 
-  const dx = margin.left + (wMax - w) / 2;
+        const dx = margin.left + (wMax - w) / 2;
 
-  pdf.addImage(canvas.toDataURL("image/png"), "PNG", dx, y, w, h);
-  return h;
-};
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", dx, y, w, h);
+        return h;
+      };
 
 
       let page = 1;
@@ -536,15 +560,15 @@ ${html}
           );
 
           const usableW = pageWidth - margin.left - margin.right;
-const chartCanvas = await captureElement(chartEl);
+          const chartCanvas = await captureElement(chartEl);
 
-// escala 0.7 → gráfico ~30% menor (ajusta se quiser mais/menos)
-const chartHeight = addImageCentered(
-  chartCanvas,
-  margin.top + 10,
-  usableW,
-  0.9
-);
+          // escala 0.7 → gráfico ~30% menor (ajusta se quiser mais/menos)
+          const chartHeight = addImageCentered(
+            chartCanvas,
+            margin.top + 10,
+            usableW,
+            0.9
+          );
 
 
           const cardsY = margin.top + chartHeight + 9;
@@ -577,24 +601,22 @@ const chartHeight = addImageCentered(
 
           const unidadeMaisOcupada = stay.rooms?.length
             ? (() => {
-                const top = stay.rooms.reduce((a, b) =>
-                  (a.ocupacao ?? 0) > (b.ocupacao ?? 0) ? a : b
-                );
-                return `${
-                  top.name || top.title || "—"
+              const top = stay.rooms.reduce((a, b) =>
+                (a.ocupacao ?? 0) > (b.ocupacao ?? 0) ? a : b
+              );
+              return `${top.name || top.title || "—"
                 } (${top.ocupacao ?? 0}%)`;
-              })()
+            })()
             : "-";
 
           const unidadeMenosOcupada = stay.rooms?.length
             ? (() => {
-                const low = stay.rooms.reduce((a, b) =>
-                  (a.ocupacao ?? 0) < (b.ocupacao ?? 0) ? a : b
-                );
-                return `${
-                  low.name || low.title || "—"
+              const low = stay.rooms.reduce((a, b) =>
+                (a.ocupacao ?? 0) < (b.ocupacao ?? 0) ? a : b
+              );
+              return `${low.name || low.title || "—"
                 } (${low.ocupacao ?? 0}%)`;
-              })()
+            })()
             : "-";
 
           const diasNoMes = dayjs(
@@ -757,11 +779,10 @@ const chartHeight = addImageCentered(
 
           <button
             onClick={generatePDF}
-            className={`${
-              generating
+            className={`${generating
                 ? "bg-indigo-400 cursor-not-allowed"
                 : "bg-indigo-600 hover:bg-indigo-700"
-            } text-white px-4 py-2 rounded-md shadow-sm`}
+              } text-white px-4 py-2 rounded-md shadow-sm`}
             disabled={generating}
           >
             {generating ? "Gerando..." : "Gerar PDF"}
@@ -913,15 +934,15 @@ const chartHeight = addImageCentered(
                                 stay.stayName.includes("Internacional Stay")
                                   ? 0
                                   : (stay.rooms?.length ?? 0) > 8
-                                  ? -30
-                                  : 0
+                                    ? -30
+                                    : 0
                               }
                               textAnchor={
                                 stay.stayName.includes("Internacional Stay")
                                   ? "middle"
                                   : (stay.rooms?.length ?? 0) > 8
-                                  ? "end"
-                                  : "middle"
+                                    ? "end"
+                                    : "middle"
                               }
                               interval={0}
                             />
