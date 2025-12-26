@@ -594,13 +594,14 @@ export default function Dashboard() {
           <KpiGaugeOcupacao data={monthsTrend} />
         </div>
 
-        <div className="h-full flex">
+        <div className="lg:col-span-1 h-full">
           <KpiMaintenanceProgress maintenanceStats={maintenanceStats} isDark={isDark} />
         </div>
 
-        <div className="h-full flex">
+        <div className="lg:col-span-1 h-full">
           <KpiTotalReservas value={kpis.totalReservas + 1963} note="Inclui 1.963 reservas do PMS anterior" />
         </div>
+
 
       </div>
 

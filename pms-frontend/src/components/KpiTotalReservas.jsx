@@ -16,25 +16,24 @@ export default function KpiTotalReservas({ value, note }) {
         border-slate-200 dark:border-slate-700/60
         shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
         transition-colors duration-300
-        flex flex-col justify-center
+        flex flex-col
       "
         >
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <PremiumIcon>🏅</PremiumIcon>
-                        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                            Total de Reservas
-                        </h2>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        acumulado do histórico
-                    </p>
+            {/* HEADER (altura “fixa” visual) */}
+            <div className="min-h-[54px]">
+                <div className="flex items-center gap-2">
+                    <PremiumIcon>🏅</PremiumIcon>
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        Total de Reservas
+                    </h2>
                 </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    acumulado do histórico
+                </p>
             </div>
 
-            {/* centro do card */}
-            <div className="mt-5 flex flex-col items-center justify-center text-center">
+            {/* CENTRO (alinha com o centro do gráfico) */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div
                     className="
             text-6xl font-extrabold tracking-tight leading-none
@@ -46,11 +45,14 @@ export default function KpiTotalReservas({ value, note }) {
                     {value}
                 </div>
 
-                {note && (
-                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                        {note}
-                    </p>
-                )}
+                {/* FOOTER (reserva espaço mesmo quando vazio) */}
+                <div className="min-h-[22px] mt-3">
+                    {note && (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {note}
+                        </p>
+                    )}
+                </div>
             </div>
         </motion.div>
     );
