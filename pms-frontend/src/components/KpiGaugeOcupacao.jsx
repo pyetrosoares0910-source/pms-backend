@@ -13,8 +13,8 @@ export default function KpiGaugeOcupacao({ data = [] }) {
   const pctPrev = clampPct(points?.[curIdx - 1]?.value ?? pct);
   const diff = pct - pctPrev;
 
-  // ====== Y fixo (pedido): 10–79 ======
-  const MIN_Y = 10;
+  // ====== Y fixo  ======
+  const MIN_Y = 25;
   const MAX_Y = 79;
 
   // ====== SVG sizing ======
