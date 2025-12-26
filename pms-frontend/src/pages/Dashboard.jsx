@@ -205,8 +205,8 @@ export default function Dashboard() {
     const avg =
       occRows.length > 0
         ? Math.round(
-            occRows.reduce((sum, r) => sum + r.ocupacao, 0) / occRows.length
-          )
+          occRows.reduce((sum, r) => sum + r.ocupacao, 0) / occRows.length
+        )
         : 0;
 
     return { rows: occRows, avg };
@@ -588,7 +588,7 @@ export default function Dashboard() {
               paddingAngle={3}
               stroke="none"
             >
-              <Cell fill="#22c55e" />
+              <Cell fill="#44d97bff" />
               <Cell fill={isDark ? "#111111ff" : "#e5e7eb"} />
             </Pie>
             <text
@@ -598,7 +598,7 @@ export default function Dashboard() {
               dominantBaseline="middle"
               fontSize={20}
               fontWeight="bold"
-              fill={isDark ? "#e5e7eb" : "#e5e7eb"}
+              fill={isDark ? "#e5e7eb" : "#000000ff"}
             >
               {maintenanceStats.pctDone}%
             </text>
@@ -643,8 +643,8 @@ export default function Dashboard() {
                   i === 0
                     ? "text-yellow-500"
                     : i === 1
-                    ? "text-gray-400"
-                    : "text-amber-700";
+                      ? "text-gray-400"
+                      : "text-amber-700";
 
                 const height = i === 0 ? "h-24" : "h-20";
                 const width = "w-40";
@@ -780,8 +780,8 @@ export default function Dashboard() {
                   i === 0
                     ? "text-red-500"
                     : i === 1
-                    ? "text-red-400"
-                    : "text-red-400";
+                      ? "text-red-400"
+                      : "text-red-400";
 
                 const height = i === 0 ? "h-24" : "h-20";
                 const width = "w-40";
@@ -988,14 +988,14 @@ export default function Dashboard() {
       {/* ==== AGENDAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CalendarCard
-           title="Cronograma de Limpeza"
-           icon={Sparkles}
+          title="Cronograma de Limpeza"
+          icon={Sparkles}
           events={cleaningEvents}
           emptyText="Sem diaristas programadas"
         />
         <CalendarCard
           title="Cronograma de Atividades"
-         icon={ClipboardList}
+          icon={ClipboardList}
           events={maintenanceEvents}
           emptyText="Sem tarefas de manutenção"
         />
@@ -1020,11 +1020,10 @@ function DiaristaList({ title, data, color, empty }) {
             <li key={nome} className="flex items-center justify-between py-2">
               <div className="flex items-start gap-3">
                 <div
-                  className={`rounded-full w-8 h-8 flex items-center justify-center ${
-                    color === "blue"
+                  className={`rounded-full w-8 h-8 flex items-center justify-center ${color === "blue"
                       ? "bg-blue-100 text-blue-600"
                       : "bg-amber-100 text-amber-700"
-                  }`}
+                    }`}
                 >
                   <span className="text-sm font-medium">
                     {nome.charAt(0)}
@@ -1044,9 +1043,8 @@ function DiaristaList({ title, data, color, empty }) {
                 </div>
               </div>
               <span
-                className={`badge ${
-                  color === "blue" ? "badge-success" : "badge-warning"
-                }`}
+                className={`badge ${color === "blue" ? "badge-success" : "badge-warning"
+                  }`}
               >
                 {color === "blue" ? "Ativa" : "Agendada"}
               </span>
@@ -1208,27 +1206,27 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
 
             const styleLight = isNoMaid
               ? {
-                  background:
-                    "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
-                  color: "#7f1d1d",
-                }
+                background:
+                  "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
+                color: "#7f1d1d",
+              }
               : {
-                  background:
-                    "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
-                  color: "#0f172a",
-                };
+                background:
+                  "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
+                color: "#0f172a",
+              };
 
             const styleDark = isNoMaid
               ? {
-                  background:
-                    "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
-                  color: "#fee2e2",
-                }
+                background:
+                  "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
+                color: "#fee2e2",
+              }
               : {
-                  background:
-                    "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
-                  color: "#ecfeff",
-                };
+                background:
+                  "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
+                color: "#ecfeff",
+              };
 
             return (
               <div
