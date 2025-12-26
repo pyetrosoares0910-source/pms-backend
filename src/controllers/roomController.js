@@ -23,10 +23,15 @@ exports.uploadMiddleware = upload.single("image");
    🧠 CRUD DE ROOMS
 ============================ */
 
-// 🟢 Listar todos
+// 🟢 Listar todos (por padrão: só ativos)
+// GET /rooms
+// GET /rooms?includeInactive=true
 exports.getAllRooms = async (req, res) => {
   try {
+    const includeInactive = String(req.query.includeInactive) === "true";
+
     const rooms = await prisma.room.findMany({
+      where: includeInactive ? {} : { active: true },
       include: { stay: true },
       orderBy: { position: "asc" },
     });
@@ -34,9 +39,7 @@ exports.getAllRooms = async (req, res) => {
     // Remove fallback local — só mantém URLs Cloudinary válidas
     const cleanRooms = rooms.map((r) => ({
       ...r,
-      imageUrl: r.imageUrl && r.imageUrl.startsWith("http")
-        ? r.imageUrl
-        : null,
+      imageUrl: r.imageUrl && r.imageUrl.startsWith("http") ? r.imageUrl : null,
     }));
 
     res.json(cleanRooms);
@@ -46,30 +49,36 @@ exports.getAllRooms = async (req, res) => {
   }
 };
 
-// 🟢 Buscar por ID
+// 🟢 Buscar por ID (por padrão: só ativos)
+// GET /rooms/:id
+// GET /rooms/:id?includeInactive=true
 exports.getRoomById = async (req, res) => {
   try {
     const { id } = req.params;
+    const includeInactive = String(req.query.includeInactive) === "true";
+
     const room = await prisma.room.findUnique({
       where: { id },
       include: { stay: true },
     });
 
-    if (!room) {
+    // Se não existe ou é inativo e não foi solicitado incluir inativos
+    if (!room || (!includeInactive && room.active === false)) {
       return res.status(404).json({ error: "Room não encontrado" });
     }
 
     res.json({
       ...room,
-      imageUrl: room.imageUrl && room.imageUrl.startsWith("http")
-        ? room.imageUrl
-        : null,
+      imageUrl: room.imageUrl && room.imageUrl.startsWith("http") ? room.imageUrl : null,
     });
   } catch (err) {
     console.error("❌ Erro ao buscar quarto:", err);
-    res.status(500).json({ error: "Erro ao buscar quarto.", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Erro ao buscar quarto.", details: err.message });
   }
 };
+
 
 // 🟢 Criar
 exports.createRoom = async (req, res) => {
