@@ -609,19 +609,18 @@ export default function Dashboard() {
       {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Melhor Eficiência */}
-        <div
-          className="
-      card flex-1 flex flex-col
-      rounded-3xl border
-      bg-gradient-to-br
-      from-white via-slate-50 to-white
-      dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-      border-slate-200 dark:border-slate-700/60
-      shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-      transition-colors duration-300
-      overflow-hidden
-    "
-        >
+        <div className="
+  relative card flex-1 flex flex-col
+  rounded-3xl border
+  bg-gradient-to-br
+  from-white via-slate-50 to-white
+  dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+  border-slate-200 dark:border-slate-700/60
+  shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+  transition-colors duration-300
+  overflow-hidden
+">
+
           {/* glow overlay premium */}
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-400/12" />
@@ -787,19 +786,19 @@ export default function Dashboard() {
         </div>
 
         {/* Pior Eficiência */}
-        <div
-          className="
-      card flex-1 flex flex-col
-      rounded-3xl border
-      bg-gradient-to-br
-      from-white via-slate-50 to-white
-      dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-      border-slate-200 dark:border-slate-700/60
-      shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-      transition-colors duration-300
-      overflow-hidden
-    "
-        >
+
+        <div className="
+  relative card flex-1 flex flex-col
+  rounded-3xl border
+  bg-gradient-to-br
+  from-white via-slate-50 to-white
+  dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+  border-slate-200 dark:border-slate-700/60
+  shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+  transition-colors duration-300
+  overflow-hidden
+">
+
           {/* glow overlay premium (negativo sutil) */}
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-rose-500/10 blur-3xl dark:bg-rose-400/12" />
