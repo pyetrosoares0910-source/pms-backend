@@ -21,15 +21,17 @@ async function getMonthlyPerformance(req, res) {
     const stays = await prisma.stay.findMany({
       include: {
         rooms: {
-          where: { active: true }, // ✅ aqui
+          where: { active: true }, // ✅ já estava
           include: { reservations: true },
           orderBy: { position: "asc" },
         },
       },
     });
 
+    // ✅ remove stays que ficaram sem rooms ativos
+    const staysFiltered = stays.filter((s) => (s.rooms?.length ?? 0) > 0);
 
-    const result = stays.map((stay) => {
+    const result = staysFiltered.map((stay) => {
       let totalOccupiedDays = 0;
       let totalDaysAvailable = 0;
       let totalReservations = 0;
@@ -100,11 +102,9 @@ async function getMonthlyPerformance(req, res) {
           ocupado: occupiedDays,
           vazio,
           ocupacao: ((occupiedDays / daysInMonth) * 100).toFixed(0),
-          reservas: validReservations.length, // 👈 campo filtrado
+          reservas: validReservations.length,
         };
       });
-
-
 
       const ocupacaoMedia =
         totalDaysAvailable > 0
@@ -148,15 +148,17 @@ async function getAnnualPerformance(req, res) {
     const stays = await prisma.stay.findMany({
       include: {
         rooms: {
-          where: { active: true }, // ✅ aqui
+          where: { active: true }, // ✅ já estava
           include: { reservations: true },
           orderBy: { position: "asc" },
         },
       },
     });
 
+    // ✅ remove stays que ficaram sem rooms ativos
+    const staysFiltered = stays.filter((s) => (s.rooms?.length ?? 0) > 0);
 
-    const result = stays.map((stay) => {
+    const result = staysFiltered.map((stay) => {
       let totalAnualDiarias = 0;
       let totalAnualDisponiveis = 0;
 
@@ -177,8 +179,12 @@ async function getAnnualPerformance(req, res) {
           room.reservations.forEach((res) => {
             if (!res.checkinDate || !res.checkoutDate) return;
 
-            // ❗️ ignore canceladas
-            if (res.status && ["CANCELADA", "CANCELLED", "CANCELED"].includes(String(res.status).toUpperCase())) {
+            if (
+              res.status &&
+              ["CANCELADA", "CANCELLED", "CANCELED"].includes(
+                String(res.status).toUpperCase()
+              )
+            ) {
               return;
             }
 
@@ -187,33 +193,28 @@ async function getAnnualPerformance(req, res) {
             if (!checkIn.isValid() || !checkOut.isValid()) return;
             if (checkOut.isBefore(checkIn)) return;
 
-            // fora do mês, ignora
             if (checkOut.isBefore(startOfMonth) || checkIn.isAfter(endOfMonth)) return;
 
-            // interseção (noites): check-out é exclusivo → diff sem +1
             const start = checkIn.isBefore(startOfMonth) ? startOfMonth : checkIn;
             const end = checkOut.isAfter(endOfMonth) ? endOfMonth : checkOut;
 
-            const noites = end.diff(start, "day"); // sem +1 (mesma regra do mensal)
+            const noites = end.diff(start, "day");
             if (noites > 0 && noites < 100) {
               totalOccupiedDays += noites;
             }
           });
         });
 
-        // ocupação do mês (0–100)
         const ocupacao = totalDaysAvailable
           ? ((totalOccupiedDays / totalDaysAvailable) * 100).toFixed(0)
           : "0";
 
-        // acumula para média anual ponderada
         totalAnualDiarias += totalOccupiedDays;
         totalAnualDisponiveis += totalDaysAvailable;
 
         return { mes: month, ocupacao };
       });
 
-      //  média anual por “room-days”
       const ocupacaoMediaAnual = totalAnualDisponiveis
         ? ((totalAnualDiarias / totalAnualDisponiveis) * 100).toFixed(0)
         : "0";
@@ -225,7 +226,6 @@ async function getAnnualPerformance(req, res) {
         meses: dadosMensais,
       };
     });
-
 
     res.json({
       year: parseInt(year),
