@@ -1,40 +1,44 @@
 import { motion } from "framer-motion";
 import StatCard from "./StatCard";
+import PremiumIcon from "./PremiumIcon";
 
 export default function DashboardKPIGrid({ kpis }) {
   const gridVariants = {
     hidden: {},
-    show: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+    show: { transition: { staggerChildren: 0.06, delayChildren: 0.06 } },
   };
 
   return (
     <motion.div
-  className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-6 place-items-stretch"
-  initial="hidden"
-  animate="show"
-  variants={gridVariants}
->
-
-
+      initial="hidden"
+      animate="show"
+      variants={gridVariants}
+      className="
+        w-full
+        grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5
+        gap-4 lg:gap-5
+        auto-rows-fr
+      "
+    >
       {/* ✅ KPIs do dia — SEM comparativo */}
       <StatCard
         title="Reservas ativas (hoje)"
         value={kpis.activeToday}
-        icon="📖"
+        icon={<PremiumIcon>📖</PremiumIcon>}
         to="/map"
       />
 
       <StatCard
         title="Check-ins (hoje)"
         value={kpis.checkinsToday}
-        icon="🛎️"
+        icon={<PremiumIcon>🛎️</PremiumIcon>}
         to="/map"
       />
 
       <StatCard
         title="Check-outs (hoje)"
         value={kpis.checkoutsToday}
-        icon="🧳"
+        icon={<PremiumIcon>🧳</PremiumIcon>}
         to="/map"
       />
 
@@ -43,7 +47,7 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Diárias no mês"
         value={kpis.nightsInMonth}
         prev={kpis.prev?.nightsInMonth}
-        icon="🗓️"
+        icon={<PremiumIcon>🗓️</PremiumIcon>}
         to="/map"
       />
 
@@ -51,7 +55,7 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Reservas no mês"
         value={kpis.reservasMes}
         prev={kpis.prev?.reservasMes}
-        icon="🧾"
+        icon={<PremiumIcon>🧾</PremiumIcon>}
         to="/map"
       />
 
@@ -59,7 +63,7 @@ export default function DashboardKPIGrid({ kpis }) {
       <StatCard
         title="Maior ocupação"
         value={kpis.maiorOcupacao?.label ?? "-"}
-        icon="🏆"
+        icon={<PremiumIcon>🏆</PremiumIcon>}
         to="/performance-report"
       />
 
@@ -67,14 +71,14 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Média de diárias por reserva"
         value={kpis.mediaDiariasReserva}
         prev={kpis.prev?.mediaDiariasReserva}
-        icon="📆"
+        icon={<PremiumIcon>📆</PremiumIcon>}
         to="/performance-report"
       />
 
       <StatCard
         title="Menor ocupação"
         value={kpis.menorOcupacao?.label ?? "-"}
-        icon="⚠️"
+        icon={<PremiumIcon>⚠️</PremiumIcon>}
         to="/performance-report"
       />
 
@@ -82,7 +86,7 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Diárias de limpeza"
         value={kpis.diariasLimpeza}
         prev={kpis.prev?.diariasLimpeza}
-        icon="🪣"
+        icon={<PremiumIcon>🪣</PremiumIcon>}
         to="/cleaning-schedule"
       />
 
@@ -90,7 +94,7 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Eficiência de limpeza"
         value={kpis.eficienciaLimpeza}
         prev={kpis.prev?.eficienciaLimpeza}
-        icon="🧹"
+        icon={<PremiumIcon>🧹</PremiumIcon>}
         to="/cleaning-schedule"
       />
     </motion.div>

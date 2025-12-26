@@ -17,15 +17,16 @@ function AnimatedNumber({ value, className }) {
   useEffect(() => {
     const num = Number(value);
     if (!isNaN(num)) {
-      animate(mv, num, { duration: 1, ease: "easeOut" });
+      const controls = animate(mv, num, { duration: 1, ease: "easeOut" });
+      return () => controls?.stop?.();
     }
-  }, [value]);
+  }, [value, mv]);
 
   return <motion.span className={className}>{display}</motion.span>;
 }
 
 /* =============================================================
-   ✅ StatCard – agora com suporte a dark mode
+   ✅ StatCard — estilo “premium clean” (base do KPI)
 ============================================================= */
 export default function StatCard({
   title,
@@ -46,81 +47,83 @@ export default function StatCard({
     return prev !== 0 ? ((v - prev) / prev) * 100 : 0;
   }, [value, prev, isNumeric]);
 
+  const clickable = Boolean(to || onClick);
+
   return (
     <Wrapper {...(to ? { to } : onClick ? { onClick } : {})} className="block">
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover={{
-          y: -3,
-          boxShadow: "0 16px 40px rgba(56, 132, 255, 0.18)",
-        }}
-        transition={{ duration: 0.25 }}
+        whileHover={clickable ? { y: -2 } : undefined}
+        transition={{ duration: 0.25, ease: "easeOut" }}
         className={clsx(
-          // container
-          "relative rounded-2xl border shadow-sm p-4 flex items-center gap-4",
-          "bg-white border-slate-200",                            // light
-          "dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg", // dark
-          "transition-all select-none",
-          (to || onClick) && "cursor-pointer",
+          `
+            relative rounded-3xl p-4 border
+            bg-gradient-to-br
+            from-white via-slate-50 to-white
+            dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+            border-slate-200 dark:border-slate-700/60
+            shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]
+            transition-colors duration-300
+            select-none
+          `,
+          clickable && "cursor-pointer",
           className
         )}
       >
-        {/* === LINHA SUPERIOR CURVADA === */}
-        <div
-          className="absolute top-0 left-2 right-2 h-[4px] rounded-md
-          bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500 opacity-90 pointer-events-none"
-        />
+        {/* Sheen sutil (premium) */}
+        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-white/55 to-white/0 dark:from-white/5 dark:to-white/0" />
 
-        {/* === ICON === */}
-        <motion.div
-          whileHover={{ rotate: [-3, 3, 0], scale: 1.06 }}
-          transition={{ duration: 0.35 }}
-          className={clsx(
-            "h-11 w-11 flex items-center justify-center rounded-xl text-[22px]",
-            "bg-gradient-to-b from-slate-50 to-white/70 ring-1 ring-slate-200", // light
-            "dark:from-slate-800 dark:to-slate-900 dark:ring-slate-600"          // dark
-          )}
-        >
-          {icon}
-        </motion.div>
+        <div className="relative flex items-center gap-4">
+          {/* ICON (premium tile) */}
+          <motion.div
+            whileHover={clickable ? { rotate: [-2, 2, 0], scale: 1.04 } : undefined}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="shrink-0"
+          >
+            {icon}
+          </motion.div>
 
-        {/* === CONTENT === */}
-        <div className="flex flex-col min-w-0">
-          <span className="text-[13px] font-medium text-slate-600 truncate dark:text-slate-400">
-            {title}
-          </span>
+          {/* CONTENT */}
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-[13px] font-medium text-slate-600 truncate dark:text-slate-400">
+              {title}
+            </span>
 
-          <div className="flex items-center gap-2">
-            {isNumeric ? (
-              <AnimatedNumber
-                value={value}
-                className="text-[26px] font-bold text-slate-900 tracking-tight dark:text-slate-50"
-              />
-            ) : (
-              <span className="text-[26px] font-bold text-slate-900 tracking-tight truncate dark:text-slate-50">
-                {value}
-              </span>
-            )}
+            <div className="mt-0.5 flex items-center gap-2 min-w-0">
+              {isNumeric ? (
+                <AnimatedNumber
+                  value={value}
+                  className="text-[26px] font-extrabold text-slate-800 tracking-tight dark:text-slate-50"
+                />
+              ) : (
+                <span className="text-[26px] font-extrabold text-slate-800 tracking-tight truncate dark:text-slate-50">
+                  {value}
+                </span>
+              )}
 
-            {/* ✅ Badge de variação */}
-            {isNumeric && prevDiff !== null && (
-              <span
-                className={clsx(
-                  "px-2 py-[2px] text-xs font-semibold rounded-full",
-                  "backdrop-blur-md border shadow-md",
-                  prevDiff > 0
-                    ? "text-emerald-700 bg-emerald-100/30 border-emerald-300/40 shadow-emerald-400/40 dark:text-emerald-300 dark:bg-emerald-900/40 dark:border-emerald-700/60"
-                    : prevDiff < 0
-                    ? "text-red-600 bg-red-100/30 border-red-300/40 shadow-red-400/40 dark:text-red-300 dark:bg-red-900/40 dark:border-red-700/60"
-                    : "text-slate-500 bg-slate-200/40 border-slate-300/40 dark:text-slate-300 dark:bg-slate-800/60 dark:border-slate-600/70"
-                )}
-              >
-                {prevDiff > 0 && "▲ "}
-                {prevDiff < 0 && "▼ "}
-                {Math.abs(prevDiff).toFixed(1)}%
-              </span>
-            )}
+              {/* Badge variação (mesmo “premium clean”) */}
+              {isNumeric && prevDiff !== null && (
+                <span
+                  className={clsx(
+                    `
+                      px-2 py-[2px] text-xs font-semibold rounded-full
+                      border shadow-sm backdrop-blur
+                      whitespace-nowrap
+                    `,
+                    prevDiff > 0
+                      ? "text-emerald-700 bg-emerald-100/35 border-emerald-300/40 dark:text-emerald-300 dark:bg-emerald-900/35 dark:border-emerald-700/60"
+                      : prevDiff < 0
+                        ? "text-red-600 bg-red-100/35 border-red-300/40 dark:text-red-300 dark:bg-red-900/35 dark:border-red-700/60"
+                        : "text-slate-600 bg-slate-200/45 border-slate-300/40 dark:text-slate-300 dark:bg-slate-800/60 dark:border-slate-600/70"
+                  )}
+                >
+                  {prevDiff > 0 && "▲ "}
+                  {prevDiff < 0 && "▼ "}
+                  {Math.abs(prevDiff).toFixed(1)}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
