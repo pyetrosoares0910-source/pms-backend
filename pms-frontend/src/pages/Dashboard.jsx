@@ -702,7 +702,7 @@ export default function Dashboard() {
                     </linearGradient>
 
                     <filter id="bestGlow" x="-30%" y="-40%" width="160%" height="190%">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feGaussianBlur stdDeviation="1.5" result="blur" />
                       <feMerge>
                         <feMergeNode in="blur" />
                         <feMergeNode in="SourceGraphic" />
@@ -879,7 +879,7 @@ export default function Dashboard() {
                     </linearGradient>
 
                     <filter id="worstGlow" x="-30%" y="-40%" width="160%" height="190%">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feGaussianBlur stdDeviation="1.5" result="blur" />
                       <feMerge>
                         <feMergeNode in="blur" />
                         <feMergeNode in="SourceGraphic" />
