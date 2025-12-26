@@ -246,7 +246,7 @@ export default function Dashboard() {
       : 0;
   }, [reservations, rooms]);
 
-  // === Ocupação geral do mês retrasado ===
+  // === Ocupação geral do mês retrasado (M-2) ===
   const ocupacaoGeralPrev2 = useMemo(() => {
     const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
 
