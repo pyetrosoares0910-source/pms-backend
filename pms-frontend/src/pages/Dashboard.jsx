@@ -247,7 +247,7 @@ export default function Dashboard() {
   }, [reservations, rooms]);
 
   // === Ocupação geral do mês retrasado (M-2) ===
-  // === Ocupação geral do mês -2 ===
+
   const ocupacaoGeralPrev2 = useMemo(() => {
     const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
     const totalNoites = reservations.reduce((sum, r) => {
@@ -590,7 +590,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Ocupação Geral — 2 colunas */}
         <div className="lg:col-span-2">
-          <KpiOcupacaoTrend data={monthsTrend} />
+          <KpiGaugeOcupacao data={monthsTrend} />
         </div>
 
         {/* Progresso Manutenção */}
