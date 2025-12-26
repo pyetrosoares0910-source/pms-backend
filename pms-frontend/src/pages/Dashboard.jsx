@@ -249,18 +249,15 @@ export default function Dashboard() {
   // === Ocupação geral do mês retrasado (M-2) ===
   const ocupacaoGeralPrev2 = useMemo(() => {
     const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
-
     const totalNoites = reservations.reduce((sum, r) => {
       if (r.status === "cancelada") return sum;
       return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
     }, 0);
 
     const capacidadeTotal = rooms.length * daysInMonth;
-
-    return capacidadeTotal > 0
-      ? Math.round((totalNoites / capacidadeTotal) * 100)
-      : 0;
+    return capacidadeTotal > 0 ? Math.round((totalNoites / capacidadeTotal) * 100) : 0;
   }, [reservations, rooms]);
+
 
   // === KPIs principais ===
   const kpis = useMemo(() => {
@@ -581,7 +578,7 @@ export default function Dashboard() {
           <KpiGaugeOcupacao
             value={ocupacaoGeral}
             previous={ocupacaoGeralPrev}
-            previous2={ocupacaoGeralPrev2}
+            prev2={ocupacaoGeralPrev2}
           />
         </div>
 
