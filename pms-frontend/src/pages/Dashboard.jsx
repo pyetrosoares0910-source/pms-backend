@@ -967,65 +967,105 @@ export default function Dashboard() {
       {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Ocupação por empreendimento */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
-              📈 Ocupação por empreendimento{" "}
-              <span className="text-sm text-gray-500 dark:text-slate-400">
-                (média geral: {occupancy.avg}%)
-              </span>
-            </h2>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart
-                data={occupancy.rows}
-                barSize={55}
-                margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={isDark ? "#1f2937" : "#f3f4f6"}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{
-                    fill: isDark ? "#e5e7eb" : "#6b7280",
-                    fontSize: 13,
-                  }}
-                  interval={0}
-                  tickMargin={10}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  type="number"
-                  allowDecimals={false}
-                  tickFormatter={(v) => `${v}%`}
-                  tick={{
-                    fill: isDark ? "#9ca3af" : "#6b7280",
-                    fontSize: 12,
-                  }}
-                  padding={{ top: 0 }}
-                />
-                <RechartsTooltip
-                  formatter={(v) => `${v}%`}
-                  labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
-                  contentStyle={{
-                    borderRadius: "8px",
-                    borderColor: isDark ? "#1f2937" : "#e5e7eb",
-                    backgroundColor: isDark ? "#020617" : "#ffffff",
-                    color: isDark ? "#e5e7eb" : "#111827",
-                  }}
-                />
-                <Bar
-                  dataKey="ocupacao"
-                  name="Ocupação (%)"
-                  fill="#3B82F6"
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div
+          className="
+    relative lg:col-span-2 overflow-hidden
+    rounded-3xl border p-6
+    bg-gradient-to-br
+    from-white via-slate-50 to-white
+    dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+    border-slate-200 dark:border-slate-700/60
+    shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+    transition-colors duration-300
+  "
+        >
+          {/* Glow de fundo (sutil, mesmo padrão dos outros) */}
+          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
+          <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
+
+          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
+            📈 Ocupação por empreendimento{" "}
+            <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
+              (média geral: {occupancy.avg}%)
+            </span>
+          </h2>
+
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart
+              data={occupancy.rows}
+              barSize={52}
+              margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+            >
+              <defs>
+                {/* Gradiente principal (mesmo do resto do dash) */}
+                <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="55%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#a78bfa" />
+                </linearGradient>
+
+                {/* Glow suave */}
+                <filter id="occGlow" x="-30%" y="-40%" width="160%" height="190%">
+                  <feGaussianBlur stdDeviation="1.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* eixo X */}
+              <XAxis
+                dataKey="label"
+                interval={0}
+                tickMargin={10}
+                tick={{
+                  fill: isDark ? "#e5e7eb" : "#475569",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
+
+              {/* eixo Y */}
+              <YAxis
+                domain={[0, 100]}
+                type="number"
+                allowDecimals={false}
+                tickFormatter={(v) => `${v}%`}
+                tick={{
+                  fill: isDark ? "#9ca3af" : "#64748b",
+                  fontSize: 12,
+                }}
+                axisLine={false}
+                tickLine={false}
+              />
+
+              <RechartsTooltip
+                formatter={(v) => `${v}%`}
+                labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
+                contentStyle={{
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
+                  borderRadius: "10px",
+                  border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                  color: isDark ? "#e5e7eb" : "#0f172a",
+                  boxShadow: "0 12px 28px rgba(0,0,0,0.18)",
+                }}
+              />
+
+              <Bar
+                dataKey="ocupacao"
+                name="Ocupação (%)"
+                radius={[8, 8, 0, 0]}
+                fill="url(#occGrad)"
+                filter="url(#occGlow)"
+                isAnimationActive={false}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
+
 
         {/* Diaristas */}
         <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
