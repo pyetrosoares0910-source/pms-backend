@@ -1,146 +1,181 @@
 import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import dayjs from "dayjs";
 
-// KPI: Ocupação Geral do Mês (linha 3 meses)
-// props:
-//  - value: mês atual (%)
-//  - previous: mês anterior (%)
-//  - prev2: 2 meses atrás (%) [opcional]
-export default function KpiGaugeOcupacao({ value, previous, prev2 }) {
-  const cur = clampPct(value);
-  const prev = clampPct(previous ?? cur);
-  const prevPrev = clampPct(prev2 ?? prev);
+function clamp(n, a, b) {
+  return Math.max(a, Math.min(b, n));
+}
 
-  const diff = cur - prev;
+function PremiumIcon() {
+  // ícone “premium” (quadradinho com brilho) no estilo do seu print
+  return (
+    <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl
+      bg-gradient-to-br from-sky-500/25 via-indigo-500/20 to-fuchsia-500/20
+      border border-white/10 dark:border-white/10
+      shadow-[0_10px_30px_rgba(56,189,248,0.10)]"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 2l1.2 4.3L18 8l-4.8 1.7L12 14l-1.2-4.3L6 8l4.8-1.7L12 2Z"
+          stroke="currentColor"
+          className="text-sky-300 dark:text-sky-200"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M19 13l.7 2.4L22 16l-2.3.6L19 19l-.7-2.4L16 16l2.3-.6L19 13Z"
+          stroke="currentColor"
+          className="text-indigo-300 dark:text-indigo-200"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
 
-  // meses (labels)
-  const m0 = dayjs().format("MMM");
-  const m1 = dayjs().subtract(1, "month").format("MMM");
-  const m2 = dayjs().subtract(2, "month").format("MMM");
+export default function KpiOcupacaoTrend({ data }) {
+  // data: [{label:'OCT', value:51},{label:'NOV',value:69},{label:'DEC',value:37}]
+  const points = Array.isArray(data) ? data.slice(-3) : [];
+  const curIdx = Math.max(0, points.length - 1);
 
-  // ====== Y inteligente FIXO (pedido) ======
-  // min = 10, max = 79
-  const MIN_Y = 10;
-  const MAX_Y = 79;
-  const RANGE = Math.max(1, MAX_Y - MIN_Y);
+  const pct = Number(points?.[curIdx]?.value ?? 0) || 0;
+  const pctPrev = Number(points?.[curIdx - 1]?.value ?? pct) || pct;
+  const diff = pct - pctPrev;
 
-  // ====== Chart sizing ======
-  const W = 640;
-  const H = 220; // mais alto (menos “achatado”)
-  const padX = 34;
-  const padY = 26;
+  // escala Y fixa (pedido): 10–79
+  const Y_MIN = 10;
+  const Y_MAX = 79;
 
-  const points = useMemo(() => {
-    const xs = [
-      padX,
-      padX + (W - padX * 2) * 0.5,
-      W - padX,
-    ];
-
-    const toY = (v) => {
-      const t = (MAX_Y - v) / RANGE; // topo = MAX, base = MIN
-      return padY + t * (H - padY * 2);
-    };
-
-    const vals = [prevPrev, prev, cur];
-    return vals.map((v, i) => ({ x: xs[i], y: toY(v), v, label: [m2, m1, m0][i] }));
-  }, [cur, prev, prevPrev]);
-
-  // ====== Path (linha + área) ======
-  const linePath = useMemo(() => {
-    // curva suave simples (quadratic)
-    const [p0, p1, p2] = points;
-    const c1x = (p0.x + p1.x) / 2;
-    const c2x = (p1.x + p2.x) / 2;
-
-    return [
-      `M ${p0.x} ${p0.y}`,
-      `Q ${c1x} ${p0.y} ${p1.x} ${p1.y}`,
-      `Q ${c2x} ${p2.y} ${p2.x} ${p2.y}`,
-    ].join(" ");
-  }, [points]);
-
-  const areaPath = useMemo(() => {
-    const [p0, , p2] = points;
-    const baseY = H - padY + 6;
-    return `${linePath} L ${p2.x} ${baseY} L ${p0.x} ${baseY} Z`;
-  }, [linePath, points]);
-
-  // ====== Tooltip / crosshair ======
   const wrapRef = useRef(null);
-  const [hoverIdx, setHoverIdx] = useState(null);
-  const [mouseX, setMouseX] = useState(0);
+  const [hover, setHover] = useState(null); // { idx, x, y }
+
+  const dims = useMemo(
+    () => ({ w: 760, h: 200, padX: 26, padTop: 18, padBottom: 30 }),
+    []
+  );
+
+  const safeVals = useMemo(
+    () => points.map((p) => clamp(Number(p.value) || 0, Y_MIN, Y_MAX)),
+    [points]
+  );
+
+  const xAt = (i) => {
+    const usable = dims.w - dims.padX * 2;
+    const step = points.length <= 1 ? 0 : usable / (points.length - 1);
+    return dims.padX + i * step;
+  };
+
+  const yAt = (v) => {
+    const usable = dims.h - dims.padTop - dims.padBottom;
+    const t = (v - Y_MIN) / (Y_MAX - Y_MIN || 1);
+    return dims.padTop + (1 - t) * usable;
+  };
+
+  const coords = useMemo(() => {
+    return safeVals.map((v, i) => ({ x: xAt(i), y: yAt(v), v, label: points[i]?.label }));
+  }, [safeVals, points, dims]);
+
+  const pathD = useMemo(() => {
+    if (coords.length === 0) return "";
+    if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
+
+    // curva suave (Catmull-Rom -> Bezier)
+    const pts = coords.map((p) => [p.x, p.y]);
+    const alpha = 0.5;
+
+    const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+
+      const d1 = Math.pow(dist(p0, p1), alpha);
+      const d2 = Math.pow(dist(p1, p2), alpha);
+      const d3 = Math.pow(dist(p2, p3), alpha);
+
+      const b1 = [
+        p2[0] - (d2 * (p3[0] - p1[0])) / (d2 + d3),
+        p2[1] - (d2 * (p3[1] - p1[1])) / (d2 + d3),
+      ];
+      const b2 = [
+        p1[0] + (d2 * (p2[0] - p0[0])) / (d1 + d2),
+        p1[1] + (d2 * (p2[1] - p0[1])) / (d1 + d2),
+      ];
+
+      d += ` C ${b2[0]} ${b2[1]}, ${b1[0]} ${b1[1]}, ${p2[0]} ${p2[1]}`;
+    }
+    return d;
+  }, [coords]);
+
+  const areaD = useMemo(() => {
+    if (!pathD || coords.length === 0) return "";
+    const last = coords[coords.length - 1];
+    const first = coords[0];
+    const baseY = dims.h - dims.padBottom;
+    return `${pathD} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`;
+  }, [pathD, coords, dims]);
 
   const onMove = (e) => {
-    const el = wrapRef.current;
-    if (!el) return;
+    if (!wrapRef.current || coords.length === 0) return;
+    const rect = wrapRef.current.getBoundingClientRect();
+    const x = clamp(e.clientX - rect.left, 0, rect.width);
+    // converte x para espaço do SVG (viewBox)
+    const scaleX = dims.w / rect.width;
+    const sx = x * scaleX;
 
-    const r = el.getBoundingClientRect();
-    const x = e.clientX - r.left;
-
-    // converte para coord do SVG
-    const svgX = (x / r.width) * W;
-    setMouseX(svgX);
-
-    // pega ponto mais próximo
+    // pega o ponto mais próximo
     let best = 0;
-    let bestD = Infinity;
-    points.forEach((p, i) => {
-      const d = Math.abs(p.x - svgX);
-      if (d < bestD) {
-        bestD = d;
+    let bestDist = Infinity;
+    coords.forEach((p, i) => {
+      const d = Math.abs(p.x - sx);
+      if (d < bestDist) {
+        bestDist = d;
         best = i;
       }
     });
-    setHoverIdx(best);
+
+    const p = coords[best];
+    setHover({ idx: best, x: p.x, y: p.y, v: points[best]?.value, label: points[best]?.label });
   };
 
-  const onLeave = () => {
-    setHoverIdx(null);
-  };
-
-  const activeIdx = 2; // mês atual (último ponto)
-  const activePoint = points[activeIdx];
-
-  // ====== Visual (cores) ======
-  const accent =
-    cur >= 80 ? "#0ea5e9" : cur >= 60 ? "#38bdf8" : cur >= 40 ? "#60a5fa" : "#93c5fd";
+  const onLeave = () => setHover(null);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
       className="
-        rounded-3xl p-6 w-full h-full border
-        bg-gradient-to-br
-        from-white via-slate-50 to-white
-        dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-        border-slate-200 dark:border-slate-700/60
-        shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-        transition-colors duration-300
+        w-full h-full rounded-2xl p-6
+        border border-slate-200/70 dark:border-white/10
+        bg-white dark:bg-slate-900
+        shadow-[0_20px_60px_rgba(2,6,23,0.12)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)]
+        transition-colors
       "
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              📈 Ocupação Geral do Mês
-            </span>
+        <div className="flex items-start gap-3">
+          <PremiumIcon />
+          <div>
+            <h2 className="text-[18px] font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+              Ocupação Geral do Mês
+            </h2>
+            <p className="text-[12px] text-slate-600 dark:text-slate-400 mt-1">
+              comparação com o mês anterior
+            </p>
           </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            comparação com o mês anterior
-          </p>
         </div>
 
         <div className="text-right">
-          <div className="text-4xl font-extrabold text-slate-900 dark:text-slate-50 leading-none">
-            {cur}%
+          <div className="text-[40px] font-extrabold text-slate-800 dark:text-slate-50 leading-none">
+            {pct}%
           </div>
           <div
-            className={`mt-1 text-sm font-semibold ${diff >= 0 ? "text-emerald-500" : "text-red-500"
+            className={`mt-1 text-[13px] font-semibold ${diff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
               }`}
           >
             {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
@@ -151,210 +186,174 @@ export default function KpiGaugeOcupacao({ value, previous, prev2 }) {
       {/* Chart */}
       <div
         ref={wrapRef}
-        className="mt-4 relative select-none"
+        className="mt-5 rounded-2xl relative overflow-hidden"
         onMouseMove={onMove}
-        onMouseEnter={onMove}
         onMouseLeave={onLeave}
       >
+        <div
+          className="
+            absolute inset-0
+            bg-gradient-to-b from-slate-100/70 to-white/0
+            dark:from-white/5 dark:to-white/0
+          "
+        />
+
         <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-[200px]"
-          role="img"
-          aria-label="Ocupação (últimos 3 meses)"
+          viewBox={`0 0 ${dims.w} ${dims.h}`}
+          className="relative w-full h-[220px] lg:h-[240px]"
         >
           <defs>
             <linearGradient id="kpiLine" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="55%" stopColor={accent} />
-              <stop offset="100%" stopColor="#a78bfa" />
+              <stop offset="0%" stopColor="rgba(56,189,248,1)" />
+              <stop offset="55%" stopColor="rgba(129,140,248,1)" />
+              <stop offset="100%" stopColor="rgba(168,85,247,1)" />
             </linearGradient>
 
             <linearGradient id="kpiArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#60a5fa" stopOpacity="0" />
+              <stop offset="0%" stopColor="rgba(99,102,241,0.26)" />
+              <stop offset="80%" stopColor="rgba(99,102,241,0.00)" />
             </linearGradient>
 
-            <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
+            <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feColorMatrix
+                in="blur"
+                type="matrix"
+                values="
+                  1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 .35 0"
+              />
               <feMerge>
-                <feMergeNode in="blur" />
+                <feMergeNode />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
 
-          {/* baseline */}
-          <line
-            x1={padX}
-            y1={H - padY + 6}
-            x2={W - padX}
-            y2={H - padY + 6}
-            stroke="rgba(100,116,139,0.22)"
-            className="dark:opacity-70"
-            strokeWidth="1"
+          {/* régua vertical do tooltip */}
+          {hover && (
+            <line
+              x1={hover.x}
+              y1={dims.padTop}
+              x2={hover.x}
+              y2={dims.h - dims.padBottom}
+              stroke="rgba(148,163,184,0.45)"
+              strokeDasharray="4 6"
+            />
+          )}
+
+          {/* Área */}
+          {areaD && (
+            <path d={areaD} fill="url(#kpiArea)" />
+          )}
+
+          {/* Linha (com glow + animação) */}
+          <motion.path
+            d={pathD}
+            fill="none"
+            stroke="url(#kpiLine)"
+            strokeWidth="4"
+            strokeLinecap="round"
+            filter="url(#softGlow)"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.0, ease: "easeOut" }}
           />
 
-          {/* crosshair vertical + highlight */}
-          {hoverIdx !== null && (
+          {/* ponto pulsante APENAS no mês atual */}
+          {coords[curIdx] && (
             <>
-              <line
-                x1={points[hoverIdx].x}
-                y1={padY - 4}
-                x2={points[hoverIdx].x}
-                y2={H - padY + 6}
-                stroke="rgba(148,163,184,0.35)"
-                strokeWidth="1"
-                strokeDasharray="4 6"
+              {/* halo pulsante */}
+              <motion.circle
+                cx={coords[curIdx].x}
+                cy={coords[curIdx].y}
+                r="10"
+                fill="rgba(99,102,241,0.18)"
+                initial={{ opacity: 0.0, scale: 0.9 }}
+                animate={{ opacity: [0.0, 0.75, 0.0], scale: [0.85, 1.35, 0.85] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              {/* ponto pequeno */}
+              <circle
+                cx={coords[curIdx].x}
+                cy={coords[curIdx].y}
+                r="5"
+                fill="rgba(15,23,42,0.95)"
+                className="dark:fill-slate-950"
               />
               <circle
-                cx={points[hoverIdx].x}
-                cy={points[hoverIdx].y}
-                r="10"
-                fill="rgba(99,102,241,0.08)"
+                cx={coords[curIdx].x}
+                cy={coords[curIdx].y}
+                r="5"
+                fill="transparent"
+                stroke="rgba(147,197,253,0.95)"
+                strokeWidth="2.5"
               />
             </>
           )}
-
-          {/* area */}
-          <path d={areaPath} fill="url(#kpiArea)" />
-
-          {/* glow line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke="url(#kpiLine)"
-            strokeWidth="5"
-            strokeLinecap="round"
-            filter="url(#softGlow)"
-            opacity="0.22"
-          />
-
-          {/* main line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke="url(#kpiLine)"
-            strokeWidth="3.25"
-            strokeLinecap="round"
-          />
-
-          {/* dots */}
-          {points.map((p, idx) => {
-            const isActive = idx === activeIdx;
-            const isHover = hoverIdx === idx;
-
-            return (
-              <g key={idx}>
-                {/* ring */}
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={isActive ? 7 : 5}
-                  fill={isActive ? "white" : "rgba(255,255,255,0.92)"}
-                  className="dark:fill-slate-950"
-                  opacity={isHover ? 1 : 0.95}
-                />
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={isActive ? 10 : 8}
-                  fill="none"
-                  stroke={isActive ? accent : "rgba(148,163,184,0.45)"}
-                  strokeWidth={isActive ? 2.2 : 1.6}
-                  opacity={isHover || isActive ? 0.9 : 0.6}
-                />
-
-                {/* pulse only on current month */}
-                {isActive && (
-                  <>
-                    <circle cx={p.x} cy={p.y} r="10" fill="none" stroke={accent} strokeWidth="2" opacity="0.8">
-                      <animate attributeName="r" values="10;18;10" dur="1.8s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.55;0.12;0.55" dur="1.8s" repeatCount="indefinite" />
-                    </circle>
-                  </>
-                )}
-              </g>
-            );
-          })}
         </svg>
 
-        {/* Tooltip (HTML) */}
-        {hoverIdx !== null && (
+        {/* Tooltip */}
+        {hover && (
           <div
             className="
-              absolute -top-2
-              px-3 py-2 rounded-xl border
-              bg-white/95 dark:bg-slate-950/90
-              border-slate-200 dark:border-slate-700
-              shadow-md
-              text-xs text-slate-700 dark:text-slate-100
+              absolute top-3 right-4
+              rounded-xl px-3 py-2
+              bg-white/90 dark:bg-slate-950/85
+              border border-slate-200/70 dark:border-white/10
+              shadow-lg
               backdrop-blur
-              pointer-events-none
-              whitespace-nowrap
             "
-            style={{
-              left: `${(points[hoverIdx].x / W) * 100}%`,
-              transform: "translateX(-50%)",
-            }}
           >
-            <div className="font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {points[hoverIdx].label}
+            <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+              {hover.label}
             </div>
-            <div className="mt-0.5">
-              <span className="font-semibold">{points[hoverIdx].v}%</span>{" "}
-              <span className="text-slate-500 dark:text-slate-400">
-                (escala {MIN_Y}–{MAX_Y})
+            <div className="text-[13px] font-bold text-slate-900 dark:text-slate-50">
+              {hover.v}%{" "}
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                (escala {Y_MIN}–{Y_MAX})
               </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* mini-cards inline (compactos) */}
-      <div className="mt-2 flex flex-col gap-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
-            { label: m2, v: prevPrev },
-            { label: m1, v: prev },
-            { label: m0, v: cur, active: true },
-          ].map((x) => (
+      {/* Cards compactos */}
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        {points.map((p, i) => {
+          const isCurrent = i === curIdx;
+          return (
             <div
-              key={x.label}
+              key={`${p.label}-${i}`}
               className={`
-                flex items-center justify-between
-                px-4 py-3 rounded-2xl border
-                ${x.active
-                  ? "border-slate-400/60 bg-slate-50 dark:bg-slate-950"
-                  : "border-slate-200 bg-white dark:bg-slate-900/40 dark:border-slate-700/60"
-                }
-                transition-colors
+                rounded-2xl px-4 py-3
+                border
+                ${isCurrent
+                  ? "border-sky-300/40 dark:border-indigo-300/20 bg-sky-50/60 dark:bg-white/5"
+                  : "border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/3"}
               `}
             >
-              <div className="flex items-center gap-2">
-                <span className="uppercase tracking-wider text-xs text-slate-500 dark:text-slate-400">
-                  {x.label}
-                </span>
-                {x.active && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200">
-                    atual
-                  </span>
-                )}
-              </div>
-
-              <div className="text-lg font-extrabold text-slate-900 dark:text-slate-50">
-                {x.v}%
+              <div className="flex items-center justify-between">
+                <div className="text-[12px] tracking-wide text-slate-600 dark:text-slate-400">
+                  {p.label}
+                  {isCurrent && (
+                    <span className="ml-2 text-[11px] px-2 py-[2px] rounded-full
+                      bg-sky-500/15 text-sky-700 dark:text-sky-200 dark:bg-sky-500/15"
+                    >
+                      atual
+                    </span>
+                  )}
+                </div>
+                <div className="text-[18px] font-extrabold text-slate-800 dark:text-slate-50">
+                  {Number(p.value) || 0}%
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </motion.div>
   );
-}
-
-/* ===== utils ===== */
-function clampPct(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, Math.round(n)));
 }

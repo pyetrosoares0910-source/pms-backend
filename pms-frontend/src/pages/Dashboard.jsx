@@ -247,6 +247,7 @@ export default function Dashboard() {
   }, [reservations, rooms]);
 
   // === Ocupação geral do mês retrasado (M-2) ===
+  // === Ocupação geral do mês -2 ===
   const ocupacaoGeralPrev2 = useMemo(() => {
     const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
     const totalNoites = reservations.reduce((sum, r) => {
@@ -257,6 +258,20 @@ export default function Dashboard() {
     const capacidadeTotal = rooms.length * daysInMonth;
     return capacidadeTotal > 0 ? Math.round((totalNoites / capacidadeTotal) * 100) : 0;
   }, [reservations, rooms]);
+
+  // labels dos meses
+  const monthsTrend = useMemo(() => {
+    const m2 = dayjs().subtract(2, "month").format("MMM").toUpperCase();
+    const m1 = dayjs().subtract(1, "month").format("MMM").toUpperCase();
+    const m0 = dayjs().format("MMM").toUpperCase();
+
+    return [
+      { label: m2, value: ocupacaoGeralPrev2 },
+      { label: m1, value: ocupacaoGeralPrev },
+      { label: m0, value: ocupacaoGeral },
+    ];
+  }, [ocupacaoGeralPrev2, ocupacaoGeralPrev, ocupacaoGeral]);
+
 
 
   // === KPIs principais ===
@@ -575,11 +590,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Ocupação Geral — 2 colunas */}
         <div className="lg:col-span-2">
-          <KpiGaugeOcupacao
-            value={ocupacaoGeral}
-            previous={ocupacaoGeralPrev}
-            prev2={ocupacaoGeralPrev2}
-          />
+          <KpiOcupacaoTrend data={monthsTrend} />
         </div>
 
         {/* Progresso Manutenção */}
