@@ -1,31 +1,35 @@
 import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
+const Y_MIN = 10;
+const Y_MAX = 79;
+
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
 function PremiumIcon() {
-  // ícone “premium” (quadradinho com brilho) no estilo do seu print
+  // “premium” simples e bonito (sem depender de lib)
   return (
-    <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl
-      bg-gradient-to-br from-sky-500/25 via-indigo-500/20 to-fuchsia-500/20
-      border border-white/10 dark:border-white/10
-      shadow-[0_10px_30px_rgba(56,189,248,0.10)]"
+    <span
+      className="
+        inline-flex items-center justify-center w-9 h-9 rounded-2xl
+        bg-gradient-to-br from-sky-500/20 via-indigo-500/15 to-fuchsia-500/20
+        border border-white/10 dark:border-white/10
+        shadow-[0_12px_36px_rgba(56,189,248,0.18)]
+      "
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path
-          d="M12 2l1.2 4.3L18 8l-4.8 1.7L12 14l-1.2-4.3L6 8l4.8-1.7L12 2Z"
+          d="M12 2l1.4 4.6L18 8l-4.6 1.4L12 14l-1.4-4.6L6 8l4.6-1.4L12 2Z"
           stroke="currentColor"
-          className="text-sky-300 dark:text-sky-200"
-          strokeWidth="1.6"
+          className="text-sky-200 dark:text-sky-200"
+          strokeWidth="1.7"
           strokeLinejoin="round"
         />
         <path
-          d="M19 13l.7 2.4L22 16l-2.3.6L19 19l-.7-2.4L16 16l2.3-.6L19 13Z"
+          d="M19 13l.8 2.6L22 16l-2.2.4L19 19l-.8-2.6L16 16l2.2-.4L19 13Z"
           stroke="currentColor"
-          className="text-indigo-300 dark:text-indigo-200"
-          strokeWidth="1.6"
+          className="text-indigo-200 dark:text-indigo-200"
+          strokeWidth="1.7"
           strokeLinejoin="round"
         />
       </svg>
@@ -33,8 +37,11 @@ function PremiumIcon() {
   );
 }
 
-export default function KpiOcupacaoTrend({ data }) {
-  // data: [{label:'OCT', value:51},{label:'NOV',value:69},{label:'DEC',value:37}]
+/**
+ * props:
+ *  data: [{label:'OCT', value:51},{label:'NOV',value:69},{label:'DEC',value:37}]
+ */
+export default function KpiGaugeOcupacao({ data = [] }) {
   const points = Array.isArray(data) ? data.slice(-3) : [];
   const curIdx = Math.max(0, points.length - 1);
 
@@ -42,19 +49,16 @@ export default function KpiOcupacaoTrend({ data }) {
   const pctPrev = Number(points?.[curIdx - 1]?.value ?? pct) || pct;
   const diff = pct - pctPrev;
 
-  // escala Y fixa (pedido): 10–79
-  const Y_MIN = 10;
-  const Y_MAX = 79;
-
   const wrapRef = useRef(null);
-  const [hover, setHover] = useState(null); // { idx, x, y }
+  const [hover, setHover] = useState(null); // {idx,x,y,label,value}
 
+  // Dimensões do SVG (bem “alto” pra evidenciar diferença)
   const dims = useMemo(
-    () => ({ w: 760, h: 200, padX: 26, padTop: 18, padBottom: 30 }),
+    () => ({ w: 860, h: 260, padX: 34, padTop: 26, padBottom: 44 }),
     []
   );
 
-  const safeVals = useMemo(
+  const values = useMemo(
     () => points.map((p) => clamp(Number(p.value) || 0, Y_MIN, Y_MAX)),
     [points]
   );
@@ -72,61 +76,56 @@ export default function KpiOcupacaoTrend({ data }) {
   };
 
   const coords = useMemo(() => {
-    return safeVals.map((v, i) => ({ x: xAt(i), y: yAt(v), v, label: points[i]?.label }));
-  }, [safeVals, points, dims]);
+    return values.map((v, i) => ({
+      x: xAt(i),
+      y: yAt(v),
+      v: Number(points[i]?.value ?? 0) || 0,
+      label: points[i]?.label ?? "",
+    }));
+  }, [values, points]);
 
+  // ✅ curva suave e estável (midpoints + Quadratic Bezier)
   const pathD = useMemo(() => {
     if (coords.length === 0) return "";
     if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
 
-    // curva suave (Catmull-Rom -> Bezier)
-    const pts = coords.map((p) => [p.x, p.y]);
-    const alpha = 0.5;
+    const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-    const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const p0 = coords[0];
+    let d = `M ${p0.x} ${p0.y}`;
 
-    let d = `M ${pts[0][0]} ${pts[0][1]}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const pA = coords[i];
+      const pB = coords[i + 1];
+      const m = mid(pA, pB);
 
-      const d1 = Math.pow(dist(p0, p1), alpha);
-      const d2 = Math.pow(dist(p1, p2), alpha);
-      const d3 = Math.pow(dist(p2, p3), alpha);
+      // primeira metade: curva até o midpoint
+      d += ` Q ${pA.x} ${pA.y} ${m.x} ${m.y}`;
 
-      const b1 = [
-        p2[0] - (d2 * (p3[0] - p1[0])) / (d2 + d3),
-        p2[1] - (d2 * (p3[1] - p1[1])) / (d2 + d3),
-      ];
-      const b2 = [
-        p1[0] + (d2 * (p2[0] - p0[0])) / (d1 + d2),
-        p1[1] + (d2 * (p2[1] - p0[1])) / (d1 + d2),
-      ];
-
-      d += ` C ${b2[0]} ${b2[1]}, ${b1[0]} ${b1[1]}, ${p2[0]} ${p2[1]}`;
+      // última iteração: curva até o ponto final
+      if (i === coords.length - 2) {
+        d += ` Q ${pB.x} ${pB.y} ${pB.x} ${pB.y}`;
+      }
     }
     return d;
   }, [coords]);
 
   const areaD = useMemo(() => {
     if (!pathD || coords.length === 0) return "";
-    const last = coords[coords.length - 1];
-    const first = coords[0];
     const baseY = dims.h - dims.padBottom;
+    const first = coords[0];
+    const last = coords[coords.length - 1];
     return `${pathD} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`;
-  }, [pathD, coords, dims]);
+  }, [pathD, coords]);
 
   const onMove = (e) => {
     if (!wrapRef.current || coords.length === 0) return;
     const rect = wrapRef.current.getBoundingClientRect();
     const x = clamp(e.clientX - rect.left, 0, rect.width);
-    // converte x para espaço do SVG (viewBox)
+
     const scaleX = dims.w / rect.width;
     const sx = x * scaleX;
 
-    // pega o ponto mais próximo
     let best = 0;
     let bestDist = Infinity;
     coords.forEach((p, i) => {
@@ -138,26 +137,45 @@ export default function KpiOcupacaoTrend({ data }) {
     });
 
     const p = coords[best];
-    setHover({ idx: best, x: p.x, y: p.y, v: points[best]?.value, label: points[best]?.label });
+    setHover({ idx: best, x: p.x, y: p.y, label: p.label, value: p.v });
   };
 
   const onLeave = () => setHover(null);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="
-        w-full h-full rounded-2xl p-6
-        border border-slate-200/70 dark:border-white/10
-        bg-white dark:bg-slate-900
-        shadow-[0_20px_60px_rgba(2,6,23,0.12)] dark:shadow-[0_30px_90px_rgba(0,0,0,0.35)]
-        transition-colors
+        w-full h-full rounded-3xl p-6 relative overflow-hidden
+        border border-slate-200/60 dark:border-white/10
+        bg-white dark:bg-[#0B1220]
+        shadow-[0_22px_70px_rgba(2,6,23,0.10)]
+        dark:shadow-[0_30px_110px_rgba(0,0,0,0.45)]
       "
     >
+      {/* Premium background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div
+          className="
+            absolute -top-24 -left-28 w-[420px] h-[420px] rounded-full
+            bg-gradient-to-br from-sky-500/25 via-indigo-500/15 to-fuchsia-500/15
+            blur-3xl
+          "
+        />
+        <div
+          className="
+            absolute -bottom-32 -right-32 w-[520px] h-[520px] rounded-full
+            bg-gradient-to-br from-fuchsia-500/20 via-indigo-500/12 to-sky-500/18
+            blur-3xl
+          "
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/25 to-white/0 dark:from-white/5 dark:to-white/0" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="relative flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <PremiumIcon />
           <div>
@@ -171,11 +189,13 @@ export default function KpiOcupacaoTrend({ data }) {
         </div>
 
         <div className="text-right">
-          <div className="text-[40px] font-extrabold text-slate-800 dark:text-slate-50 leading-none">
+          <div className="text-[42px] font-extrabold text-slate-800 dark:text-slate-50 leading-none">
             {pct}%
           </div>
           <div
-            className={`mt-1 text-[13px] font-semibold ${diff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+            className={`mt-1 text-[13px] font-semibold ${diff >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-rose-600 dark:text-rose-400"
               }`}
           >
             {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
@@ -183,41 +203,41 @@ export default function KpiOcupacaoTrend({ data }) {
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Chart container */}
       <div
         ref={wrapRef}
-        className="mt-5 rounded-2xl relative overflow-hidden"
         onMouseMove={onMove}
         onMouseLeave={onLeave}
+        className="
+          relative mt-5 rounded-3xl overflow-hidden
+          border border-slate-200/50 dark:border-white/10
+          bg-white/40 dark:bg-white/5
+          backdrop-blur-xl
+        "
       >
-        <div
-          className="
-            absolute inset-0
-            bg-gradient-to-b from-slate-100/70 to-white/0
-            dark:from-white/5 dark:to-white/0
-          "
-        />
+        {/* subtle inner sheen */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-white/30 to-white/0 dark:from-white/6 dark:to-white/0" />
 
         <svg
           viewBox={`0 0 ${dims.w} ${dims.h}`}
-          className="relative w-full h-[220px] lg:h-[240px]"
+          className="relative w-full h-[250px] lg:h-[270px]"
         >
           <defs>
-            <linearGradient id="kpiLine" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(56,189,248,1)" />
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="rgba(34,211,238,1)" />
               <stop offset="55%" stopColor="rgba(129,140,248,1)" />
               <stop offset="100%" stopColor="rgba(168,85,247,1)" />
             </linearGradient>
 
-            <linearGradient id="kpiArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(99,102,241,0.26)" />
-              <stop offset="80%" stopColor="rgba(99,102,241,0.00)" />
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(99,102,241,0.22)" />
+              <stop offset="85%" stopColor="rgba(99,102,241,0.00)" />
             </linearGradient>
 
-            <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="6" result="blur" />
+            <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="7" result="b" />
               <feColorMatrix
-                in="blur"
+                in="b"
                 type="matrix"
                 values="
                   1 0 0 0 0
@@ -232,86 +252,81 @@ export default function KpiOcupacaoTrend({ data }) {
             </filter>
           </defs>
 
-          {/* régua vertical do tooltip */}
+          {/* régua vertical no hover */}
           {hover && (
             <line
               x1={hover.x}
-              y1={dims.padTop}
+              y1={dims.padTop - 2}
               x2={hover.x}
-              y2={dims.h - dims.padBottom}
+              y2={dims.h - dims.padBottom + 2}
               stroke="rgba(148,163,184,0.45)"
-              strokeDasharray="4 6"
+              strokeDasharray="4 7"
             />
           )}
 
-          {/* Área */}
-          {areaD && (
-            <path d={areaD} fill="url(#kpiArea)" />
-          )}
+          {/* área */}
+          {areaD && <path d={areaD} fill="url(#areaGrad)" />}
 
-          {/* Linha (com glow + animação) */}
+          {/* linha animada */}
           <motion.path
             d={pathD}
             fill="none"
-            stroke="url(#kpiLine)"
-            strokeWidth="4"
+            stroke="url(#lineGrad)"
+            strokeWidth="5"
             strokeLinecap="round"
-            filter="url(#softGlow)"
+            filter="url(#glow)"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
-            transition={{ duration: 1.0, ease: "easeOut" }}
+            transition={{ duration: 1.05, ease: "easeOut" }}
           />
 
-          {/* ponto pulsante APENAS no mês atual */}
+          {/* ponto pulsante apenas no mês atual */}
           {coords[curIdx] && (
             <>
-              {/* halo pulsante */}
               <motion.circle
                 cx={coords[curIdx].x}
                 cy={coords[curIdx].y}
-                r="10"
-                fill="rgba(99,102,241,0.18)"
+                r="9" // menor
+                fill="rgba(129,140,248,0.18)"
                 initial={{ opacity: 0.0, scale: 0.9 }}
                 animate={{ opacity: [0.0, 0.75, 0.0], scale: [0.85, 1.35, 0.85] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              />
-              {/* ponto pequeno */}
-              <circle
-                cx={coords[curIdx].x}
-                cy={coords[curIdx].y}
-                r="5"
-                fill="rgba(15,23,42,0.95)"
-                className="dark:fill-slate-950"
+                transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }}
               />
               <circle
                 cx={coords[curIdx].x}
                 cy={coords[curIdx].y}
-                r="5"
+                r="4.5"
+                fill="rgba(2,6,23,0.9)"
+                className="dark:fill-[#0B1220]"
+              />
+              <circle
+                cx={coords[curIdx].x}
+                cy={coords[curIdx].y}
+                r="4.5"
                 fill="transparent"
-                stroke="rgba(147,197,253,0.95)"
-                strokeWidth="2.5"
+                stroke="rgba(186,230,253,0.95)"
+                strokeWidth="2.4"
               />
             </>
           )}
         </svg>
 
-        {/* Tooltip */}
+        {/* tooltip */}
         {hover && (
           <div
             className="
-              absolute top-3 right-4
-              rounded-xl px-3 py-2
-              bg-white/90 dark:bg-slate-950/85
-              border border-slate-200/70 dark:border-white/10
-              shadow-lg
-              backdrop-blur
+              absolute top-4 right-4
+              rounded-2xl px-3 py-2
+              bg-white/85 dark:bg-[#0B1220]/80
+              border border-slate-200/60 dark:border-white/10
+              shadow-lg backdrop-blur-xl
             "
           >
-            <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">
+            <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
               {hover.label}
             </div>
-            <div className="text-[13px] font-bold text-slate-900 dark:text-slate-50">
-              {hover.v}%{" "}
+            <div className="text-[14px] font-extrabold text-slate-800 dark:text-slate-50">
+              {hover.value}%{" "}
               <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 (escala {Y_MIN}–{Y_MAX})
               </span>
@@ -321,7 +336,7 @@ export default function KpiOcupacaoTrend({ data }) {
       </div>
 
       {/* Cards compactos */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="relative mt-4 grid grid-cols-3 gap-3">
         {points.map((p, i) => {
           const isCurrent = i === curIdx;
           return (
@@ -329,10 +344,11 @@ export default function KpiOcupacaoTrend({ data }) {
               key={`${p.label}-${i}`}
               className={`
                 rounded-2xl px-4 py-3
-                border
+                border transition-colors
                 ${isCurrent
-                  ? "border-sky-300/40 dark:border-indigo-300/20 bg-sky-50/60 dark:bg-white/5"
-                  : "border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/3"}
+                  ? "border-sky-300/35 dark:border-indigo-300/20 bg-white/55 dark:bg-white/6"
+                  : "border-slate-200/55 dark:border-white/10 bg-white/35 dark:bg-white/4"
+                }
               `}
             >
               <div className="flex items-center justify-between">
@@ -346,6 +362,7 @@ export default function KpiOcupacaoTrend({ data }) {
                     </span>
                   )}
                 </div>
+
                 <div className="text-[18px] font-extrabold text-slate-800 dark:text-slate-50">
                   {Number(p.value) || 0}%
                 </div>
