@@ -10,6 +10,8 @@ router.get("/:id", roomController.getRoomById);
 router.post("/", validateRoom, handleValidation, roomController.createRoom);
 router.put("/:id", validateRoom, handleValidation, roomController.updateRoom);
 router.delete("/:id", roomController.deleteRoom);
-router.post("/:id/upload", roomController.uploadMiddleware, roomController.uploadRoomImage);
+router.post("/:id/image", roomController.uploadMiddleware, roomController.uploadRoomImage); // ✅ alias
+router.post("/:id/upload", roomController.uploadMiddleware, roomController.uploadRoomImage); // mantém
+
 
 module.exports = router;
