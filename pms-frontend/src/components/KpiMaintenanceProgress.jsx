@@ -33,6 +33,7 @@ export default function KpiMaintenanceProgress({ maintenanceStats, isDark }) {
         border-slate-200 dark:border-slate-700/60
         shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
         transition-colors duration-300
+        flex flex-col justify-center
       "
         >
             <div className="flex items-start justify-between gap-4">
@@ -49,18 +50,21 @@ export default function KpiMaintenanceProgress({ maintenanceStats, isDark }) {
                 </div>
             </div>
 
+            {/* centro do card */}
             <div className="mt-4 flex items-center justify-center">
                 <div className="relative">
                     <PieChart width={176} height={176}>
                         <defs>
+                            {/* menos neon / mais premium */}
                             <linearGradient id="maintGrad" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%" stopColor="#38bdf8" />
-                                <stop offset="55%" stopColor="#60a5fa" />
+                                <stop offset="0%" stopColor="#60a5fa" />
+                                <stop offset="55%" stopColor="#7c8cff" />
                                 <stop offset="100%" stopColor="#a78bfa" />
                             </linearGradient>
 
-                            <filter id="maintGlow" x="-40%" y="-40%" width="180%" height="180%">
-                                <feGaussianBlur stdDeviation="4" result="blur" />
+                            {/* glow mais suave */}
+                            <filter id="maintGlow" x="-35%" y="-35%" width="170%" height="170%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
                                 <feMerge>
                                     <feMergeNode in="blur" />
                                     <feMergeNode in="SourceGraphic" />
@@ -78,11 +82,19 @@ export default function KpiMaintenanceProgress({ maintenanceStats, isDark }) {
                             startAngle={90}
                             endAngle={-270}
                         >
-                            {/* Concluídas: gradiente premium */}
-                            <Cell fill="url(#maintGrad)" filter="url(#maintGlow)" />
+                            {/* concluidas: gradiente com brilho reduzido */}
+                            <Cell
+                                fill="url(#maintGrad)"
+                                filter="url(#maintGlow)"
+                                fillOpacity={0.88}
+                            />
 
-                            {/* Pendentes: neutro elegante */}
-                            <Cell fill={isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)"} />
+                            {/* pendentes: neutro elegante */}
+                            <Cell
+                                fill={
+                                    isDark ? "rgba(255,255,255,0.07)" : "rgba(15,23,42,0.07)"
+                                }
+                            />
                         </Pie>
                     </PieChart>
 

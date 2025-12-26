@@ -589,28 +589,21 @@ export default function Dashboard() {
       </div>
 
       {/* ==== LINHA: OCUPAÇÃO + MANUTENÇÃO + TOTAL ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Ocupação Geral — 2 colunas */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
+        <div className="lg:col-span-2 h-full">
           <KpiGaugeOcupacao data={monthsTrend} />
         </div>
 
-        {/* Progresso Manutenção */}
-        <div>
-          <KpiMaintenanceProgress
-            maintenanceStats={maintenanceStats}
-            isDark={isDark}
-          />
+        <div className="h-full flex">
+          <KpiMaintenanceProgress maintenanceStats={maintenanceStats} isDark={isDark} />
         </div>
 
-        {/* Total Reservas */}
-        <div>
-          <KpiTotalReservas
-            value={kpis.totalReservas + 1963}
-            note="Inclui 1.963 reservas do PMS anterior"
-          />
+        <div className="h-full flex">
+          <KpiTotalReservas value={kpis.totalReservas + 1963} note="Inclui 1.963 reservas do PMS anterior" />
         </div>
+
       </div>
+
 
       {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

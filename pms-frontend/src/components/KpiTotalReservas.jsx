@@ -16,6 +16,7 @@ export default function KpiTotalReservas({ value, note }) {
         border-slate-200 dark:border-slate-700/60
         shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
         transition-colors duration-300
+        flex flex-col justify-center
       "
         >
             <div className="flex items-start justify-between gap-4">
@@ -32,24 +33,25 @@ export default function KpiTotalReservas({ value, note }) {
                 </div>
             </div>
 
-            <div className="mt-5 flex items-end justify-between">
+            {/* centro do card */}
+            <div className="mt-5 flex flex-col items-center justify-center text-center">
                 <div
                     className="
             text-6xl font-extrabold tracking-tight leading-none
             bg-gradient-to-r from-sky-400 via-blue-500 to-violet-400
             bg-clip-text text-transparent
-            drop-shadow-[0_10px_26px_rgba(59,130,246,0.18)]
+            drop-shadow-[0_10px_26px_rgba(59,130,246,0.14)]
           "
                 >
                     {value}
                 </div>
-            </div>
 
-            {note && (
-                <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                    {note}
-                </p>
-            )}
+                {note && (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                        {note}
+                    </p>
+                )}
+            </div>
         </motion.div>
     );
 }
