@@ -1068,27 +1068,43 @@ export default function Dashboard() {
 
 
         {/* Diaristas */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">
-              👥 Diaristas
-            </h2>
+        <div
+          className="
+    relative overflow-hidden
+    rounded-3xl border p-6
+    bg-gradient-to-br
+    from-white via-slate-50 to-white
+    dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+    border-slate-200 dark:border-slate-700/60
+    shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+    transition-colors duration-300
+  "
+        >
+          {/* Glow sutil */}
+          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
+          <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
 
-            <DiaristaList
-              title="Ativas hoje"
-              data={maidsToday}
-              color="blue"
-              empty="Nenhuma diarista ativa hoje"
-            />
-            <hr className="my-3 border-gray-100 dark:border-slate-700" />
-            <DiaristaList
-              title="Confirmadas para amanhã"
-              data={maidsTomorrow}
-              color="amber"
-              empty="Nenhuma diarista confirmada amanhã"
-            />
-          </div>
+          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
+            👥 Diaristas
+          </h2>
+
+          <DiaristaList
+            title="Ativas hoje"
+            data={maidsToday}
+            variant="active"
+            empty="Nenhuma diarista ativa hoje"
+          />
+
+          <div className="my-4 h-px bg-slate-200/70 dark:bg-slate-700/60" />
+
+          <DiaristaList
+            title="Confirmadas para amanhã"
+            data={maidsTomorrow}
+            variant="scheduled"
+            empty="Nenhuma diarista confirmada amanhã"
+          />
         </div>
+
       </div>
 
       {/* ==== AGENDAS ==== */}
@@ -1113,58 +1129,86 @@ export default function Dashboard() {
 /* ============================
    COMPONENTES AUXILIARES
 ============================ */
+function DiaristaList({ title, data, variant, empty }) {
+  const isActive = variant === "active";
 
-function DiaristaList({ title, data, color, empty }) {
   return (
     <div>
-      <div className="text-xs uppercase text-gray-400 dark:text-slate-500 mb-2">
+      <div className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
         {title}
       </div>
+
       {Object.keys(data).length ? (
-        <ul className="divide-y divide-gray-100 dark:divide-slate-700">
-          {Object.entries(data).map(([nome, locais]) => (
-            <li key={nome} className="flex items-center justify-between py-2">
-              <div className="flex items-start gap-3">
-                <div
-                  className={`rounded-full w-8 h-8 flex items-center justify-center ${color === "blue"
-                    ? "bg-blue-100 text-blue-600"
-                    : "bg-amber-100 text-amber-700"
-                    }`}
+        <ul className="divide-y divide-slate-200/70 dark:divide-slate-700/60">
+          {Object.entries(data).map(([nome, locais]) => {
+            const initial = (nome?.trim()?.charAt(0) || "?").toUpperCase();
+
+            const locaisFmt = locais
+              .map((txt) => txt.split("–")[1]?.trim() || txt)
+              .join(" | ");
+
+            return (
+              <li key={nome} className="flex items-center justify-between py-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  {/* Avatar premium */}
+                  <div
+                    className={`
+                      h-9 w-9 shrink-0 rounded-full grid place-items-center
+                      ring-1
+                      ${isActive
+                        ? "bg-sky-500/10 ring-sky-400/30 text-sky-700 dark:text-sky-200"
+                        : "bg-violet-500/10 ring-violet-400/30 text-violet-700 dark:text-violet-200"
+                      }
+                    `}
+                  >
+                    <span className="text-sm font-semibold">{initial}</span>
+                  </div>
+
+                  {/* Texto */}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {nome}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                      {locaisFmt}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Chip premium */}
+                <span
+                  className={`
+                    ml-3 shrink-0
+                    inline-flex items-center gap-1.5
+                    rounded-full border px-2.5 py-1 text-xs font-semibold
+                    backdrop-blur
+                    ${isActive
+                      ? "text-sky-700 border-sky-300/50 bg-sky-200/20 dark:text-sky-200 dark:border-sky-500/30 dark:bg-sky-500/10"
+                      : "text-violet-700 border-violet-300/50 bg-violet-200/20 dark:text-violet-200 dark:border-violet-500/30 dark:bg-violet-500/10"
+                    }
+                  `}
                 >
-                  <span className="text-sm font-medium">
-                    {nome.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {nome}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400">
-                    {locais
-                      .map(
-                        (txt) => txt.split("–")[1]?.trim() || txt
-                      )
-                      .join(" | ")}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={`badge ${color === "blue" ? "badge-success" : "badge-warning"
-                  }`}
-              >
-                {color === "blue" ? "Ativa" : "Agendada"}
-              </span>
-            </li>
-          ))}
+                  <span
+                    className={`
+                      h-1.5 w-1.5 rounded-full
+                      ${isActive ? "bg-sky-500" : "bg-violet-500"}
+                    `}
+                  />
+                  {isActive ? "Ativa" : "Agendada"}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       ) : (
-        <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-2">
+        <p className="text-slate-500 dark:text-slate-400 text-sm text-center py-2">
           {empty}
         </p>
       )}
     </div>
   );
 }
+
 
 function CalendarCard({ title, events, emptyText, icon: Icon }) {
   const { theme } = useTheme();
