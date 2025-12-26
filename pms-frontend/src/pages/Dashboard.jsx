@@ -246,6 +246,22 @@ export default function Dashboard() {
       : 0;
   }, [reservations, rooms]);
 
+  // === Ocupação geral do mês retrasado ===
+  const ocupacaoGeralPrev2 = useMemo(() => {
+    const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
+
+    const totalNoites = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
+    }, 0);
+
+    const capacidadeTotal = rooms.length * daysInMonth;
+
+    return capacidadeTotal > 0
+      ? Math.round((totalNoites / capacidadeTotal) * 100)
+      : 0;
+  }, [reservations, rooms]);
+
   // === KPIs principais ===
   const kpis = useMemo(() => {
     const { start: mStart, end: mEnd } = monthBounds();
@@ -565,6 +581,7 @@ export default function Dashboard() {
           <KpiGaugeOcupacao
             value={ocupacaoGeral}
             previous={ocupacaoGeralPrev}
+            previous2={ocupacaoGeralPrev2}
           />
         </div>
 
@@ -1021,8 +1038,8 @@ function DiaristaList({ title, data, color, empty }) {
               <div className="flex items-start gap-3">
                 <div
                   className={`rounded-full w-8 h-8 flex items-center justify-center ${color === "blue"
-                      ? "bg-blue-100 text-blue-600"
-                      : "bg-amber-100 text-amber-700"
+                    ? "bg-blue-100 text-blue-600"
+                    : "bg-amber-100 text-amber-700"
                     }`}
                 >
                   <span className="text-sm font-medium">
