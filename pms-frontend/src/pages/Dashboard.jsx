@@ -26,6 +26,8 @@ import utc from "dayjs/plugin/utc";
 import isBetween from "dayjs/plugin/isBetween";
 import DashboardKPIGrid from "../components/DashboardKPIGrid";
 import KpiGaugeOcupacao from "../components/KpiGaugeOcupacao";
+import KpiMaintenanceProgress from "../components/KpiMaintenanceProgress";
+import KpiTotalReservas from "../components/KpiTotalReservas";
 import { useTheme } from "../context/ThemeContext";
 
 dayjs.extend(isSameOrBefore);
@@ -594,701 +596,657 @@ export default function Dashboard() {
         </div>
 
         {/* Progresso Manutenção */}
-        <div className="card bg-white shadow-md border border-gray-100 p-6 flex flex-col items-center justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold mb-4 text-slate-900 dark:text-slate-100">
-            🛠️ Progresso da Manutenção
-          </h2>
-          <PieChart width={160} height={160}>
-            <Pie
-              data={[
-                { name: "Concluídas", value: maintenanceStats.done },
-                {
-                  name: "Pendentes",
-                  value: maintenanceStats.total - maintenanceStats.done,
-                },
-              ]}
-              dataKey="value"
-              innerRadius={55}
-              outerRadius={75}
-              paddingAngle={3}
-              stroke="none"
-            >
-              <Cell fill="#44d97bff" />
-              <Cell fill={isDark ? "#111111ff" : "#e5e7eb"} />
-            </Pie>
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={20}
-              fontWeight="bold"
-              fill={isDark ? "#e5e7eb" : "#000000ff"}
-            >
-              {maintenanceStats.pctDone}%
-            </text>
-          </PieChart>
-          <p className="text-sm mt-2 text-gray-500 dark:text-slate-400">
-            {maintenanceStats.done} concluídas de {maintenanceStats.total}
-          </p>
-        </div>
+
+        <KpiMaintenanceProgress maintenanceStats={maintenanceStats} isDark={isDark} />
 
         {/* Total Reservas */}
-        <div className="card bg-white shadow-md border border-gray-100 p-6 text-center flex flex-col justify-center dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold mb-3 text-lg text-slate-900 dark:text-slate-100">
-            🏅 Total de Reservas
-          </h2>
-          <p className="text-6xl font-extrabold tracking-tight text-primary/90 drop-shadow-sm mb-2">
-            {kpis.totalReservas + 1963}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-slate-400">
-            Inclui 1.963 reservas do PMS anterior
-          </p>
-        </div>
-      </div>
+        <KpiTotalReservas
+          value={kpis.totalReservas + 1963}
+          note="Inclui 1.963 reservas do PMS anterior"
+        />
 
-      {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Melhor Eficiência */}
-        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
-            📊 Acomodações com Melhor Eficiência
-          </h2>
+        {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Melhor Eficiência */}
+          <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+            <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+              📊 Acomodações com Melhor Eficiência
+            </h2>
 
-          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-            {/* Top 3 visual */}
-            <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-              {topEfficiency.slice(0, 3).map((item, i) => {
-                const colors = [
-                  "from-yellow-400 to-yellow-300",
-                  "from-gray-300 to-gray-200",
-                  "from-amber-700 to-amber-600",
-                ];
-                const numColor =
-                  i === 0
-                    ? "text-yellow-500"
-                    : i === 1
-                      ? "text-gray-400"
-                      : "text-amber-700";
+            <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+              {/* Top 3 visual */}
+              <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+                {topEfficiency.slice(0, 3).map((item, i) => {
+                  const colors = [
+                    "from-yellow-400 to-yellow-300",
+                    "from-gray-300 to-gray-200",
+                    "from-amber-700 to-amber-600",
+                  ];
+                  const numColor =
+                    i === 0
+                      ? "text-yellow-500"
+                      : i === 1
+                        ? "text-gray-400"
+                        : "text-amber-700";
 
-                const height = i === 0 ? "h-24" : "h-20";
-                const width = "w-40";
-                const radius = "rounded-3xl";
+                  const height = i === 0 ? "h-24" : "h-20";
+                  const width = "w-40";
+                  const radius = "rounded-3xl";
 
-                return (
-                  <div key={i} className="relative flex flex-col items-center">
-                    <div
-                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
-                    >
-                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                  return (
+                    <div key={i} className="relative flex flex-col items-center">
                       <div
-                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                        className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
                       >
-                        <img
-                          src={item.image || "/placeholder.jpg"}
-                          alt={item.label}
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                        <div
+                          className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                        >
+                          <img
+                            src={item.image || "/placeholder.jpg"}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
                       </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {item.label}
+                      </p>
+                      <span className={`text-xs font-bold ${numColor}`}>
+                        {i + 1}º
+                      </span>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {item.label}
-                    </p>
-                    <span className={`text-xs font-bold ${numColor}`}>
-                      {i + 1}º
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {/* Gráfico Top 10 */}
-            <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
-              <ResponsiveContainer width="100%" height={340}>
+              {/* Gráfico Top 10 */}
+              <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+                <ResponsiveContainer width="100%" height={340}>
+                  <BarChart
+                    data={topEfficiency.map((item, index) => ({
+                      ...item,
+                      posicao: `${index + 1}º`,
+                    }))}
+                    layout="vertical"
+                    barCategoryGap={4}
+                    margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                  >
+                    {/* sem grid, só linha de base do eixo X */}
+                    <XAxis
+                      type="number"
+                      domain={[0, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                      axisLine={{
+                        stroke: isDark ? "#4b5563" : "#e5e7eb",
+                        strokeDasharray: "3 3",
+                      }}
+                      tickLine={false}
+                      tick={{
+                        fill: isDark ? "#9ca3af" : "#6b7280",
+                        fontSize: 12,
+                      }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="posicao"
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                      tick={{
+                        fill: isDark ? "#e5e7eb" : "#374151",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    />
+                    <RechartsTooltip
+                      formatter={(v) => `${v}%`}
+                      contentStyle={{
+                        backgroundColor: isDark ? "#020617" : "#ffffff",
+                        borderRadius: "8px",
+                        border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                        color: isDark ? "#e5e7eb" : "#111827",
+                      }}
+                    />
+
+                    <Bar
+                      dataKey="ocupacao"
+                      radius={[0, 6, 6, 0]}
+                      barSize={22}
+                      isAnimationActive={false}
+                    >
+                      {topEfficiency.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill="#22c55e" />
+                      ))}
+                      <LabelList
+                        dataKey="label"
+                        position="insideLeft"
+                        style={{
+                          fill: "#ffffff",
+                          fontWeight: 600,
+                          fontSize: 12,
+                        }}
+                      />
+                      <LabelList
+                        dataKey="ocupacao"
+                        position="right"
+                        formatter={(v) => `${v}%`}
+                        style={{
+                          fill: isDark ? "#e5e7eb" : "#082f49",
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Pior Eficiência */}
+          <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+            <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+              📉 Acomodações com Pior Eficiência
+            </h2>
+
+            <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+              {/* Piores 3 visual */}
+              <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
+                {worstEfficiency.slice(0, 3).map((item, i) => {
+                  const colors = [
+                    "from-red-600 to-red-500",
+                    "from-red-600 to-red-500",
+                    "from-red-600 to-red-500",
+                  ];
+                  const numColor =
+                    i === 0
+                      ? "text-red-500"
+                      : i === 1
+                        ? "text-red-400"
+                        : "text-red-400";
+
+                  const height = i === 0 ? "h-24" : "h-20";
+                  const width = "w-40";
+                  const radius = "rounded-3xl";
+
+                  return (
+                    <div key={i} className="relative flex flex-col items-center">
+                      <div
+                        className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                      >
+                        <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                        <div
+                          className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                        >
+                          <img
+                            src={item.image || "/placeholder.jpg"}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {item.label}
+                      </p>
+                      <span className={`text-xs font-bold ${numColor}`}>
+                        {i + 1}º
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Gráfico Top 10 Piores */}
+              <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
+                <ResponsiveContainer width="100%" height={340}>
+                  <BarChart
+                    data={worstEfficiency.map((item, index) => ({
+                      ...item,
+                      posicao: `${index + 1}º`,
+                    }))}
+                    layout="vertical"
+                    barCategoryGap={4}
+                    margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                  >
+                    <XAxis
+                      type="number"
+                      domain={[0, 75]}
+                      tickFormatter={(v) => `${v}%`}
+                      axisLine={{
+                        stroke: isDark ? "#4b5563" : "#e5e7eb",
+                        strokeDasharray: "3 3",
+                      }}
+                      tickLine={false}
+                      tick={{
+                        fill: isDark ? "#9ca3af" : "#6b7280",
+                        fontSize: 12,
+                      }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="posicao"
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                      tick={{
+                        fill: isDark ? "#e5e7eb" : "#374151",
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    />
+                    <RechartsTooltip
+                      formatter={(v) => `${v}%`}
+                      contentStyle={{
+                        backgroundColor: isDark ? "#020617" : "#ffffff",
+                        borderRadius: "8px",
+                        border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                        color: isDark ? "#e5e7eb" : "#111827",
+                      }}
+                    />
+
+                    <Bar
+                      dataKey="ocupacao"
+                      radius={[0, 6, 6, 0]}
+                      barSize={22}
+                      isAnimationActive={false}
+                    >
+                      {worstEfficiency.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill="#dc2626" />
+                      ))}
+                      <LabelList
+                        dataKey="label"
+                        position="insideLeft"
+                        style={{
+                          fill: "#ffffff",
+                          fontWeight: 600,
+                          fontSize: 12,
+                        }}
+                      />
+                      <LabelList
+                        dataKey="ocupacao"
+                        position="right"
+                        formatter={(v) => `${v}%`}
+                        style={{
+                          fill: isDark ? "#fecaca" : "#7f1d1d",
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Ocupação por empreendimento */}
+          <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+            <div className="card-body px-6">
+              <h2 className="card-title text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
+                📈 Ocupação por empreendimento{" "}
+                <span className="text-sm text-gray-500 dark:text-slate-400">
+                  (média geral: {occupancy.avg}%)
+                </span>
+              </h2>
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart
-                  data={topEfficiency.map((item, index) => ({
-                    ...item,
-                    posicao: `${index + 1}º`,
-                  }))}
-                  layout="vertical"
-                  barCategoryGap={4}
-                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                  data={occupancy.rows}
+                  barSize={55}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                 >
-                  {/* sem grid, só linha de base do eixo X */}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDark ? "#1f2937" : "#f3f4f6"}
+                  />
                   <XAxis
-                    type="number"
+                    dataKey="label"
+                    tick={{
+                      fill: isDark ? "#e5e7eb" : "#6b7280",
+                      fontSize: 13,
+                    }}
+                    interval={0}
+                    tickMargin={10}
+                  />
+                  <YAxis
                     domain={[0, 100]}
-                    tickFormatter={(v) => `${v}%`}
-                    axisLine={{
-                      stroke: isDark ? "#4b5563" : "#e5e7eb",
-                      strokeDasharray: "3 3",
-                    }}
-                    tickLine={false}
-                    tick={{
-                      fill: isDark ? "#9ca3af" : "#6b7280",
-                      fontSize: 12,
-                    }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="posicao"
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                    tick={{
-                      fill: isDark ? "#e5e7eb" : "#374151",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  />
-                  <RechartsTooltip
-                    formatter={(v) => `${v}%`}
-                    contentStyle={{
-                      backgroundColor: isDark ? "#020617" : "#ffffff",
-                      borderRadius: "8px",
-                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
-                      color: isDark ? "#e5e7eb" : "#111827",
-                    }}
-                  />
-
-                  <Bar
-                    dataKey="ocupacao"
-                    radius={[0, 6, 6, 0]}
-                    barSize={22}
-                    isAnimationActive={false}
-                  >
-                    {topEfficiency.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill="#22c55e" />
-                    ))}
-                    <LabelList
-                      dataKey="label"
-                      position="insideLeft"
-                      style={{
-                        fill: "#ffffff",
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
-                    />
-                    <LabelList
-                      dataKey="ocupacao"
-                      position="right"
-                      formatter={(v) => `${v}%`}
-                      style={{
-                        fill: isDark ? "#e5e7eb" : "#082f49",
-                        fontWeight: 700,
-                        fontSize: 12,
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Pior Eficiência */}
-        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
-            📉 Acomodações com Pior Eficiência
-          </h2>
-
-          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
-            {/* Piores 3 visual */}
-            <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
-              {worstEfficiency.slice(0, 3).map((item, i) => {
-                const colors = [
-                  "from-red-600 to-red-500",
-                  "from-red-600 to-red-500",
-                  "from-red-600 to-red-500",
-                ];
-                const numColor =
-                  i === 0
-                    ? "text-red-500"
-                    : i === 1
-                      ? "text-red-400"
-                      : "text-red-400";
-
-                const height = i === 0 ? "h-24" : "h-20";
-                const width = "w-40";
-                const radius = "rounded-3xl";
-
-                return (
-                  <div key={i} className="relative flex flex-col items-center">
-                    <div
-                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
-                    >
-                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-                      <div
-                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
-                      >
-                        <img
-                          src={item.image || "/placeholder.jpg"}
-                          alt={item.label}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {item.label}
-                    </p>
-                    <span className={`text-xs font-bold ${numColor}`}>
-                      {i + 1}º
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Gráfico Top 10 Piores */}
-            <div className="flex-grow w-full lg:w-[70%] flex items-center justify-start">
-              <ResponsiveContainer width="100%" height={340}>
-                <BarChart
-                  data={worstEfficiency.map((item, index) => ({
-                    ...item,
-                    posicao: `${index + 1}º`,
-                  }))}
-                  layout="vertical"
-                  barCategoryGap={4}
-                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
-                >
-                  <XAxis
                     type="number"
-                    domain={[0, 75]}
+                    allowDecimals={false}
                     tickFormatter={(v) => `${v}%`}
-                    axisLine={{
-                      stroke: isDark ? "#4b5563" : "#e5e7eb",
-                      strokeDasharray: "3 3",
-                    }}
-                    tickLine={false}
                     tick={{
                       fill: isDark ? "#9ca3af" : "#6b7280",
                       fontSize: 12,
                     }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="posicao"
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                    tick={{
-                      fill: isDark ? "#e5e7eb" : "#374151",
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
+                    padding={{ top: 0 }}
                   />
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
+                    labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
                     contentStyle={{
-                      backgroundColor: isDark ? "#020617" : "#ffffff",
                       borderRadius: "8px",
-                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                      borderColor: isDark ? "#1f2937" : "#e5e7eb",
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
                       color: isDark ? "#e5e7eb" : "#111827",
                     }}
                   />
-
                   <Bar
                     dataKey="ocupacao"
-                    radius={[0, 6, 6, 0]}
-                    barSize={22}
+                    name="Ocupação (%)"
+                    fill="#3B82F6"
+                    radius={[6, 6, 0, 0]}
                     isAnimationActive={false}
-                  >
-                    {worstEfficiency.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill="#dc2626" />
-                    ))}
-                    <LabelList
-                      dataKey="label"
-                      position="insideLeft"
-                      style={{
-                        fill: "#ffffff",
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
-                    />
-                    <LabelList
-                      dataKey="ocupacao"
-                      position="right"
-                      formatter={(v) => `${v}%`}
-                      style={{
-                        fill: isDark ? "#fecaca" : "#7f1d1d",
-                        fontWeight: 700,
-                        fontSize: 12,
-                      }}
-                    />
-                  </Bar>
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ocupação por empreendimento */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 lg:col-span-2 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
-              📈 Ocupação por empreendimento{" "}
-              <span className="text-sm text-gray-500 dark:text-slate-400">
-                (média geral: {occupancy.avg}%)
-              </span>
-            </h2>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart
-                data={occupancy.rows}
-                barSize={55}
-                margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={isDark ? "#1f2937" : "#f3f4f6"}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{
-                    fill: isDark ? "#e5e7eb" : "#6b7280",
-                    fontSize: 13,
-                  }}
-                  interval={0}
-                  tickMargin={10}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  type="number"
-                  allowDecimals={false}
-                  tickFormatter={(v) => `${v}%`}
-                  tick={{
-                    fill: isDark ? "#9ca3af" : "#6b7280",
-                    fontSize: 12,
-                  }}
-                  padding={{ top: 0 }}
-                />
-                <RechartsTooltip
-                  formatter={(v) => `${v}%`}
-                  labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
-                  contentStyle={{
-                    borderRadius: "8px",
-                    borderColor: isDark ? "#1f2937" : "#e5e7eb",
-                    backgroundColor: isDark ? "#020617" : "#ffffff",
-                    color: isDark ? "#e5e7eb" : "#111827",
-                  }}
-                />
-                <Bar
-                  dataKey="ocupacao"
-                  name="Ocupação (%)"
-                  fill="#3B82F6"
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Diaristas */}
+          <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
+            <div className="card-body px-6">
+              <h2 className="card-title text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">
+                👥 Diaristas
+              </h2>
+
+              <DiaristaList
+                title="Ativas hoje"
+                data={maidsToday}
+                color="blue"
+                empty="Nenhuma diarista ativa hoje"
+              />
+              <hr className="my-3 border-gray-100 dark:border-slate-700" />
+              <DiaristaList
+                title="Confirmadas para amanhã"
+                data={maidsTomorrow}
+                color="amber"
+                empty="Nenhuma diarista confirmada amanhã"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Diaristas */}
-        <div className="card bg-white shadow-xl rounded-2xl border border-gray-100 dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <div className="card-body px-6">
-            <h2 className="card-title text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">
-              👥 Diaristas
-            </h2>
-
-            <DiaristaList
-              title="Ativas hoje"
-              data={maidsToday}
-              color="blue"
-              empty="Nenhuma diarista ativa hoje"
-            />
-            <hr className="my-3 border-gray-100 dark:border-slate-700" />
-            <DiaristaList
-              title="Confirmadas para amanhã"
-              data={maidsTomorrow}
-              color="amber"
-              empty="Nenhuma diarista confirmada amanhã"
-            />
-          </div>
+        {/* ==== AGENDAS ==== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CalendarCard
+            title="Cronograma de Limpeza"
+            icon={Sparkles}
+            events={cleaningEvents}
+            emptyText="Sem diaristas programadas"
+          />
+          <CalendarCard
+            title="Cronograma de Atividades"
+            icon={ClipboardList}
+            events={maintenanceEvents}
+            emptyText="Sem tarefas de manutenção"
+          />
         </div>
       </div>
-
-      {/* ==== AGENDAS ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CalendarCard
-          title="Cronograma de Limpeza"
-          icon={Sparkles}
-          events={cleaningEvents}
-          emptyText="Sem diaristas programadas"
-        />
-        <CalendarCard
-          title="Cronograma de Atividades"
-          icon={ClipboardList}
-          events={maintenanceEvents}
-          emptyText="Sem tarefas de manutenção"
-        />
-      </div>
-    </div>
-  );
+      );
 }
 
-/* ============================
-   COMPONENTES AUXILIARES
-============================ */
+      /* ============================
+         COMPONENTES AUXILIARES
+      ============================ */
 
-function DiaristaList({ title, data, color, empty }) {
+      function DiaristaList({title, data, color, empty}) {
   return (
-    <div>
-      <div className="text-xs uppercase text-gray-400 dark:text-slate-500 mb-2">
-        {title}
-      </div>
-      {Object.keys(data).length ? (
-        <ul className="divide-y divide-gray-100 dark:divide-slate-700">
-          {Object.entries(data).map(([nome, locais]) => (
-            <li key={nome} className="flex items-center justify-between py-2">
-              <div className="flex items-start gap-3">
-                <div
-                  className={`rounded-full w-8 h-8 flex items-center justify-center ${color === "blue"
-                    ? "bg-blue-100 text-blue-600"
-                    : "bg-amber-100 text-amber-700"
+      <div>
+        <div className="text-xs uppercase text-gray-400 dark:text-slate-500 mb-2">
+          {title}
+        </div>
+        {Object.keys(data).length ? (
+          <ul className="divide-y divide-gray-100 dark:divide-slate-700">
+            {Object.entries(data).map(([nome, locais]) => (
+              <li key={nome} className="flex items-center justify-between py-2">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`rounded-full w-8 h-8 flex items-center justify-center ${color === "blue"
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-amber-100 text-amber-700"
+                      }`}
+                  >
+                    <span className="text-sm font-medium">
+                      {nome.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">
+                      {nome}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                      {locais
+                        .map(
+                          (txt) => txt.split("–")[1]?.trim() || txt
+                        )
+                        .join(" | ")}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`badge ${color === "blue" ? "badge-success" : "badge-warning"
                     }`}
                 >
-                  <span className="text-sm font-medium">
-                    {nome.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {nome}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400">
-                    {locais
-                      .map(
-                        (txt) => txt.split("–")[1]?.trim() || txt
-                      )
-                      .join(" | ")}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={`badge ${color === "blue" ? "badge-success" : "badge-warning"
-                  }`}
-              >
-                {color === "blue" ? "Ativa" : "Agendada"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-2">
-          {empty}
-        </p>
-      )}
-    </div>
-  );
+                  {color === "blue" ? "Ativa" : "Agendada"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-400 dark:text-slate-500 text-sm text-center py-2">
+            {empty}
+          </p>
+        )}
+      </div>
+      );
 }
 
-function CalendarCard({ title, events, emptyText, icon: Icon }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+      function CalendarCard({title, events, emptyText, icon: Icon }) {
+  const {theme} = useTheme();
+      const isDark = theme === "dark";
 
-  const cardBase = isDark
-    ? "bg-slate-950/60 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]"
-    : "bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.08)]";
+      const cardBase = isDark
+      ? "bg-slate-950/60 border border-slate-800 shadow-[0_18px_45px_rgba(15,23,42,0.8)]"
+      : "bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.08)]";
 
-  const headerText = isDark ? "text-slate-50" : "text-slate-900";
-  const subText = isDark ? "text-slate-400" : "text-slate-500";
+      const headerText = isDark ? "text-slate-50" : "text-slate-900";
+      const subText = isDark ? "text-slate-400" : "text-slate-500";
 
-  return (
-    <div
-      className={`rounded-2xl p-5 transition-colors duration-300 ${cardBase}`}
-    >
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <div
-              className={
-                "h-9 w-9 rounded-xl flex items-center justify-center shadow-sm " +
-                (isDark
-                  ? "bg-sky-500/15 text-sky-300 border border-sky-800/60"
-                  : "bg-sky-50 text-sky-600 border border-sky-100")
-              }
-            >
-              <Icon size={18} />
-            </div>
-          )}
-          <div>
-            <h2 className={`text-lg font-semibold ${headerText}`}>{title}</h2>
-            <p className={`text-xs ${subText}`}>
-              Visão semanal com todas as escalas do dia
-            </p>
-          </div>
-        </div>
-
-        <div
-          className={
-            "hidden md:flex items-center gap-2 text-xs rounded-full px-3 py-1 border " +
-            (isDark
-              ? "border-slate-700 text-slate-300 bg-slate-900/60"
-              : "border-slate-200 text-slate-600 bg-slate-50")
-          }
-        >
-          <span className="w-2 h-2 rounded-full bg-sky-500" />
-          <span>Eventos confirmados</span>
-        </div>
-      </div>
-
-      {/* CALENDÁRIO */}
+      return (
       <div
-        className={
-          "rounded-xl overflow-hidden border " +
-          (isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white")
-        }
+        className={`rounded-2xl p-5 transition-colors duration-300 ${cardBase}`}
       >
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridWeek"
-          locale="pt-br"
-          events={events}
-          height={480}
-          // 🔹 NENHUM LIMITE – exibe todas as diaristas do dia
-          dayMaxEvents={false}
-          fixedWeekCount={false}
-          headerToolbar={{
-            left: "prev,next today",
-            center: "title",
-            right: "dayGridMonth,dayGridWeek,timeGridDay",
-          }}
-          buttonText={{
-            today: "Hoje",
-            month: "Mês",
-            week: "Semana",
-            day: "Dia",
-          }}
-          viewDidMount={(arg) => {
-            // Estiliza toolbar / botões para ficar mais “premium”
-            const toolbar = arg.el.querySelector(".fc-header-toolbar");
-            if (!toolbar) return;
-
-            const titleEl = toolbar.querySelector(".fc-toolbar-title");
-            if (titleEl) {
-              titleEl.classList.add(
-                "text-sm",
-                "font-semibold",
-                isDark ? "text-slate-100" : "text-slate-800"
-              );
-            }
-
-            toolbar
-              .querySelectorAll("button")
-              .forEach((btn) => {
-                btn.classList.add(
-                  "rounded-lg",
-                  "px-3",
-                  "py-1.5",
-                  "text-xs",
-                  "font-medium",
-                  "transition-all",
-                  "border",
-                  "focus:outline-none",
-                  "focus:ring-2",
-                  "focus:ring-offset-0"
-                );
-                if (isDark) {
-                  btn.classList.add(
-                    "bg-slate-900",
-                    "border-slate-700",
-                    "text-slate-100",
-                    "hover:bg-slate-800"
-                  );
-                } else {
-                  btn.classList.add(
-                    "bg-slate-50",
-                    "border-slate-300",
-                    "text-slate-800",
-                    "hover:bg-slate-100"
-                  );
-                }
-              });
-          }}
-          dayHeaderClassNames={() =>
-            isDark
-              ? "bg-slate-900 text-slate-300 text-xs border-b border-slate-800"
-              : "bg-slate-50 text-slate-600 text-xs border-b border-slate-200"
-          }
-          dayCellClassNames={() =>
-            "text-xs " +
-            (isDark
-              ? "border-slate-900 hover:bg-slate-900/60"
-              : "border-slate-100 hover:bg-slate-50")
-          }
-          eventClassNames={() => "border-0"} // tira borda padrão do FC
-          eventContent={(arg) => {
-            const isNoMaid =
-              arg.event.title === "Sem diarista" ||
-              arg.event.extendedProps?.tipo === "sem_diarista";
-
-            const base =
-              "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
-
-            const styleLight = isNoMaid
-              ? {
-                background:
-                  "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
-                color: "#7f1d1d",
-              }
-              : {
-                background:
-                  "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
-                color: "#0f172a",
-              };
-
-            const styleDark = isNoMaid
-              ? {
-                background:
-                  "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
-                color: "#fee2e2",
-              }
-              : {
-                background:
-                  "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
-                color: "#ecfeff",
-              };
-
-            return (
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {Icon && (
               <div
-                className={base}
-                style={isDark ? styleDark : styleLight}
-                title={arg.event.title}
+                className={
+                  "h-9 w-9 rounded-xl flex items-center justify-center shadow-sm " +
+                  (isDark
+                    ? "bg-sky-500/15 text-sky-300 border border-sky-800/60"
+                    : "bg-sky-50 text-sky-600 border border-sky-100")
+                }
               >
-                {arg.event.title}
+                <Icon size={18} />
               </div>
-            );
-          }}
-          eventClick={(info) => {
-            const detalhes =
-              info.event.extendedProps.details?.join("\n") || "Sem detalhes";
-            alert(`📋 ${info.event.title}\n\n${detalhes}`);
-          }}
-          // Fonte & suavização
-          contentHeight="auto"
-          dayHeaderFormat={{ weekday: "short" }}
-        />
-      </div>
+            )}
+            <div>
+              <h2 className={`text-lg font-semibold ${headerText}`}>{title}</h2>
+              <p className={`text-xs ${subText}`}>
+                Visão semanal com todas as escalas do dia
+              </p>
+            </div>
+          </div>
 
-      {!events?.length && (
-        <div className="mt-4 text-center text-sm">
           <div
             className={
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full border " +
+              "hidden md:flex items-center gap-2 text-xs rounded-full px-3 py-1 border " +
               (isDark
-                ? "border-slate-700 text-slate-400 bg-slate-900/70"
-                : "border-slate-200 text-slate-500 bg-slate-50")
+                ? "border-slate-700 text-slate-300 bg-slate-900/60"
+                : "border-slate-200 text-slate-600 bg-slate-50")
             }
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-            <span>{emptyText}</span>
+            <span className="w-2 h-2 rounded-full bg-sky-500" />
+            <span>Eventos confirmados</span>
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* CALENDÁRIO */}
+        <div
+          className={
+            "rounded-xl overflow-hidden border " +
+            (isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white")
+          }
+        >
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridWeek"
+            locale="pt-br"
+            events={events}
+            height={480}
+            // 🔹 NENHUM LIMITE – exibe todas as diaristas do dia
+            dayMaxEvents={false}
+            fixedWeekCount={false}
+            headerToolbar={{
+              left: "prev,next today",
+              center: "title",
+              right: "dayGridMonth,dayGridWeek,timeGridDay",
+            }}
+            buttonText={{
+              today: "Hoje",
+              month: "Mês",
+              week: "Semana",
+              day: "Dia",
+            }}
+            viewDidMount={(arg) => {
+              // Estiliza toolbar / botões para ficar mais “premium”
+              const toolbar = arg.el.querySelector(".fc-header-toolbar");
+              if (!toolbar) return;
+
+              const titleEl = toolbar.querySelector(".fc-toolbar-title");
+              if (titleEl) {
+                titleEl.classList.add(
+                  "text-sm",
+                  "font-semibold",
+                  isDark ? "text-slate-100" : "text-slate-800"
+                );
+              }
+
+              toolbar
+                .querySelectorAll("button")
+                .forEach((btn) => {
+                  btn.classList.add(
+                    "rounded-lg",
+                    "px-3",
+                    "py-1.5",
+                    "text-xs",
+                    "font-medium",
+                    "transition-all",
+                    "border",
+                    "focus:outline-none",
+                    "focus:ring-2",
+                    "focus:ring-offset-0"
+                  );
+                  if (isDark) {
+                    btn.classList.add(
+                      "bg-slate-900",
+                      "border-slate-700",
+                      "text-slate-100",
+                      "hover:bg-slate-800"
+                    );
+                  } else {
+                    btn.classList.add(
+                      "bg-slate-50",
+                      "border-slate-300",
+                      "text-slate-800",
+                      "hover:bg-slate-100"
+                    );
+                  }
+                });
+            }}
+            dayHeaderClassNames={() =>
+              isDark
+                ? "bg-slate-900 text-slate-300 text-xs border-b border-slate-800"
+                : "bg-slate-50 text-slate-600 text-xs border-b border-slate-200"
+            }
+            dayCellClassNames={() =>
+              "text-xs " +
+              (isDark
+                ? "border-slate-900 hover:bg-slate-900/60"
+                : "border-slate-100 hover:bg-slate-50")
+            }
+            eventClassNames={() => "border-0"} // tira borda padrão do FC
+            eventContent={(arg) => {
+              const isNoMaid =
+                arg.event.title === "Sem diarista" ||
+                arg.event.extendedProps?.tipo === "sem_diarista";
+
+              const base =
+                "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
+
+              const styleLight = isNoMaid
+                ? {
+                  background:
+                    "linear-gradient(135deg,#fee2e2,#fecaca)", // erro / alerta
+                  color: "#7f1d1d",
+                }
+                : {
+                  background:
+                    "linear-gradient(135deg,#bfdbfe,#60a5fa)", // normal
+                  color: "#0f172a",
+                };
+
+              const styleDark = isNoMaid
+                ? {
+                  background:
+                    "linear-gradient(135deg,#7f1d1d,#b91c1c)", // erro / alerta
+                  color: "#fee2e2",
+                }
+                : {
+                  background:
+                    "linear-gradient(135deg,#1d4ed8,#38bdf8)", // normal
+                  color: "#ecfeff",
+                };
+
+              return (
+                <div
+                  className={base}
+                  style={isDark ? styleDark : styleLight}
+                  title={arg.event.title}
+                >
+                  {arg.event.title}
+                </div>
+              );
+            }}
+            eventClick={(info) => {
+              const detalhes =
+                info.event.extendedProps.details?.join("\n") || "Sem detalhes";
+              alert(`📋 ${info.event.title}\n\n${detalhes}`);
+            }}
+            // Fonte & suavização
+            contentHeight="auto"
+            dayHeaderFormat={{ weekday: "short" }}
+          />
+        </div>
+
+        {!events?.length && (
+          <div className="mt-4 text-center text-sm">
+            <div
+              className={
+                "inline-flex items-center gap-2 px-4 py-2 rounded-full border " +
+                (isDark
+                  ? "border-slate-700 text-slate-400 bg-slate-900/70"
+                  : "border-slate-200 text-slate-500 bg-slate-50")
+              }
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <span>{emptyText}</span>
+            </div>
+          </div>
+        )}
+      </div>
+      );
 }
