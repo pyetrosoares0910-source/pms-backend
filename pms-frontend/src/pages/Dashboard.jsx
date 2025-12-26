@@ -609,12 +609,30 @@ export default function Dashboard() {
       {/* ==== TOP EFICIÊNCIAS (MELHOR + PIOR) ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Melhor Eficiência */}
-        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+        <div
+          className="
+      card flex-1 flex flex-col
+      rounded-3xl border
+      bg-gradient-to-br
+      from-white via-slate-50 to-white
+      dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+      border-slate-200 dark:border-slate-700/60
+      shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+      transition-colors duration-300
+      overflow-hidden
+    "
+        >
+          {/* glow overlay premium */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-400/12" />
+            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-400/12" />
+          </div>
+
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100 relative">
             📊 Acomodações com Melhor Eficiência
           </h2>
 
-          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6 relative">
             {/* Top 3 visual */}
             <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
               {topEfficiency.slice(0, 3).map((item, i) => {
@@ -641,7 +659,11 @@ export default function Dashboard() {
                     >
                       <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                       <div
-                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                        className={`
+                    bg-white ${height} ${width} ${radius}
+                    overflow-hidden flex items-center justify-center
+                    dark:bg-slate-950
+                  `}
                       >
                         <img
                           src={item.image || "/placeholder.jpg"}
@@ -653,9 +675,7 @@ export default function Dashboard() {
                     <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {item.label}
                     </p>
-                    <span className={`text-xs font-bold ${numColor}`}>
-                      {i + 1}º
-                    </span>
+                    <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
                   </div>
                 );
               })}
@@ -673,7 +693,23 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
-                  {/* sem grid, só linha de base do eixo X */}
+                  {/* ✅ defs p/ gradiente premium */}
+                  <defs>
+                    <linearGradient id="bestGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#38bdf8" />
+                      <stop offset="55%" stopColor="#60a5fa" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+
+                    <filter id="bestGlow" x="-30%" y="-40%" width="160%" height="190%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
                   <XAxis
                     type="number"
                     domain={[0, 100]}
@@ -717,13 +753,18 @@ export default function Dashboard() {
                     isAnimationActive={false}
                   >
                     {topEfficiency.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill="#22c55e" />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill="url(#bestGrad)"
+                        filter="url(#bestGlow)"
+                      />
                     ))}
+
                     <LabelList
                       dataKey="label"
                       position="insideLeft"
                       style={{
-                        fill: "#ffffff",
+                        fill: "rgba(255,255,255,0.92)",
                         fontWeight: 600,
                         fontSize: 12,
                       }}
@@ -733,7 +774,7 @@ export default function Dashboard() {
                       position="right"
                       formatter={(v) => `${v}%`}
                       style={{
-                        fill: isDark ? "#e5e7eb" : "#082f49",
+                        fill: isDark ? "#e5e7eb" : "#0f172a",
                         fontWeight: 700,
                         fontSize: 12,
                       }}
@@ -746,23 +787,41 @@ export default function Dashboard() {
         </div>
 
         {/* Pior Eficiência */}
-        <div className="card bg-white shadow-md border border-gray-100 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700 dark:shadow-lg transition-colors duration-300">
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100">
+        <div
+          className="
+      card flex-1 flex flex-col
+      rounded-3xl border
+      bg-gradient-to-br
+      from-white via-slate-50 to-white
+      dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
+      border-slate-200 dark:border-slate-700/60
+      shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+      transition-colors duration-300
+      overflow-hidden
+    "
+        >
+          {/* glow overlay premium (negativo sutil) */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-rose-500/10 blur-3xl dark:bg-rose-400/12" />
+            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-red-500/10 blur-3xl dark:bg-red-400/12" />
+          </div>
+
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100 relative">
             📉 Acomodações com Pior Eficiência
           </h2>
 
-          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="card-body px-6 pb-6 flex flex-col lg:flex-row items-center justify-between gap-6 relative">
             {/* Piores 3 visual */}
             <div className="flex flex-col items-center justify-center gap-4 w-full lg:w-[30%]">
               {worstEfficiency.slice(0, 3).map((item, i) => {
                 const colors = [
-                  "from-red-600 to-red-500",
-                  "from-red-600 to-red-500",
-                  "from-red-600 to-red-500",
+                  "from-rose-600 to-red-500",
+                  "from-rose-600 to-red-500",
+                  "from-rose-600 to-red-500",
                 ];
                 const numColor =
                   i === 0
-                    ? "text-red-500"
+                    ? "text-rose-500"
                     : i === 1
                       ? "text-red-400"
                       : "text-red-400";
@@ -776,9 +835,13 @@ export default function Dashboard() {
                     <div
                       className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
                     >
-                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                       <div
-                        className={`bg-white ${height} ${width} ${radius} overflow-hidden flex items-center justify-center`}
+                        className={`
+                    ${height} ${width} ${radius} overflow-hidden
+                    flex items-center justify-center
+                    bg-white dark:bg-slate-950
+                  `}
                       >
                         <img
                           src={item.image || "/placeholder.jpg"}
@@ -790,9 +853,7 @@ export default function Dashboard() {
                     <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {item.label}
                     </p>
-                    <span className={`text-xs font-bold ${numColor}`}>
-                      {i + 1}º
-                    </span>
+                    <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
                   </div>
                 );
               })}
@@ -810,6 +871,22 @@ export default function Dashboard() {
                   barCategoryGap={4}
                   margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
                 >
+                  <defs>
+                    <linearGradient id="worstGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#fb7185" />
+                      <stop offset="55%" stopColor="#ef4444" />
+                      <stop offset="100%" stopColor="#b91c1c" />
+                    </linearGradient>
+
+                    <filter id="worstGlow" x="-30%" y="-40%" width="160%" height="190%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
                   <XAxis
                     type="number"
                     domain={[0, 75]}
@@ -853,13 +930,17 @@ export default function Dashboard() {
                     isAnimationActive={false}
                   >
                     {worstEfficiency.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill="#dc2626" />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill="url(#worstGrad)"
+                        filter="url(#worstGlow)"
+                      />
                     ))}
                     <LabelList
                       dataKey="label"
                       position="insideLeft"
                       style={{
-                        fill: "#ffffff",
+                        fill: "rgba(255,255,255,0.92)",
                         fontWeight: 600,
                         fontSize: 12,
                       }}
@@ -881,6 +962,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
 
       {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
