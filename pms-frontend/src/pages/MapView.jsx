@@ -830,7 +830,7 @@ export default function MapView() {
           {Array.from({ length: days }).map((_, i) => (
             <div
               key={i}
-              className={`h-12 border-b border-slate-200 dark:border-slate-700 ${isDark ? "bg-slate-950" : "bg-sky-600"
+              className={`h-12 border-b border-slate-200 dark:border-slate-700 ${isDark ? "bg-slate-950" : "bg-sky-600 to bg-sky-400"
                 }`}
             />
           ))}
