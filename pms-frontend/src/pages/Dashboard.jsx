@@ -1354,7 +1354,7 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
           }
           eventClassNames={() => "border-0"}
           eventContent={(arg) => {
-            const isNoMaid =
+            const isNoEvent =
               arg.event.title === "Sem diarista" || arg.event.extendedProps?.tipo === "sem_diarista";
 
 
