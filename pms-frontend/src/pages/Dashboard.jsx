@@ -495,6 +495,7 @@ export default function Dashboard() {
           title: t.maid || "Sem diarista",
           start: t.date,
           allDay: true,
+          color: "#f62525ff",
           details: [],
         };
       }
