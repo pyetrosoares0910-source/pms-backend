@@ -495,7 +495,6 @@ export default function Dashboard() {
           title: t.maid || "Sem diarista",
           start: t.date,
           allDay: true,
-          color: "#f62525ff",
           details: [],
         };
       }
@@ -1355,8 +1354,9 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
           }
           eventClassNames={() => "border-0"}
           eventContent={(arg) => {
-            const isNoEvent =
-              arg.event.extendedProps?.tipo === "sem_diarista";
+            const isNoMaid =
+              arg.event.title === "Sem diarista" || arg.event.extendedProps?.tipo === "sem_diarista";
+
 
             const base =
               "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
@@ -1377,7 +1377,7 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
                 ? {
                   background:
                     "linear-gradient(135deg,#fee2e2,#fecaca)",
-                  color: "#7f1d1d",
+                  color: "#ea2929ff",
                 }
                 : {
                   background:
