@@ -1425,7 +1425,35 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
           </div>
         </div>
       )}
+      {selectedCleaningEvent && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white dark:bg-slate-800 dark:text-slate-100 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-700">
+            <h2 className="text-xl font-semibold mb-4">
+              {selectedCleaningEvent.title}
+            </h2>
+
+            <ul className="space-y-2">
+              {(selectedCleaningEvent.extendedProps?.details || []).map((d, idx) => (
+                <li key={idx} className="text-slate-700 dark:text-slate-200">
+                  🏨 {d}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setSelectedCleaningEvent(null)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-400"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+
   );
 }
 
