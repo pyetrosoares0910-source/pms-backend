@@ -76,6 +76,8 @@ export default function Dashboard() {
   const [maids, setMaids] = useState([]);
   const [maintenance, setMaintenance] = useState([]);
   const [tasksMonthPrev, setTasksMonthPrev] = useState([]);
+  const [selectedCleaningEvent, setSelectedCleaningEvent] = useState(null);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -1113,6 +1115,7 @@ export default function Dashboard() {
           icon={Sparkles}
           events={cleaningEvents}
           emptyText="Sem diaristas programadas"
+          onSelectEvent={setSelectedCleaningEvent}
         />
         <CalendarCard
           title="Cronograma de Atividades"
@@ -1209,7 +1212,7 @@ function DiaristaList({ title, data, variant, empty }) {
 }
 
 
-function CalendarCard({ title, events, emptyText, icon: Icon }) {
+function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -1382,18 +1385,26 @@ function CalendarCard({ title, events, emptyText, icon: Icon }) {
                 : {
                   background:
                     "linear-gradient(135deg,#bfdbfe,#60a5fa)",
-                  color: "#0f172a",
+                  color: "#b90d0dff",
                 };
 
             return (
               <div
-                className={base}
+                className={base + (onSelectEvent ? " cursor-pointer" : "")}
                 style={style}
                 title={arg.event.title}
+                onClick={() => onSelectEvent?.(arg.event)}
+                role={onSelectEvent ? "button" : undefined}
+                tabIndex={onSelectEvent ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (!onSelectEvent) return;
+                  if (e.key === "Enter" || e.key === " ") onSelectEvent(arg.event);
+                }}
               >
                 {arg.event.title}
               </div>
             );
+
           }}
           contentHeight="auto"
           dayHeaderFormat={{ weekday: "short" }}

@@ -225,13 +225,13 @@ const CleaningSchedule = () => {
                                   prev.map((task) =>
                                     task.id === t.id
                                       ? {
-                                          ...task,
-                                          maid:
-                                            maids.find(
-                                              (m) => m.id === maidId
-                                            )?.name || null,
-                                          maidId,
-                                        }
+                                        ...task,
+                                        maid:
+                                          maids.find(
+                                            (m) => m.id === maidId
+                                          )?.name || null,
+                                        maidId,
+                                      }
                                       : task
                                   )
                                 );
@@ -348,7 +348,15 @@ const CleaningSchedule = () => {
             eventContent={(arg) => {
               if (arg.event.title === "Sem diarista") {
                 return (
-                  <div className="bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-lg shadow-sm text-xs font-medium cursor-default dark:bg-red-900 dark:text-red-200 dark:border-red-700">
+                  <div
+                    className="bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-lg shadow-sm text-xs font-medium cursor-pointer dark:bg-red-900 dark:text-red-200 dark:border-red-700"
+                    onClick={() => setSelectedEvent(arg.event)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setSelectedEvent(arg.event);
+                    }}
+                  >
                     {arg.event.title}
                   </div>
                 );
@@ -364,6 +372,7 @@ const CleaningSchedule = () => {
                 </div>
               );
             }}
+
           />
         </div>
       </div>
