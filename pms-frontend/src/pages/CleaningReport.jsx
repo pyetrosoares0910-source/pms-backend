@@ -357,12 +357,12 @@ export default function RelatorioLimpeza() {
       y = doc.lastAutoTable.finalY + 10;
 
       // ===== Subtotal =====
-      doc.setDrawColor(37, 99, 235);
+      doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.6);
       doc.line(margin.left, y - 4, 90, y - 4);
 
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(37, 99, 235);
+      doc.setTextColor(0, 0, 0);
       doc.text(`Subtotal: R$ ${info.total},00`, margin.left, y);
       doc.setTextColor(0, 0, 0);
 
