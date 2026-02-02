@@ -361,10 +361,7 @@ export default function RelatorioLimpeza() {
       doc.setLineWidth(0.3);
       doc.line(margin.left, y - 4, 200, y - 4);
 
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Subtotal: R$ ${info.total},00`, margin.left, y);
-      doc.setTextColor(0, 0, 0);
+
 
       y += 15;
     }
