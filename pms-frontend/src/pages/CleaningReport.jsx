@@ -225,22 +225,66 @@ export default function RelatorioLimpeza() {
   // === Export PDF geral (mantendo seu visual + evitando quebrar blocos) ===
   const exportPDF = () => {
     const doc = new jsPDF();
-    doc.setFillColor(59, 130, 246);
-    doc.rect(0, 0, 210, 25, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(
-      `Relatório de Limpeza - ${dayjs(month).format("MMMM/YYYY")}`,
-      14,
-      16
-    );
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    let y = 35;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
 
-    const pageHeight = doc.internal.pageSize.height;
+    const periodLabel = dayjs(month).format("MMMM/YYYY");
+    const periodoFim = endExtra
+      ? dayjs(endExtra).format("DD/MM/YYYY")
+      : dayjs(month).endOf("month").format("DD/MM/YYYY");
+    const periodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
+
+    const margin = { left: 14, right: 14, top: 38, bottom: 16 };
+
+    const drawHeaderPagamento = () => {
+      // faixa topo azul
+      doc.setFillColor(37, 99, 235); // azul mais “premium”
+      doc.rect(0, 0, pageW, 28, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("RELATÓRIO — PAGAMENTO", margin.left, 18);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(
+        `${periodLabel} · Período ${periodoIni} até ${periodoFim}`,
+        margin.left,
+        24
+      );
+
+      // selo “PAGAMENTO”
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(pageW - 72, 8, 58, 14, 2, 2, "F");
+      doc.setTextColor(37, 99, 235);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.text("PAGAMENTO", pageW - 43, 17, { align: "center" });
+
+      // linha
+      doc.setDrawColor(230);
+      doc.setLineWidth(0.3);
+      doc.line(margin.left, 32, pageW - margin.right, 32);
+
+      // reset
+      doc.setTextColor(0, 0, 0);
+    };
+
+    const drawFooterPagamento = (pageNum) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(140);
+      doc.text(`Página ${pageNum}`, pageW - margin.right, pageH - 8, {
+        align: "right",
+      });
+      doc.setTextColor(0, 0, 0);
+    };
+
+    let y = margin.top;
+    let pageNum = 1;
+    drawHeaderPagamento();
 
     const diaristasOrdem = Object.keys(totaisPorDiarista).sort((a, b) =>
       a.localeCompare(b, "pt-BR", { sensitivity: "base" })
@@ -249,41 +293,50 @@ export default function RelatorioLimpeza() {
     for (const nome of diaristasOrdem) {
       const info = totaisPorDiarista[nome];
       const linhas = rows.filter((r) => r.diarista === nome);
-      const linhasAltura = linhas.length * 6 + 40; // ~6px por linha + header
-      const blocoAltura = 30 + linhasAltura; // margem + subtotal + cabeçalho
 
-      // 👇 se o bloco inteiro não couber, pula pra nova página antes de imprimir
-      if (y + blocoAltura > pageHeight - 10) {
+      const linhasAltura = linhas.length * 6 + 40;
+      const blocoAltura = 30 + linhasAltura;
+
+      // se não couber, nova página COM header
+      if (y + blocoAltura > pageH - margin.bottom) {
+        drawFooterPagamento(pageNum);
         doc.addPage();
-        y = 20;
+        pageNum++;
+        drawHeaderPagamento();
+        y = margin.top;
       }
 
-      // ==== Cabeçalho do diarista ====
+      // ===== Cabeçalho diarista =====
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
-      doc.text(`${nome}`, 14, y);
+      doc.setTextColor(30, 41, 59);
+      doc.text(nome, margin.left, y);
       y += 6;
 
+      // chip de subtotal (azul claro, discreto)
+      doc.setFillColor(219, 234, 254); // blue-100
+      doc.roundedRect(pageW - 70, y - 12, 56, 10, 2, 2, "F");
+      doc.setTextColor(30, 64, 175); // blue-800
+      doc.setFontSize(9.5);
+      doc.text(`R$ ${info.total},00`, pageW - 42, y - 5, { align: "center" });
+
+      doc.setTextColor(0, 0, 0);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
+
       const pix = info.pix || "Não informado";
       const banco = info.banco || "Não informado";
       const ultimo = extras[nome]?.ultimoPagamento || "Não informado";
 
-      doc.text(`Banco: ${banco}`, 14, y);
+      doc.text(`Banco: ${banco}`, margin.left, y);
       y += 5;
-      doc.text(`Chave Pix: ${pix}`, 14, y);
+      doc.text(`Chave Pix: ${pix}`, margin.left, y);
       y += 5;
-      doc.text(`Último pagamento: ${ultimo}`, 14, y);
+      doc.text(`Último pagamento: ${ultimo}`, margin.left, y);
       y += 7;
 
-      // ==== Tabela ====
-      const tabela = linhas.map((r) => [
-        r.stays,
-        r.rooms,
-        r.date,
-        `R$ ${r.valor},00`,
-      ]);
+      // ===== Tabela =====
+      const tabela = linhas.map((r) => [r.stays, r.rooms, r.date, `R$ ${r.valor},00`]);
 
       autoTable(doc, {
         head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
@@ -291,30 +344,58 @@ export default function RelatorioLimpeza() {
         startY: y,
         theme: "grid",
         headStyles: {
-          fillColor: [243, 244, 246],
-          textColor: [17, 24, 39],
+          fillColor: [219, 234, 254], // azul claro no header
+          textColor: [30, 64, 175],
           fontSize: 10,
         },
         bodyStyles: { fontSize: 9, cellPadding: 3 },
-        alternateRowStyles: { fillColor: [249, 250, 251] },
-        margin: { left: 14, right: 14 },
+        alternateRowStyles: { fillColor: [239, 246, 255] }, // blue-50
+        margin: { left: margin.left, right: margin.right },
         pageBreak: "avoid",
       });
 
-      // posição após a tabela
       y = doc.lastAutoTable.finalY + 10;
 
-      // ==== Subtotal ====
+      // ===== Subtotal =====
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.6);
+      doc.line(margin.left, y - 4, 90, y - 4);
+
       doc.setFont("helvetica", "bold");
-      doc.text(`Subtotal: R$ ${info.total},00`, 14, y);
+      doc.setTextColor(37, 99, 235);
+      doc.text(`Subtotal: R$ ${info.total},00`, margin.left, y);
+      doc.setTextColor(0, 0, 0);
+
       y += 15;
     }
-    // ==== Total Geral ====
-    doc.setFontSize(13);
+
+    // ===== Total Geral =====
+    if (y + 18 > pageH - margin.bottom) {
+      drawFooterPagamento(pageNum);
+      doc.addPage();
+      pageNum++;
+      drawHeaderPagamento();
+      y = margin.top;
+    }
+
+    doc.setFillColor(37, 99, 235);
+    doc.roundedRect(margin.left, y, pageW - (margin.left + margin.right), 14, 3, 3, "F");
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, 14, y);
+    doc.setFontSize(12);
+    doc.text(`TOTAL GERAL: R$ ${totalGeral},00`, pageW / 2, y + 9, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+
+    // footer em todas as páginas
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawFooterPagamento(p);
+    }
+
     doc.save(`Relatorio-Limpeza-${month}.pdf`);
   };
+
 
   // === Export PDF CONFERÊNCIA (layout bem diferente; mesma lógica de dados) ===
   const exportPDFConferencia = () => {
@@ -470,7 +551,6 @@ export default function RelatorioLimpeza() {
       doc.addPage();
       pageNum++;
       drawHeaderConferencia();
-      drawWatermark();
       y = 40;
     }
 
