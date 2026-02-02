@@ -35,6 +35,7 @@ export default function RelatorioLimpeza() {
   const [tasks, setTasks] = useState([]);
   const [maids, setMaids] = useState([]);
   const [month, setMonth] = useState(dayjs().format("YYYY-MM"));
+  const [endExtra, setEndExtra] = useState(""); // "YYYY-MM-DD" (opcional)
   const [extras, setExtras] = useState({});
   const [selectedStays, setSelectedStays] = useState([]);
   const [statusMap, setStatusMap] = useState(new Map()); // chave: `${maidId}|${date}`, valor: "pendente"|"pago"
@@ -75,10 +76,10 @@ export default function RelatorioLimpeza() {
           .tz("America/Sao_Paulo")
           .startOf("month")
           .format("YYYY-MM-DD");
-        const end = dayjs(month)
-          .tz("America/Sao_Paulo")
-          .endOf("month")
-          .format("YYYY-MM-DD");
+        const end = (endExtra
+          ? dayjs(endExtra).tz("America/Sao_Paulo")
+          : dayjs(month).tz("America/Sao_Paulo").endOf("month")
+        ).format("YYYY-MM-DD");
 
         const [checkouts, maidsRes, statuses] = await Promise.all([
           api(`/tasks/checkouts?start=${start}&end=${end}`),
@@ -113,10 +114,10 @@ export default function RelatorioLimpeza() {
             rooms: t.rooms || "Sem identificação",
             maid: maidInfo
               ? {
-                  name: maidInfo.name,
-                  pix: maidInfo.pixKey || "",
-                  banco: maidInfo.bank || "",
-                }
+                name: maidInfo.name,
+                pix: maidInfo.pixKey || "",
+                banco: maidInfo.bank || "",
+              }
               : { name: "Sem diarista", pix: "", banco: "" },
           };
         });
@@ -133,7 +134,7 @@ export default function RelatorioLimpeza() {
     return () => {
       isMounted = false; // cleanup para evitar state updates após unmount
     };
-  }, [month]); //  roda apenas quando o mês muda
+  }, [month, endExtra]); //  roda apenas quando o mês muda
 
   const availableStays = [
     ...new Set(tasks.map((t) => t.stay).filter(Boolean)),
@@ -429,6 +430,28 @@ export default function RelatorioLimpeza() {
             />
           </div>
 
+          {/* Até (opcional) */}
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-600 dark:text-slate-300 mb-1">
+              Até (opcional)
+            </label>
+            <input
+              type="date"
+              value={endExtra}
+              onChange={(e) => setEndExtra(e.target.value)}
+              className="input input-bordered input-sm w-48 bg-white/80 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            />
+            {endExtra && (
+              <button
+                type="button"
+                onClick={() => setEndExtra("")}
+                className="mt-1 text-xs text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 underline text-left"
+              >
+                limpar data extra
+              </button>
+            )}
+          </div>
+
           {/* Status */}
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-600 dark:text-slate-300 mb-1">
@@ -513,11 +536,10 @@ export default function RelatorioLimpeza() {
                   </td>
                   <td className="px-4 py-2 text-center">
                     <select
-                      className={`select select-xs rounded-md ${
-                        r.status === "pago"
-                          ? "bg-green-50 border-green-500 text-green-700 dark:bg-emerald-900/40 dark:border-emerald-400 dark:text-emerald-200"
-                          : "bg-yellow-50 border-yellow-500 text-yellow-700 dark:bg-amber-900/40 dark:border-amber-400 dark:text-amber-200"
-                      }`}
+                      className={`select select-xs rounded-md ${r.status === "pago"
+                        ? "bg-green-50 border-green-500 text-green-700 dark:bg-emerald-900/40 dark:border-emerald-400 dark:text-emerald-200"
+                        : "bg-yellow-50 border-yellow-500 text-yellow-700 dark:bg-amber-900/40 dark:border-amber-400 dark:text-amber-200"
+                        }`}
                       value={r.status}
                       onChange={(e) =>
                         handleChangeStatusRow(
