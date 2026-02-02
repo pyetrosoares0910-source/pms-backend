@@ -330,33 +330,7 @@ export default function RelatorioLimpeza() {
     const periodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
 
     // ===== helpers visuais =====
-    const drawWatermark = () => {
-      doc.saveGraphicsState?.();
 
-      // fallback se saveGraphicsState não existir em alguma versão
-      try {
-        doc.setTextColor(245, 158, 11); // laranja claro
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(48);
-
-        // rotação diagonal
-        doc.text("CONFERÊNCIA", pageW / 2, pageH / 2, {
-          align: "center",
-          angle: 35,
-        });
-
-        doc.setFontSize(18);
-        doc.text("NÃO EFETUAR PAGAMENTO", pageW / 2, pageH / 2 + 18, {
-          align: "center",
-          angle: 35,
-        });
-      } catch {
-        // se falhar, só ignora a marca d'água
-      }
-
-      doc.restoreGraphicsState?.();
-      doc.setTextColor(0, 0, 0);
-    };
 
     const drawHeaderConferencia = () => {
       // faixa topo laranja (bem diferente do azul)
@@ -407,7 +381,7 @@ export default function RelatorioLimpeza() {
 
     // ===== Conteúdo =====
     drawHeaderConferencia();
-    drawWatermark();
+
 
     let y = 40;
     const pageHeight = pageH;
@@ -430,7 +404,6 @@ export default function RelatorioLimpeza() {
         doc.addPage();
         pageNum++;
         drawHeaderConferencia();
-        drawWatermark();
         y = 40;
       }
 
