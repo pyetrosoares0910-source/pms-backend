@@ -180,6 +180,80 @@ export default function PerformanceReport() {
     return centerifyData(arr);
   };
 
+
+  const buildGlobalStayChartData = () => {
+    const stays = monthlyData?.stays ?? [];
+    return stays.map((s) => {
+      const occ = Number(s.ocupacaoMedia ?? 0);
+      const ocupado = Number.isFinite(occ) ? occ : 0;
+      return {
+        name: s.stayName,
+        ocupado,
+        vazio: Math.max(0, 100 - ocupado),
+      };
+    });
+  };
+
+  const computeMonthlySummary = () => {
+    const stays = monthlyData?.stays ?? [];
+
+    const diasNoMes = dayjs(`${selectedYear}-${selectedMonth}-01`).daysInMonth();
+
+    let totalDiarias = 0;
+    let totalReservas = 0;
+    let totalUnidades = 0;
+
+    // para ocupação geral ponderada por capacidade
+    let capacidadeTotal = 0;
+
+    // top/low unidade global
+    let topRoom = null;
+    let lowRoom = null;
+
+    stays.forEach((stay) => {
+      const diarias = Number(stay.totalDiarias ?? 0) || 0;
+      const reservas = Number(stay.totalReservas ?? 0) || 0;
+      const rooms = stay.rooms ?? [];
+
+      totalDiarias += diarias;
+      totalReservas += reservas;
+      totalUnidades += rooms.length;
+
+      capacidadeTotal += rooms.length * diasNoMes;
+
+      rooms.forEach((r, idx) => {
+        const occ = Number(r.ocupacao ?? 0);
+        const val = Number.isFinite(occ) ? occ : 0;
+
+        const roomName =
+          r?.name || r?.title || r?.roomNumber || r?.code || `Unidade ${idx + 1}`;
+
+        const entry = { stayName: stay.stayName, roomName, ocupacao: val };
+
+        if (!topRoom || entry.ocupacao > topRoom.ocupacao) topRoom = entry;
+        if (!lowRoom || entry.ocupacao < lowRoom.ocupacao) lowRoom = entry;
+      });
+    });
+
+    const ocupacaoGeral =
+      capacidadeTotal > 0 ? ((totalDiarias / capacidadeTotal) * 100).toFixed(1) : "0.0";
+
+    const mediaDiariasReserva =
+      totalReservas > 0 ? (totalDiarias / totalReservas).toFixed(1) : "-";
+
+    return {
+      diasNoMes,
+      totalDiarias,
+      totalReservas,
+      totalUnidades,
+      capacidadeTotal,
+      ocupacaoGeral, // %
+      mediaDiariasReserva,
+      topRoom,
+      lowRoom,
+    };
+  };
+
   /* ========== Imprimir / Salvar PDF (browser) ========== */
 
   const printReport = () => {
@@ -539,6 +613,94 @@ ${html}
         return totalRows * (cardHeight + gap);
       };
 
+      // ===== 1ª Página: Resumo do mês =====
+      try {
+        const summary = computeMonthlySummary();
+
+        newPage("Resumo do mês");
+
+        const summaryBlock = document.querySelector('[data-chunk="monthly-summary"]');
+        const summaryChartEl = summaryBlock?.querySelector(".recharts-wrapper");
+
+        const usableW = pageWidth - margin.left - margin.right;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.setTextColor(25, 46, 91);
+        pdf.text("Ocupação geral por Stay", margin.left, margin.top + 6);
+
+        if (summaryChartEl) {
+          const canvas = await captureElement(summaryChartEl);
+          const h = addImageCentered(canvas, margin.top + 10, usableW, 0.95);
+
+          // tabela de totais logo abaixo do gráfico
+          const afterChartY = margin.top + 10 + h + 8;
+
+          const topTxt = summary.topRoom
+            ? `${summary.topRoom.stayName} — ${summary.topRoom.roomName} (${summary.topRoom.ocupacao}%)`
+            : "-";
+
+          const lowTxt = summary.lowRoom
+            ? `${summary.lowRoom.stayName} — ${summary.lowRoom.roomName} (${summary.lowRoom.ocupacao}%)`
+            : "-";
+
+          autoTable(pdf, {
+            startY: afterChartY,
+            theme: "plain",
+            body: [
+              ["Total de diárias (todos stays)", summary.totalDiarias],
+              ["Total de reservas (todos stays)", summary.totalReservas],
+              ["Ocupação geral (ponderada por capacidade)", `${summary.ocupacaoGeral}%`],
+              ["Média de diárias por reserva", summary.mediaDiariasReserva],
+              ["Total de unidades ativas no mês", summary.totalUnidades],
+              ["Unidade mais ocupada (geral)", topTxt],
+              ["Unidade menos ocupada (geral)", lowTxt],
+            ],
+            styles: {
+              fontSize: 9.5,
+              cellPadding: 1.4,
+              lineColor: [220, 220, 220],
+              lineWidth: 0.2,
+              textColor: [33, 33, 33],
+            },
+            alternateRowStyles: { fillColor: [247, 249, 252] },
+            margin: { left: margin.left, right: margin.right },
+            tableWidth: usableW,
+            columnStyles: {
+              0: { halign: "left", cellWidth: usableW * 0.55 },
+              1: { halign: "right" },
+            },
+          });
+
+          // (opcional) tabela consolidada por stay
+          const tableY = pdf.lastAutoTable.finalY + 6;
+          autoTable(pdf, {
+            startY: tableY,
+            theme: "grid",
+            head: [["Stay", "Diárias", "Reservas", "Ocupação média", "Eficiência"]],
+            body: (monthlyData?.stays ?? []).map((s) => {
+              const diarias = Number(s.totalDiarias ?? 0) || 0;
+              const reservas = Number(s.totalReservas ?? 0) || 0;
+              const occ = `${s.ocupacaoMedia ?? 0}%`;
+
+              const cap = (s.rooms?.length ?? 0) * summary.diasNoMes;
+              const eficiencia = cap > 0 ? `${((diarias / cap) * 100).toFixed(1)}%` : "-";
+
+              return [s.stayName, diarias, reservas, occ, eficiencia];
+            }),
+            styles: { fontSize: 8.8, cellPadding: 2 },
+            headStyles: { fillColor: [243, 244, 246], textColor: [17, 24, 39] },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+            margin: { left: margin.left, right: margin.right },
+          });
+        }
+
+        drawFooter(page);
+      } catch (e) {
+        console.warn("⚠️ Falha ao gerar página de resumo", e);
+      }
+
+
       // ===== Mensal =====
       for (const stay of monthlyData.stays) {
         try {
@@ -780,8 +942,8 @@ ${html}
           <button
             onClick={generatePDF}
             className={`${generating
-                ? "bg-indigo-400 cursor-not-allowed"
-                : "bg-indigo-600 hover:bg-indigo-700"
+              ? "bg-indigo-400 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
               } text-white px-4 py-2 rounded-md shadow-sm`}
             disabled={generating}
           >
@@ -789,6 +951,42 @@ ${html}
           </button>
         </div>
       </div>
+
+
+      {/* Resumo do mês (para 1ª página do PDF) */}
+      <section
+        className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-gray-200 dark:border-slate-800"
+        data-chunk="monthly-summary"
+      >
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100 mb-2">
+          Resumo do mês — visão geral
+        </h3>
+
+        <p className="text-sm text-gray-600 dark:text-slate-300 mb-4">
+          Ocupação geral (todos os stays) + somatório das métricas do mês.
+        </p>
+
+        <div className="h-[260px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={buildGlobalStayChartData()} margin={{ top: 20, right: 20, left: 10, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis
+                dataKey="name"
+                stroke="#6b7280"
+                tick={{ fontSize: 11 }}
+                angle={-20}
+                textAnchor="end"
+                interval={0}
+              />
+              <YAxis domain={[0, 100]} tickFormatter={(t) => `${t}%`} stroke="#6b7280" />
+              <Tooltip formatter={(v) => `${Math.round(v)}%`} />
+              <Legend />
+              <Bar dataKey="ocupado" fill="#3b82f6" name="Ocupado (%)" />
+              <Bar dataKey="vazio" fill="#ef4444" name="Vazio (%)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
 
       {/* Relatório Mensal */}
       <section>
