@@ -313,6 +313,214 @@ export default function RelatorioLimpeza() {
     doc.save(`Relatorio-Limpeza-${month}.pdf`);
   };
 
+  // === Export PDF CONFERÊNCIA (layout bem diferente; mesma lógica de dados) ===
+  const exportPDFConferencia = () => {
+    const doc = new jsPDF();
+
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    const periodLabel = dayjs(month).format("MMMM/YYYY");
+    const periodoFim = endExtra
+      ? dayjs(endExtra).format("DD/MM/YYYY")
+      : dayjs(month).endOf("month").format("DD/MM/YYYY");
+    const periodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
+
+    // ===== helpers visuais =====
+    const drawWatermark = () => {
+      doc.saveGraphicsState?.();
+
+      // fallback se saveGraphicsState não existir em alguma versão
+      try {
+        doc.setTextColor(245, 158, 11); // laranja claro
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(48);
+
+        // rotação diagonal
+        doc.text("CONFERÊNCIA", pageW / 2, pageH / 2, {
+          align: "center",
+          angle: 35,
+        });
+
+        doc.setFontSize(18);
+        doc.text("NÃO EFETUAR PAGAMENTO", pageW / 2, pageH / 2 + 18, {
+          align: "center",
+          angle: 35,
+        });
+      } catch {
+        // se falhar, só ignora a marca d'água
+      }
+
+      doc.restoreGraphicsState?.();
+      doc.setTextColor(0, 0, 0);
+    };
+
+    const drawHeaderConferencia = () => {
+      // faixa topo laranja (bem diferente do azul)
+      doc.setFillColor(234, 88, 12); // laranja forte
+      doc.rect(0, 0, pageW, 28, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("RELATÓRIO — CONFERÊNCIA", 14, 18);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(
+        `${periodLabel} · Período ${periodoIni} até ${periodoFim}`,
+        14,
+        24
+      );
+
+      // selo “NÃO PAGAR”
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(pageW - 72, 8, 58, 14, 2, 2, "F");
+      doc.setTextColor(234, 88, 12);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.text("NÃO PAGAR", pageW - 43, 17, { align: "center" });
+
+      doc.setTextColor(0, 0, 0);
+
+      // linha
+      doc.setDrawColor(240);
+      doc.setLineWidth(0.3);
+      doc.line(14, 32, pageW - 14, 32);
+    };
+
+    const drawFooterConferencia = (pageNum) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        `Documento para conferência/rateio — Página ${pageNum}`,
+        pageW - 14,
+        pageH - 8,
+        { align: "right" }
+      );
+      doc.setTextColor(0, 0, 0);
+    };
+
+    // ===== Conteúdo =====
+    drawHeaderConferencia();
+    drawWatermark();
+
+    let y = 40;
+    const pageHeight = pageH;
+
+    const diaristasOrdem = Object.keys(totaisPorDiarista).sort((a, b) =>
+      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
+    );
+
+    let pageNum = 1;
+
+    for (const nome of diaristasOrdem) {
+      const info = totaisPorDiarista[nome];
+      const linhas = rows.filter((r) => r.diarista === nome);
+
+      // estima altura do bloco (mesma ideia do teu exportPDF)
+      const linhasAltura = linhas.length * 6 + 28;
+      const blocoAltura = 16 + linhasAltura + 14;
+
+      if (y + blocoAltura > pageHeight - 16) {
+        doc.addPage();
+        pageNum++;
+        drawHeaderConferencia();
+        drawWatermark();
+        y = 40;
+      }
+
+      // ==== Cabeçalho diarista (diferente do outro) ====
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(30, 41, 59);
+      doc.text(nome, 14, y);
+      y += 7;
+
+      // “chip” de subtotal na lateral
+      doc.setFillColor(255, 237, 213); // laranja bem claro
+      doc.roundedRect(pageW - 70, y - 12, 56, 10, 2, 2, "F");
+      doc.setTextColor(124, 45, 18);
+      doc.setFontSize(9.5);
+      doc.text(`R$ ${info.total},00`, pageW - 42, y - 5, { align: "center" });
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      // ==== Tabela (mesma info do pagamento) ====
+      const tabela = linhas.map((r) => [
+        r.stays,
+        r.rooms,
+        r.date,
+        `R$ ${r.valor},00`,
+      ]);
+
+      autoTable(doc, {
+        head: [["Empreendimento", "Acomodações", "Dia", "Valor"]],
+        body: tabela,
+        startY: y,
+        theme: "grid",
+        headStyles: {
+          fillColor: [255, 237, 213], // laranja claro no header
+          textColor: [124, 45, 18],
+          fontSize: 10,
+        },
+        bodyStyles: { fontSize: 9, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [255, 247, 237] },
+        margin: { left: 14, right: 14 },
+        pageBreak: "avoid",
+      });
+
+      y = doc.lastAutoTable.finalY + 10;
+
+      // ==== Linha de subtotal (mais evidente) ====
+      doc.setDrawColor(234, 88, 12);
+      doc.setLineWidth(0.6);
+      doc.line(14, y - 4, 90, y - 4);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(234, 88, 12);
+      doc.text(`Subtotal (conferência): R$ ${info.total},00`, 14, y);
+      doc.setTextColor(0, 0, 0);
+
+      y += 14;
+    }
+
+    // ==== Total Geral ====
+    if (y + 18 > pageHeight - 16) {
+      doc.addPage();
+      pageNum++;
+      drawHeaderConferencia();
+      drawWatermark();
+      y = 40;
+    }
+
+    doc.setFillColor(234, 88, 12);
+    doc.roundedRect(14, y, pageW - 28, 14, 3, 3, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(`TOTAL GERAL (conferência): R$ ${totalGeral},00`, pageW / 2, y + 9, {
+      align: "center",
+    });
+    doc.setTextColor(0, 0, 0);
+
+    // rodapé em todas as páginas (inclui a 1ª)
+    // (jsPDF não tem evento, então percorremos páginas)
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      drawFooterConferencia(p);
+    }
+
+    doc.save(`Conferencia-Limpeza-${month}${endExtra ? `-ate-${endExtra}` : ""}.pdf`);
+  };
+
+
+
   // === Export individual (agora lista dias + total dias, respeitando filtroStatus atual) ===
   const exportIndividualPDF = (nome) => {
     const dados = totaisPorDiarista[nome];
@@ -411,6 +619,13 @@ export default function RelatorioLimpeza() {
           >
             ⬇ Exportar PDF
           </button>
+          <button
+            onClick={exportPDFConferencia}
+            className="btn btn-sm bg-orange-600 text-white border-none hover:bg-orange-700 dark:bg-amber-600 dark:hover:bg-amber-500"
+          >
+            ⬇ PDF Conferência
+          </button>
+
         </div>
       </div>
 
