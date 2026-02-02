@@ -359,7 +359,7 @@ export default function RelatorioLimpeza() {
       // ===== Subtotal =====
       doc.setDrawColor(80, 80, 80);
       doc.setLineWidth(0.3);
-      doc.line(margin.left, y - 15, 200, y - 15);
+      doc.line(margin.left, y - 2, 200, y - 2);
 
 
 
