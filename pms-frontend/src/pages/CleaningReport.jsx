@@ -317,7 +317,7 @@ export default function RelatorioLimpeza() {
       doc.setFillColor(219, 234, 254); // blue-100
       doc.roundedRect(pageW - 70, y - 12, 56, 10, 2, 2, "F");
       doc.setTextColor(30, 64, 175); // blue-800
-      doc.setFontSize(9.5);
+      doc.setFontSize(14);
       doc.text(`R$ ${info.total},00`, pageW - 42, y - 5, { align: "center" });
 
       doc.setTextColor(0, 0, 0);
@@ -357,9 +357,9 @@ export default function RelatorioLimpeza() {
       y = doc.lastAutoTable.finalY + 10;
 
       // ===== Subtotal =====
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.6);
-      doc.line(margin.left, y - 4, 90, y - 4);
+      doc.setDrawColor(40, 40, 40);
+      doc.setLineWidth(0.3);
+      doc.line(margin.left, y - 4, 200, y - 4);
 
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
