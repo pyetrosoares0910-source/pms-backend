@@ -357,9 +357,9 @@ export default function RelatorioLimpeza() {
       y = doc.lastAutoTable.finalY + 10;
 
       // ===== Subtotal =====
-      doc.setDrawColor(40, 40, 40);
+      doc.setDrawColor(80, 80, 80);
       doc.setLineWidth(0.3);
-      doc.line(margin.left, y - 10, 200, y - 4);
+      doc.line(margin.left, y - 15, 200, y - 0);
 
 
 
