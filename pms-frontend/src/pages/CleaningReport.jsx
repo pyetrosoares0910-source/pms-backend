@@ -11,16 +11,19 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const feriadosSP = [
-  "2025-01-01",
-  "2025-04-18",
-  "2025-04-21",
-  "2025-05-01",
-  "2025-09-07",
-  "2025-10-12",
-  "2025-11-02",
-  "2025-11-15",
-  "2025-11-20",
-  "2025-12-25",
+  "2026-01-01", // Confraternização Universal
+  "2026-01-25", // Aniversário da Cidade de São Paulo (municipal)
+  "2026-04-03", // Paixão de Cristo (Sexta-feira Santa)
+  "2026-04-21", // Tiradentes
+  "2026-05-01", // Dia do Trabalho
+  "2026-06-04", // Corpus Christi (municipal em SP)
+  "2026-07-09", // Data Magna do Estado de São Paulo (estadual)
+  "2026-09-07", // Independência do Brasil
+  "2026-10-12", // Nossa Senhora Aparecida
+  "2026-11-02", // Finados
+  "2026-11-15", // Proclamação da República
+  "2026-11-20", // Dia Nacional de Zumbi e da Consciência Negra
+  "2026-12-25", // Natal
 ];
 
 function isWeekendOrHoliday(date) {
