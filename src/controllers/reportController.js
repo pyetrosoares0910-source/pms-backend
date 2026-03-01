@@ -15,8 +15,8 @@ async function getMonthlyPerformance(req, res) {
         .json({ error: "Informe mês e ano, ex: ?month=9&year=2025" });
 
     const monthPadded = String(month).padStart(2, "0");
-    const startOfMonth = dayjs(`${year}-${monthPadded}-01`).startOf("day");
-    const endExclusive = startOfMonth.add(1, "month"); // fim exclusivo
+    const startOfMonth = dayjs(`${year}-${monthPadded}-01`).startOf("month");
+    const endOfMonth = startOfMonth.endOf("month");
 
     const stays = await prisma.stay.findMany({
       include: {
@@ -58,11 +58,11 @@ async function getMonthlyPerformance(req, res) {
           if (checkOut.isBefore(checkIn)) return;
 
           // ignora reservas fora do mês
-          if (checkOut.isSameOrBefore(startOfMonth) || checkIn.isSameOrAfter(endExclusive)) return;
+          if (checkOut.isBefore(startOfMonth) || checkIn.isAfter(endOfMonth)) return;
 
           // calcula o período sobreposto ao mês
           const start = checkIn.isBefore(startOfMonth) ? startOfMonth : checkIn;
-          const end = checkOut.isAfter(endExclusive) ? endExclusive : checkOut;
+          const end = checkOut.isAfter(endOfMonth) ? endOfMonth : checkOut;
 
           const diffDays = end.diff(start, "day");
           if (diffDays > 0 && diffDays < 100) {
@@ -70,7 +70,7 @@ async function getMonthlyPerformance(req, res) {
           }
         });
 
-        const daysInMonth = endExclusive.diff(startOfMonth, "day");
+        const daysInMonth = endOfMonth.diff(startOfMonth, "day") + 1;
         const vazio = Math.max(0, daysInMonth - occupiedDays);
 
         totalOccupiedDays += occupiedDays;
@@ -92,7 +92,7 @@ async function getMonthlyPerformance(req, res) {
           if (!ci.isValid() || !co.isValid()) return false;
           if (co.isBefore(ci)) return false;
 
-          return !(co.isSameOrBefore(startOfMonth) || ci.isSameOrAfter(endExclusive));
+          return !(co.isBefore(startOfMonth) || ci.isAfter(endOfMonth));
         });
 
         totalReservations += validReservations.length;
@@ -166,15 +166,14 @@ async function getAnnualPerformance(req, res) {
 
       const dadosMensais = months.map((month) => {
         const monthPadded = String(month).padStart(2, "0");
-        const startOfMonth = dayjs(`${year}-${monthPadded}-01`).startOf("day");
-        const endExclusive = startOfMonth.add(1, "month");
-
+        const startOfMonth = dayjs(`${year}-${monthPadded}-01`).startOf("month");
+        const endOfMonth = startOfMonth.endOf("month");
 
         let totalOccupiedDays = 0;
         let totalDaysAvailable = 0;
 
         stay.rooms.forEach((room) => {
-          const daysInMonth = endExclusive.diff(startOfMonth, "day");
+          const daysInMonth = endOfMonth.diff(startOfMonth, "day") + 1;
           totalDaysAvailable += daysInMonth;
 
           room.reservations.forEach((res) => {
@@ -194,10 +193,10 @@ async function getAnnualPerformance(req, res) {
             if (!checkIn.isValid() || !checkOut.isValid()) return;
             if (checkOut.isBefore(checkIn)) return;
 
-            if (checkOut.isSameOrBefore(startOfMonth) || checkIn.isSameOrAfter(endExclusive)) return;
+            if (checkOut.isBefore(startOfMonth) || checkIn.isAfter(endOfMonth)) return;
 
             const start = checkIn.isBefore(startOfMonth) ? startOfMonth : checkIn;
-            const end = checkOut.isAfter(endExclusive) ? endExclusive : checkOut;
+            const end = checkOut.isAfter(endOfMonth) ? endOfMonth : checkOut;
 
             const noites = end.diff(start, "day");
             if (noites > 0 && noites < 100) {
