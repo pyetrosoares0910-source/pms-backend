@@ -565,7 +565,12 @@ ${html}
       };
 
       const drawOccupancyCards = (pdf, stay, startY, usableW) => {
-        const rooms = stay.rooms || [];
+        // Mesma fonte do gráfico:
+        const chartData = buildMonthlyChartData(stay) || [];
+
+        // Remove “blanks” que o centerifyData coloca (name: " ")
+        const cardsData = chartData.filter((d) => !d?._blank && String(d?.name || "").trim() !== "");
+
         const cardsPerRow = 5;
         const cardWidth = (usableW - (cardsPerRow - 1) * 6) / cardsPerRow;
         const cardHeight = 22;
@@ -575,18 +580,31 @@ ${html}
 
         pdf.setFont("helvetica", "bold");
 
-        rooms.forEach((room, idx) => {
+        cardsData.forEach((item, idx) => {
           const row = Math.floor(idx / cardsPerRow);
           const col = idx % cardsPerRow;
 
           const x = marginLeft + col * (cardWidth + gap);
           const y = marginTop + row * (cardHeight + gap);
 
-          const occ = Number(room.ocupacao) || 0;
+          // ocupação do MESMO dataset do gráfico
+          const occ = Number(item.ocupado) || 0;
+          const occRounded = Math.round(occ);
 
-          let fillColor = [108, 141, 180];
-          if (occ >= 50) fillColor = [108, 141, 180];
-          else fillColor = [239, 68, 68];
+          // regra de cor igual à tua (>=50 azul, senão vermelho)
+          let fillColor;
+
+          // mesma regra do getColorByOccupancy
+          if (occRounded >= 60) {
+            // verde
+            fillColor = [34, 197, 94]; // equivalente ao green-500
+          } else if (occRounded >= 40) {
+            // amarelo
+            fillColor = [245, 158, 11]; // amber-500
+          } else {
+            // vermelho
+            fillColor = [239, 68, 68]; // red-500
+          }
 
           pdf.setFillColor(...fillColor);
           pdf.setDrawColor(...fillColor);
@@ -594,22 +612,17 @@ ${html}
 
           pdf.setTextColor(255, 255, 255);
           pdf.setFontSize(8.5);
-          pdf.text(
-            room.name || room.title || `Unidade ${idx + 1}`,
-            x + cardWidth / 2,
-            y + 9,
-            {
-              align: "center",
-            }
-          );
+
+          // Nome igual ao eixo do gráfico
+          pdf.text(String(item.name), x + cardWidth / 2, y + 9, { align: "center" });
 
           pdf.setFontSize(14);
-          pdf.text(`${occ}%`, x + cardWidth / 2, y + cardHeight / 1.45, {
+          pdf.text(`${occRounded}%`, x + cardWidth / 2, y + cardHeight / 1.45, {
             align: "center",
           });
         });
 
-        const totalRows = Math.ceil(rooms.length / cardsPerRow);
+        const totalRows = Math.ceil(cardsData.length / cardsPerRow);
         return totalRows * (cardHeight + gap);
       };
 
