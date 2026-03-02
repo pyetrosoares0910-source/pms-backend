@@ -328,6 +328,15 @@ export default function Dashboard() {
         dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
     ).length;
 
+    const diasDesignados = new Set(
+      diariasDesignadas.map(d => dayjs(d.date).format("YYYY-MM-DD"))
+    );
+
+    const checkoutsDesignados = checkoutsDoMesList.filter(r =>
+      diasDesignados.has(dayjs(r.checkoutDate).format("YYYY-MM-DD"))
+    ).length;
+
+
     const diariasLimpeza = (() => {
       const set = new Set();
       (tasksMonth || []).forEach((t) => {
@@ -341,7 +350,7 @@ export default function Dashboard() {
     const diariasLimpezaMes = diariasLimpeza;
 
     const eficienciaLimpeza =
-      diariasLimpeza > 0 ? (checkoutsDoMes / diariasLimpeza).toFixed(1) : "-";
+      diariasLimpeza > 0 ? (checkoutsDesignados / diariasLimpeza).toFixed(1) : "-";
 
     const mediaDiariasReserva =
       reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
