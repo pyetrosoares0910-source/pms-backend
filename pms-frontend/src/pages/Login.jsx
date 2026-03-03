@@ -36,17 +36,17 @@ export default function Login() {
   }
 
   return (
-    <div className="w-full max-w-sm bg-white rounded-2xl shadow p-6">
-      <h1 className="text-lg font-semibold mb-4">Entrar</h1>
+    <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-slate-900 shadow">
+      <h1 className="mb-4 text-lg font-semibold text-slate-900">Entrar</h1>
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
-          className="w-full border rounded-lg px-3 py-2"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
-          className="w-full border rounded-lg px-3 py-2"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
           placeholder="Senha"
           type="password"
           value={password}
