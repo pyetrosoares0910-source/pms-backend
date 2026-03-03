@@ -400,9 +400,9 @@ export default function DashboardLayout() {
               onToggle={() => toggleGroup("relatorios")}
               showText={showText}
             >
-              <Item to="/cleaning-report" icon={Brush} showText={showText}>
+              {!viewerOnly && <Item to="/cleaning-report" icon={Brush} showText={showText}>
                 Relatório de Limpeza
-              </Item>
+              </Item>}
               <Item
                 to="/performance-report"
                 icon={BarChart3}

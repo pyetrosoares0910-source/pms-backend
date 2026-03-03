@@ -54,10 +54,7 @@ const staffRoutes = require("./routes/staffRoutes");
 const roomsRoutes = require("./routes/rooms");
 const reservationsRoutes = require("./routes/reservations");
 const statsRoutes = require("./routes/stats");
-const {
-  authenticate,
-  authorizeViewerAccess,
-} = require("../middlewares/authMiddleware");
+const { authRequired, onlyRoles } = require("../middlewares/authMiddleware");
 const cleaningStaffRoutes = require("./routes/cleaningStaff");
 const maintenanceRoutes = require("./routes/maintenance");
 const staysRoutes = require("./routes/stays");
@@ -72,22 +69,22 @@ const inventoryRoutes = require("./routes/inventory");
 const consumptionProfilesRoutes = require("./routes/consumptionProfiles");
 
 app.use("/auth", authRoutes);
-app.use("/guests", authenticate, authorizeViewerAccess, guestsRoutes);
-app.use("/staff", authenticate, authorizeViewerAccess, staffRoutes);
-app.use("/rooms", authenticate, authorizeViewerAccess, roomsRoutes);
-app.use("/reservations", authenticate, authorizeViewerAccess, reservationsRoutes);
-app.use("/stats", authenticate, authorizeViewerAccess, statsRoutes);
-app.use("/cleaning-staff", authenticate, authorizeViewerAccess, cleaningStaffRoutes);
-app.use("/maintenance", authenticate, authorizeViewerAccess, maintenanceRoutes);
-app.use("/stays", authenticate, authorizeViewerAccess, staysRoutes);
-app.use("/tasks", authenticate, authorizeViewerAccess, taskRoutes);
-app.use("/maids", authenticate, authorizeViewerAccess, maidRoutes);
-app.use("/reports", authenticate, authorizeViewerAccess, require("./routes/reportRoutes"));
+app.use("/guests", guestsRoutes);
+app.use("/staff", staffRoutes);
+app.use("/rooms", roomsRoutes);
+app.use("/reservations", reservationsRoutes);
+app.use("/stats", statsRoutes);
+app.use("/cleaning-staff", cleaningStaffRoutes);
+app.use("/maintenance", maintenanceRoutes);
+app.use("/stays", staysRoutes);
+app.use("/tasks", taskRoutes);
+app.use("/maids", maidRoutes);
+app.use("/reports", require("./routes/reportRoutes"));
 app.use("/", reportPdfRoutes);
-app.use("/payments", authenticate, authorizeViewerAccess, paymentRoutes);
-app.use("/api", authenticate, authorizeViewerAccess, productsRoutes);
-app.use("/api", authenticate, authorizeViewerAccess, inventoryRoutes);
-app.use("/api", authenticate, authorizeViewerAccess, consumptionProfilesRoutes);
+app.use("/payments", paymentRoutes);
+app.use("/api", productsRoutes);
+app.use("/api", inventoryRoutes);
+app.use("/api", consumptionProfilesRoutes);
 
 // 🔹 Teste
 app.get("/", (req, res) => {
