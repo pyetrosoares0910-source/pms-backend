@@ -8,6 +8,8 @@ export default function DashboardKPIGrid({ kpis }) {
     show: { transition: { staggerChildren: 0.06, delayChildren: 0.06 } },
   };
 
+  const sameDayPrevLabel = "Comparado ao mesmo dia do mês anterior";
+
   return (
     <motion.div
       initial="hidden"
@@ -20,10 +22,11 @@ export default function DashboardKPIGrid({ kpis }) {
         auto-rows-fr
       "
     >
-      {/* ✅ KPIs do dia — SEM comparativo */}
       <StatCard
         title="Reservas ativas (hoje)"
         value={kpis.activeToday}
+        prev={kpis.prev?.activeToday}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>📖</PremiumIcon>}
         to="/map"
       />
@@ -31,6 +34,8 @@ export default function DashboardKPIGrid({ kpis }) {
       <StatCard
         title="Check-ins (hoje)"
         value={kpis.checkinsToday}
+        prev={kpis.prev?.checkinsToday}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>🛎️</PremiumIcon>}
         to="/map"
       />
@@ -38,11 +43,12 @@ export default function DashboardKPIGrid({ kpis }) {
       <StatCard
         title="Check-outs (hoje)"
         value={kpis.checkoutsToday}
+        prev={kpis.prev?.checkoutsToday}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>🧳</PremiumIcon>}
         to="/map"
       />
 
-      {/* ✅ KPIs Mensais — COM comparativo */}
       <StatCard
         title="Diárias no mês"
         value={kpis.nightsInMonth}
@@ -59,10 +65,12 @@ export default function DashboardKPIGrid({ kpis }) {
         to="/map"
       />
 
-      {/* ✅ KPIs com string — SEM comparativo */}
       <StatCard
         title="Maior ocupação"
         value={kpis.maiorOcupacao?.label ?? "-"}
+        prev={kpis.prev?.maiorOcupacao}
+        compareValue={kpis.compare?.maiorOcupacao}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>🏆</PremiumIcon>}
         to="/performance-report"
       />
@@ -71,6 +79,8 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Média de diárias por reserva"
         value={kpis.mediaDiariasReserva}
         prev={kpis.prev?.mediaDiariasReserva}
+        compareValue={kpis.compare?.mediaDiariasReserva}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>📆</PremiumIcon>}
         to="/performance-report"
       />
@@ -78,6 +88,9 @@ export default function DashboardKPIGrid({ kpis }) {
       <StatCard
         title="Menor ocupação"
         value={kpis.menorOcupacao?.label ?? "-"}
+        prev={kpis.prev?.menorOcupacao}
+        compareValue={kpis.compare?.menorOcupacao}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>⚠️</PremiumIcon>}
         to="/performance-report"
       />
@@ -94,6 +107,8 @@ export default function DashboardKPIGrid({ kpis }) {
         title="Eficiência de limpeza"
         value={kpis.eficienciaLimpeza}
         prev={kpis.prev?.eficienciaLimpeza}
+        compareValue={kpis.compare?.eficienciaLimpeza}
+        compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>🧹</PremiumIcon>}
         to="/cleaning-schedule"
       />

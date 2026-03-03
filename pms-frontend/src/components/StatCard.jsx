@@ -26,6 +26,8 @@ export default function StatCard({
   title,
   value,
   prev,
+  compareValue,
+  compareLabel,
   icon,
   to,
   onClick,
@@ -33,8 +35,13 @@ export default function StatCard({
 }) {
   const Wrapper = to ? Link : onClick ? "button" : "div";
 
-  const isNumeric = useMemo(() => !isNaN(Number(value)), [value]);
-  const numericValue = useMemo(() => Number(value), [value]);
+  const comparisonBase = compareValue ?? value;
+
+  const isNumeric = useMemo(
+    () => !isNaN(Number(comparisonBase)),
+    [comparisonBase]
+  );
+  const numericValue = useMemo(() => Number(comparisonBase), [comparisonBase]);
 
   const prevDiff = useMemo(() => {
     if (!isNumeric || typeof prev !== "number" || isNaN(prev)) return null;
@@ -143,7 +150,9 @@ export default function StatCard({
             <div className="h-px bg-gradient-to-r from-transparent via-slate-200/90 to-transparent dark:via-slate-700/60" />
             <div className="mt-3 flex items-center justify-between gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-400">
               <span>
-                {prevDiff === null ? "Sem comparativo" : "Comparado ao periodo anterior"}
+                {prevDiff === null
+                  ? "Sem comparativo"
+                  : compareLabel || "Comparado ao periodo anterior"}
               </span>
               {clickable && (
                 <span className="rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600 transition-colors group-hover:text-sky-700 dark:border-slate-700/70 dark:bg-slate-900/70 dark:text-slate-300 dark:group-hover:text-sky-300">

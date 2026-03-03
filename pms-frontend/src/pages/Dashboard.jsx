@@ -49,6 +49,48 @@ function monthBounds(d = new Date()) {
   return { start, end, daysInMonth: start.daysInMonth() };
 }
 
+function previousMonthEquivalentDay(d = new Date()) {
+  const current = dayjs(d).startOf("day");
+  const prevMonth = current.subtract(1, "month");
+  const safeDay = Math.min(current.date(), prevMonth.daysInMonth());
+  return prevMonth.date(safeDay).startOf("day");
+}
+
+function buildStayOccupancy(rows, reservations, start, end) {
+  const daysInPeriod = Math.max(1, dayjs(end).diff(dayjs(start), "day"));
+  const roomsByStay = {};
+
+  rows.forEach((room) => {
+    const stayId = room.stay?.id || "none";
+    if (!roomsByStay[stayId]) {
+      roomsByStay[stayId] = { stayId, stayName: room.stay?.name, rooms: [] };
+    }
+    roomsByStay[stayId].rooms.push(room.id);
+  });
+
+  return Object.values(roomsByStay).map((group) => {
+    const roomSet = new Set(group.rooms);
+    let occupiedNights = 0;
+
+    reservations
+      .filter((r) => r.status !== "cancelada" && roomSet.has(r.roomId))
+      .forEach((r) => {
+        occupiedNights += overlapDays(r.checkinDate, r.checkoutDate, start, end);
+      });
+
+    const capacity = group.rooms.length * daysInPeriod;
+    const pct =
+      capacity > 0 ? Math.round((occupiedNights / capacity) * 100) : 0;
+
+    return {
+      stayId: group.stayId,
+      name: group.stayName,
+      label: abbrevStay(group.stayName),
+      ocupacao: pct,
+    };
+  });
+}
+
 function abbrevStay(name) {
   const map = {
     "Itaim Stay (Tabapuã)": "Itaim",
@@ -172,39 +214,7 @@ export default function Dashboard() {
 
   // === Ocupação por empreendimento ===
   const occupancy = useMemo(() => {
-    const roomsByStay = {};
-    rooms.forEach((r) => {
-      const stayId = r.stay?.id || "none";
-      if (!roomsByStay[stayId])
-        roomsByStay[stayId] = { stayId, stayName: r.stay?.name, rooms: [] };
-      roomsByStay[stayId].rooms.push(r.id);
-    });
-
-    const occRows = Object.values(roomsByStay).map((group) => {
-      const roomSet = new Set(group.rooms);
-      let occupiedNights = 0;
-      reservations
-        .filter((r) => r.status !== "cancelada" && roomSet.has(r.roomId))
-        .forEach((r) => {
-          occupiedNights += overlapDays(
-            r.checkinDate,
-            r.checkoutDate,
-            mStart,
-            mEnd
-          );
-        });
-
-      const capacity = group.rooms.length * daysInMonth;
-      const pct =
-        capacity > 0 ? Math.round((occupiedNights / capacity) * 100) : 0;
-
-      return {
-        stayId: group.stayId,
-        name: group.stayName,
-        label: abbrevStay(group.stayName),
-        ocupacao: pct,
-      };
-    });
+    const occRows = buildStayOccupancy(rooms, reservations, mStart, mEnd);
 
     const avg =
       occRows.length > 0
@@ -284,6 +294,40 @@ export default function Dashboard() {
     const { start: prevStart, end: prevEnd } = monthBounds(
       dayjs().subtract(1, "month")
     );
+    const previousEquivalentDay = previousMonthEquivalentDay(todayLocal);
+    const currentMonthToDateStart = dayjs(todayLocal).startOf("month");
+    const currentMonthToDateEnd = dayjs(todayLocal).add(1, "day");
+    const prevMonthToDateStart = dayjs(previousEquivalentDay).startOf("month");
+    const prevMonthToDateEnd = dayjs(previousEquivalentDay).add(1, "day");
+
+    const countAssignedCleaningDays = (items, start, end) => {
+      const set = new Set();
+
+      (items || []).forEach((t) => {
+        if (!t.maid && !t.maidId) return;
+
+        const taskDate = dayjs(t.date);
+        if (!taskDate.isBetween(start, end, "day", "[]")) return;
+
+        const key = `${t.date}-${t.maidId || t.maid}`;
+        set.add(key);
+      });
+
+      return set.size;
+    };
+
+    const currentSnapshotOccupancy = buildStayOccupancy(
+      rooms,
+      reservations,
+      currentMonthToDateStart,
+      currentMonthToDateEnd
+    );
+    const prevSnapshotOccupancy = buildStayOccupancy(
+      rooms,
+      reservations,
+      prevMonthToDateStart,
+      prevMonthToDateEnd
+    );
 
     const activeToday = reservations.filter(
       (r) =>
@@ -292,16 +336,35 @@ export default function Dashboard() {
         dayjs.utc(r.checkoutDate).isAfter(todayLocal)
     ).length;
 
+    const activeTodayPrev = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkinDate).isSameOrBefore(previousEquivalentDay) &&
+        dayjs.utc(r.checkoutDate).isAfter(previousEquivalentDay)
+    ).length;
+
     const checkinsToday = reservations.filter(
       (r) =>
         r.status !== "cancelada" &&
         dayjs.utc(r.checkinDate).isSame(todayLocal, "day")
     ).length;
 
+    const checkinsTodayPrev = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkinDate).isSame(previousEquivalentDay, "day")
+    ).length;
+
     const checkoutsToday = reservations.filter(
       (r) =>
         r.status !== "cancelada" &&
         dayjs.utc(r.checkoutDate).isSame(todayLocal, "day")
+    ).length;
+
+    const checkoutsTodayPrev = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs.utc(r.checkoutDate).isSame(previousEquivalentDay, "day")
     ).length;
 
     const nightsInMonth = reservations.reduce((sum, r) => {
@@ -328,15 +391,7 @@ export default function Dashboard() {
         dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
     ).length;
 
-    const diariasLimpeza = (() => {
-      const set = new Set();
-      (tasksMonth || []).forEach((t) => {
-        if (!t.maid && !t.maidId) return;
-        const key = `${t.date}-${t.maidId || t.maid}`;
-        set.add(key);
-      });
-      return set.size;
-    })();
+    const diariasLimpeza = countAssignedCleaningDays(tasksMonth, mStart, mEnd);
 
     const diariasLimpezaMes = diariasLimpeza;
 
@@ -356,6 +411,20 @@ export default function Dashboard() {
         ? occupancy.rows.reduce((a, b) => (a.ocupacao < b.ocupacao ? a : b))
         : null;
 
+    const maiorOcupacaoSnapshot =
+      currentSnapshotOccupancy.length > 0
+        ? currentSnapshotOccupancy.reduce((a, b) =>
+            a.ocupacao > b.ocupacao ? a : b
+          )
+        : null;
+
+    const menorOcupacaoSnapshot =
+      currentSnapshotOccupancy.length > 0
+        ? currentSnapshotOccupancy.reduce((a, b) =>
+            a.ocupacao < b.ocupacao ? a : b
+          )
+        : null;
+
     const nightsPrev = reservations.reduce((sum, r) => {
       if (r.status === "cancelada") return sum;
       return (
@@ -373,36 +442,156 @@ export default function Dashboard() {
       );
     }).length;
 
-    const mediaPrev =
-      reservasPrev > 0 ? (nightsPrev / reservasPrev).toFixed(1) : null;
+    const diariasLimpezaPrev = countAssignedCleaningDays(
+      tasksMonthPrev,
+      prevStart,
+      prevEnd
+    );
 
-    const checkoutsPrev = reservations.filter(
+    const nightsMonthToDate = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return (
+        sum +
+        overlapDays(
+          r.checkinDate,
+          r.checkoutDate,
+          currentMonthToDateStart,
+          currentMonthToDateEnd
+        )
+      );
+    }, 0);
+
+    const reservasMonthToDate = reservations.filter((r) => {
+      if (r.status === "cancelada" || !r.checkinDate || !r.checkoutDate) {
+        return false;
+      }
+
+      const ci = dayjs(r.checkinDate);
+      const co = dayjs(r.checkoutDate);
+      return (
+        ci.isBetween(currentMonthToDateStart, currentMonthToDateEnd, null, "[]") ||
+        co.isBetween(currentMonthToDateStart, currentMonthToDateEnd, null, "[]")
+      );
+    }).length;
+
+    const checkoutsMonthToDate = reservations.filter(
       (r) =>
         r.status !== "cancelada" &&
-        dayjs(r.checkoutDate).isBetween(prevStart, prevEnd, null, "[]")
+        dayjs(r.checkoutDate).isBetween(
+          currentMonthToDateStart,
+          currentMonthToDateEnd,
+          null,
+          "[]"
+        )
     ).length;
 
-    const diariasLimpezaPrev = (() => {
-      const set = new Set();
-      (tasksMonthPrev || []).forEach((t) => {
-        if (!t.maid && !t.maidId) return;
-        const key = `${t.date}-${t.maidId || t.maid}`;
-        set.add(key);
-      });
-      return set.size;
-    })();
+    const diariasLimpezaMonthToDate = countAssignedCleaningDays(
+      tasksMonth,
+      currentMonthToDateStart,
+      todayLocal
+    );
 
-    const eficienciaLimpezaPrev =
-      diariasLimpezaPrev > 0
-        ? (checkoutsPrev / diariasLimpezaPrev).toFixed(1)
+    const mediaMonthToDate =
+      reservasMonthToDate > 0 ? nightsMonthToDate / reservasMonthToDate : null;
+
+    const eficienciaLimpezaMonthToDate =
+      diariasLimpezaMonthToDate > 0
+        ? checkoutsMonthToDate / diariasLimpezaMonthToDate
+        : null;
+
+    const nightsPrevMonthToDate = reservations.reduce((sum, r) => {
+      if (r.status === "cancelada") return sum;
+      return (
+        sum +
+        overlapDays(
+          r.checkinDate,
+          r.checkoutDate,
+          prevMonthToDateStart,
+          prevMonthToDateEnd
+        )
+      );
+    }, 0);
+
+    const reservasPrevMonthToDate = reservations.filter((r) => {
+      if (r.status === "cancelada" || !r.checkinDate || !r.checkoutDate) {
+        return false;
+      }
+
+      const ci = dayjs(r.checkinDate);
+      const co = dayjs(r.checkoutDate);
+      return (
+        ci.isBetween(prevMonthToDateStart, prevMonthToDateEnd, null, "[]") ||
+        co.isBetween(prevMonthToDateStart, prevMonthToDateEnd, null, "[]")
+      );
+    }).length;
+
+    const checkoutsPrevMonthToDate = reservations.filter(
+      (r) =>
+        r.status !== "cancelada" &&
+        dayjs(r.checkoutDate).isBetween(
+          prevMonthToDateStart,
+          prevMonthToDateEnd,
+          null,
+          "[]"
+        )
+    ).length;
+
+    const diariasLimpezaPrevMonthToDate = countAssignedCleaningDays(
+      tasksMonthPrev,
+      prevMonthToDateStart,
+      previousEquivalentDay
+    );
+
+    const mediaPrevMonthToDate =
+      reservasPrevMonthToDate > 0
+        ? nightsPrevMonthToDate / reservasPrevMonthToDate
+        : null;
+
+    const eficienciaLimpezaPrevMonthToDate =
+      diariasLimpezaPrevMonthToDate > 0
+        ? checkoutsPrevMonthToDate / diariasLimpezaPrevMonthToDate
+        : null;
+
+    const maiorOcupacaoPrev =
+      prevSnapshotOccupancy.length > 0
+        ? prevSnapshotOccupancy.reduce((a, b) =>
+            a.ocupacao > b.ocupacao ? a : b
+          ).ocupacao
+        : null;
+
+    const menorOcupacaoPrev =
+      prevSnapshotOccupancy.length > 0
+        ? prevSnapshotOccupancy.reduce((a, b) =>
+            a.ocupacao < b.ocupacao ? a : b
+          ).ocupacao
         : null;
 
     const prev = {
+      activeToday: activeTodayPrev,
+      checkinsToday: checkinsTodayPrev,
+      checkoutsToday: checkoutsTodayPrev,
       nightsInMonth: nightsPrev,
       reservasMes: reservasPrev,
-      mediaDiariasReserva: mediaPrev,
+      mediaDiariasReserva:
+        mediaPrevMonthToDate !== null ? Number(mediaPrevMonthToDate.toFixed(1)) : null,
       diariasLimpeza: diariasLimpezaPrev,
-      eficienciaLimpeza: eficienciaLimpezaPrev,
+      eficienciaLimpeza:
+        eficienciaLimpezaPrevMonthToDate !== null
+          ? Number(eficienciaLimpezaPrevMonthToDate.toFixed(1))
+          : null,
+      maiorOcupacao: maiorOcupacaoPrev,
+      menorOcupacao: menorOcupacaoPrev,
+    };
+
+    const compare = {
+      maiorOcupacao: maiorOcupacaoSnapshot?.ocupacao ?? null,
+      menorOcupacao: menorOcupacaoSnapshot?.ocupacao ?? null,
+      mediaDiariasReserva:
+        mediaMonthToDate !== null ? Number(mediaMonthToDate.toFixed(1)) : null,
+      eficienciaLimpeza:
+        eficienciaLimpezaMonthToDate !== null
+          ? Number(eficienciaLimpezaMonthToDate.toFixed(1))
+          : null,
     };
 
     const allEfficiency = (() => {
@@ -475,6 +664,7 @@ export default function Dashboard() {
       worstEfficiency,
       allEfficiency,
       prev,
+      compare,
     };
   }, [
     reservations,
@@ -1457,4 +1647,3 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
 
   );
 }
-
