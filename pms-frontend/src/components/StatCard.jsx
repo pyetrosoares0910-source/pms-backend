@@ -37,24 +37,25 @@ export default function StatCard({
 
   const comparisonBase = compareValue ?? value;
 
-  const isNumeric = useMemo(
+  const isDisplayNumeric = useMemo(() => !isNaN(Number(value)), [value]);
+  const isComparisonNumeric = useMemo(
     () => !isNaN(Number(comparisonBase)),
     [comparisonBase]
   );
   const numericValue = useMemo(() => Number(comparisonBase), [comparisonBase]);
 
   const prevDiff = useMemo(() => {
-    if (!isNumeric || typeof prev !== "number" || isNaN(prev)) return null;
+    if (!isComparisonNumeric || typeof prev !== "number" || isNaN(prev)) return null;
     return prev !== 0 ? ((numericValue - prev) / prev) * 100 : 0;
-  }, [numericValue, prev, isNumeric]);
+  }, [numericValue, prev, isComparisonNumeric]);
 
   const clickable = Boolean(to || onClick);
 
   const metaLabel = useMemo(() => {
-    if (!isNumeric) return "Indicador";
+    if (!isDisplayNumeric) return "Indicador";
     if (String(value).includes(".")) return "Metrica mensal";
     return "Atualizado hoje";
-  }, [isNumeric, value]);
+  }, [isDisplayNumeric, value]);
 
   return (
     <Wrapper
@@ -111,7 +112,7 @@ export default function StatCard({
                 Valor atual
               </div>
               <div className="mt-1 flex min-w-0 items-center gap-2">
-                {isNumeric ? (
+                {isDisplayNumeric ? (
                   <AnimatedNumber
                     value={value}
                     className="text-[32px] font-black leading-none tracking-[-0.04em] text-slate-900 dark:text-slate-50"
@@ -124,7 +125,7 @@ export default function StatCard({
               </div>
             </div>
 
-            {isNumeric && prevDiff !== null && (
+            {isComparisonNumeric && prevDiff !== null && (
               <span
                 className={clsx(
                   `
