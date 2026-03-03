@@ -395,9 +395,6 @@ export default function Dashboard() {
 
     const diariasLimpezaMes = diariasLimpeza;
 
-    const eficienciaLimpeza =
-      diariasLimpeza > 0 ? (checkoutsDoMes / diariasLimpeza).toFixed(1) : "-";
-
     const mediaDiariasReserva =
       reservasMes > 0 ? (nightsInMonth / reservasMes).toFixed(1) : "-";
 
@@ -498,6 +495,11 @@ export default function Dashboard() {
       diariasLimpezaMonthToDate > 0
         ? checkoutsMonthToDate / diariasLimpezaMonthToDate
         : null;
+
+    const eficienciaLimpeza =
+      eficienciaLimpezaMonthToDate !== null
+        ? eficienciaLimpezaMonthToDate.toFixed(1)
+        : "-";
 
     const nightsPrevMonthToDate = reservations.reduce((sum, r) => {
       if (r.status === "cancelada") return sum;
