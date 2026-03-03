@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApi } from "../lib/api";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
+import { isViewer } from "../lib/permissions";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -686,8 +688,10 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
 // ===== Página principal =====
 export default function MapView() {
   const api = useApi();
+  const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const viewerOnly = isViewer(user);
 
   const [rooms, setRooms] = useState([]);
   const [reservations, setReservations] = useState([]);
@@ -762,12 +766,14 @@ export default function MapView() {
         <h1 className="text-[30px] font-semibold text-slate-900 dark:text-slate-50">
           Mapa de Reservas
         </h1>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20"
-        >
-          Adicionar reserva
-        </button>
+        {!viewerOnly && (
+          <button
+            onClick={() => setAddOpen(true)}
+            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20"
+          >
+            Adicionar reserva
+          </button>
+        )}
       </div>
 
       {/* Controle de datas */}
@@ -939,7 +945,7 @@ export default function MapView() {
                             res={r}
                             day0={start}
                             days={days}
-                            onClick={setSelected}
+                            onClick={viewerOnly ? undefined : setSelected}
                           />
                         ))}
                     </div>
@@ -950,24 +956,28 @@ export default function MapView() {
         })}
       </div>
 
-      <ReservationActionsModal
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        reservation={selected}
-        rooms={rooms}
-        onUpdated={(updated) =>
-          setReservations((prev) =>
-            prev.map((r) => (r.id === updated.id ? updated : r))
-          )
-        }
-      />
+      {!viewerOnly && (
+        <ReservationActionsModal
+          open={!!selected}
+          onClose={() => setSelected(null)}
+          reservation={selected}
+          rooms={rooms}
+          onUpdated={(updated) =>
+            setReservations((prev) =>
+              prev.map((r) => (r.id === updated.id ? updated : r))
+            )
+          }
+        />
+      )}
 
-      <AddReservationModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        rooms={rooms}
-        onCreated={(res) => setReservations((prev) => [...prev, res])}
-      />
+      {!viewerOnly && (
+        <AddReservationModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          rooms={rooms}
+          onCreated={(res) => setReservations((prev) => [...prev, res])}
+        />
+      )}
 
       {loading && (
         <div className="mt-4 text-sm text-neutral-500 dark:text-slate-400">

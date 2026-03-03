@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { isViewer } from "../lib/permissions";
 import {
   LayoutDashboard,
   Map,
@@ -179,6 +180,7 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const viewerOnly = isViewer(user);
 
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
@@ -316,20 +318,25 @@ export default function DashboardLayout() {
           <Item to="/map" icon={Map} showText={showText}>
             Mapa de Reservas
           </Item>
-          <Item to="/cleaning-schedule" icon={Puzzle} showText={showText}>
-            Controle Limpeza
-          </Item>
-          <Item
-            to="/maintenance-calendar"
-            icon={CalendarDays}
-            showText={showText}
-          >
-            Agenda de Atividades
-          </Item>
+          {!viewerOnly && (
+            <Item to="/cleaning-schedule" icon={Puzzle} showText={showText}>
+              Controle Limpeza
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item
+              to="/maintenance-calendar"
+              icon={CalendarDays}
+              showText={showText}
+            >
+              Agenda de Atividades
+            </Item>
+          )}
 
           {/* Grupos */}
           <div className="mt-4 space-y-2">
             {/* CADASTROS */}
+            {!viewerOnly && (
             <NavGroup
               label="Cadastros"
               icon={ClipboardList}
@@ -359,8 +366,10 @@ export default function DashboardLayout() {
                 Diaristas
               </Item>
             </NavGroup>
+            )}
 
             {/* ESTOQUE */}
+            {!viewerOnly && (
             <NavGroup
               label="Estoque"
               icon={Boxes}
@@ -381,6 +390,7 @@ export default function DashboardLayout() {
                 Perfis de Consumo
               </Item>
             </NavGroup>
+            )}
 
             {/* RELATÓRIOS */}
             <NavGroup

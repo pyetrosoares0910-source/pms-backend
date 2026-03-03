@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getDefaultPath } from "../lib/permissions";
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,7 +28,7 @@ export default function Login() {
       if (!data.token) throw new Error("Token não retornado pelo servidor");
 
       login({ token: data.token, user: data.user });
-      nav("/map");
+      nav(getDefaultPath(data.user));
     } catch (err) {
       console.error(err);
       setError("Falha no login: " + (err.message || "verifique suas credenciais"));
