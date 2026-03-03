@@ -316,6 +316,11 @@ export default function Dashboard() {
       return set.size;
     };
 
+    const countCheckoutTasks = (items, start, end) =>
+      (items || []).filter((t) =>
+        dayjs(t.date).isBetween(start, end, "day", "[]")
+      ).length;
+
     const currentSnapshotOccupancy = buildStayOccupancy(
       rooms,
       reservations,
@@ -385,11 +390,7 @@ export default function Dashboard() {
       );
     }).length;
 
-    const checkoutsDoMes = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" &&
-        dayjs(r.checkoutDate).isBetween(mStart, mEnd, null, "[]")
-    ).length;
+    const checkoutsDoMes = countCheckoutTasks(tasksMonth, mStart, mEnd);
 
     const diariasLimpeza = countAssignedCleaningDays(tasksMonth, mStart, mEnd);
 
@@ -471,16 +472,11 @@ export default function Dashboard() {
       );
     }).length;
 
-    const checkoutsMonthToDate = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" &&
-        dayjs(r.checkoutDate).isBetween(
-          currentMonthToDateStart,
-          currentMonthToDateEnd,
-          null,
-          "[]"
-        )
-    ).length;
+    const checkoutsMonthToDate = countCheckoutTasks(
+      tasksMonth,
+      currentMonthToDateStart,
+      todayLocal
+    );
 
     const diariasLimpezaMonthToDate = countAssignedCleaningDays(
       tasksMonth,
@@ -527,16 +523,11 @@ export default function Dashboard() {
       );
     }).length;
 
-    const checkoutsPrevMonthToDate = reservations.filter(
-      (r) =>
-        r.status !== "cancelada" &&
-        dayjs(r.checkoutDate).isBetween(
-          prevMonthToDateStart,
-          prevMonthToDateEnd,
-          null,
-          "[]"
-        )
-    ).length;
+    const checkoutsPrevMonthToDate = countCheckoutTasks(
+      tasksMonthPrev,
+      prevMonthToDateStart,
+      previousEquivalentDay
+    );
 
     const diariasLimpezaPrevMonthToDate = countAssignedCleaningDays(
       tasksMonthPrev,
