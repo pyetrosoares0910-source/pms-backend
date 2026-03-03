@@ -332,6 +332,11 @@ export default function DashboardLayout() {
               Agenda de Atividades
             </Item>
           )}
+          {!viewerOnly && (
+            <Item to="/maid-assignments" icon={UsersRound} showText={showText}>
+              Listagem Diaristas
+            </Item>
+          )}
 
           {/* Grupos */}
           <div className="mt-4 space-y-2">

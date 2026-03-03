@@ -20,6 +20,7 @@ import Maids from "../pages/Maids";
 import CleaningReport from "../pages/CleaningReport";
 import PerformanceReport from "../pages/PerformanceReport";
 import MaintenanceCalendar from "../pages/MaintenanceCalendar";
+import MaidAssignments from "../pages/MaidAssignments";
 import { useParams } from "react-router-dom";
 import Products from "../pages/Products";
 import Inventory from "../pages/Inventory";
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
           { path: "/cleaning-report", element: <CleaningReport /> },
           { path: "/performance-report", element: <PerformanceReport />,},
           { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
+          { path: "/maid-assignments", element: <MaidAssignments /> },
           { path: "/products", element: <Products /> },
           { path: "/inventory", element: <Inventory /> },
           { path: "/purchases", element: <Purchases /> },
@@ -63,4 +65,3 @@ const router = createBrowserRouter([
 ]);
 
 export default router;
-
