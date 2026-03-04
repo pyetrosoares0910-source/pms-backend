@@ -116,7 +116,7 @@ function buildTemplateData(reservation, settings) {
 }
 
 function applyTemplate(template, data) {
-  return template.replace(/\{\{([A-Z_]+)\}\}/g, (_match, key) => String(data[key] ?? ""));
+  return template.replace(/\{\{([A-Z0-9_]+)\}\}/g, (_match, key) => String(data[key] ?? ""));
 }
 
 function getGeneratedMessages(reservation, settings) {
