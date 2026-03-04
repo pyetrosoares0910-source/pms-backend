@@ -6,7 +6,55 @@ require("dotenv").config();
 
 const prisma = new PrismaClient();
 
-// ☁️ Configuração Cloudinary
+function normalizeRoomPayload(payload = {}) {
+  const normalized = { ...payload };
+
+  ["category", "description", "stayId"].forEach((field) => {
+    if (typeof normalized[field] === "string") {
+      normalized[field] = normalized[field].trim();
+      if (!normalized[field]) normalized[field] = null;
+    }
+  });
+
+  if (typeof normalized.title === "string") {
+    normalized.title = normalized.title.trim();
+  }
+
+  if (
+    normalized.position === "" ||
+    normalized.position === null ||
+    typeof normalized.position === "undefined"
+  ) {
+    normalized.position = null;
+  } else {
+    const parsedPosition = Number.parseInt(normalized.position, 10);
+    normalized.position = Number.isNaN(parsedPosition)
+      ? normalized.position
+      : parsedPosition;
+  }
+
+  return normalized;
+}
+
+function handlePrismaRoomError(err, res, fallbackMessage) {
+  if (err?.code === "P2002") {
+    return res.status(409).json({
+      error: "Ja existe um quarto com esse titulo neste empreendimento.",
+      details: err.message,
+    });
+  }
+
+  if (err?.name === "PrismaClientValidationError") {
+    return res.status(400).json({
+      error: fallbackMessage,
+      details: err.message,
+    });
+  }
+
+  return res.status(500).json({ error: fallbackMessage, details: err.message });
+}
+
+// Configuracao Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -14,16 +62,11 @@ cloudinary.config({
   secure: true,
 });
 
-// 📦 Multer (em memória)
+// Multer (em memoria)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 exports.uploadMiddleware = upload.single("image");
 
-/* ============================
-   🧠 CRUD DE ROOMS
-============================ */
-
-// 🟢 Listar todos (por padrão: só ativos)
 // GET /rooms
 // GET /rooms?includeInactive=true
 exports.getAllRooms = async (req, res) => {
@@ -36,20 +79,19 @@ exports.getAllRooms = async (req, res) => {
       orderBy: { position: "asc" },
     });
 
-    // Remove fallback local — só mantém URLs Cloudinary válidas
-    const cleanRooms = rooms.map((r) => ({
-      ...r,
-      imageUrl: r.imageUrl && r.imageUrl.startsWith("http") ? r.imageUrl : null,
+    const cleanRooms = rooms.map((room) => ({
+      ...room,
+      imageUrl:
+        room.imageUrl && room.imageUrl.startsWith("http") ? room.imageUrl : null,
     }));
 
     res.json(cleanRooms);
   } catch (err) {
-    console.error("❌ Erro ao listar quartos:", err);
+    console.error("Erro ao listar quartos:", err);
     res.status(500).json({ error: "Erro interno ao listar quartos." });
   }
 };
 
-// 🟢 Buscar por ID (por padrão: só ativos)
 // GET /rooms/:id
 // GET /rooms/:id?includeInactive=true
 exports.getRoomById = async (req, res) => {
@@ -62,9 +104,8 @@ exports.getRoomById = async (req, res) => {
       include: { stay: true },
     });
 
-    // Se não existe ou é inativo e não foi solicitado incluir inativos
     if (!room || (!includeInactive && room.active === false)) {
-      return res.status(404).json({ error: "Room não encontrado" });
+      return res.status(404).json({ error: "Room nao encontrado" });
     }
 
     res.json({
@@ -72,86 +113,74 @@ exports.getRoomById = async (req, res) => {
       imageUrl: room.imageUrl && room.imageUrl.startsWith("http") ? room.imageUrl : null,
     });
   } catch (err) {
-    console.error("❌ Erro ao buscar quarto:", err);
-    res
-      .status(500)
-      .json({ error: "Erro ao buscar quarto.", details: err.message });
+    console.error("Erro ao buscar quarto:", err);
+    res.status(500).json({ error: "Erro ao buscar quarto.", details: err.message });
   }
 };
 
-
-// 🟢 Criar
 exports.createRoom = async (req, res) => {
   try {
-    const data = req.body;
+    const data = normalizeRoomPayload(req.body);
     const newRoom = await prisma.room.create({ data });
     res.status(201).json(newRoom);
   } catch (err) {
-    console.error("❌ Erro ao criar quarto:", err);
-    res.status(500).json({ error: "Erro ao criar quarto.", details: err.message });
+    console.error("Erro ao criar quarto:", err);
+    return handlePrismaRoomError(err, res, "Erro ao criar quarto.");
   }
 };
 
-// 🟢 Atualizar
 exports.updateRoom = async (req, res) => {
   try {
     const { id } = req.params;
-    const data = req.body;
+    const data = normalizeRoomPayload(req.body);
     const updated = await prisma.room.update({
       where: { id },
       data,
     });
     res.json(updated);
   } catch (err) {
-    console.error("❌ Erro ao atualizar quarto:", err);
-    res.status(500).json({ error: "Erro ao atualizar quarto.", details: err.message });
+    console.error("Erro ao atualizar quarto:", err);
+    return handlePrismaRoomError(err, res, "Erro ao atualizar quarto.");
   }
 };
 
-// 🟢 Excluir
 exports.deleteRoom = async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.room.delete({ where: { id } });
     res.json({ message: "Room deletado com sucesso." });
   } catch (err) {
-    console.error("❌ Erro ao deletar quarto:", err);
+    console.error("Erro ao deletar quarto:", err);
     res.status(500).json({ error: "Erro ao deletar quarto.", details: err.message });
   }
 };
 
-// 📤 Upload Room Image (Cloudinary)
 exports.uploadRoomImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "Nenhum arquivo enviado" });
     }
 
-    // Converte buffer para Base64
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
-    // Faz upload otimizado pro Cloudinary
     const result = await cloudinary.uploader.upload(fileBase64, {
       folder: "rooms",
       resource_type: "image",
-      transformation: [
-        { quality: "auto", fetch_format: "auto" }, // compressão e conversão automáticas
-      ],
+      transformation: [{ quality: "auto", fetch_format: "auto" }],
     });
 
-    // Atualiza no banco
     const room = await prisma.room.update({
       where: { id: req.params.id },
       data: { imageUrl: result.secure_url },
     });
 
     res.json({
-      message: "Upload concluído com sucesso!",
+      message: "Upload concluido com sucesso!",
       imageUrl: result.secure_url,
       room,
     });
   } catch (error) {
-    console.error("❌ Erro ao enviar imagem:", error);
+    console.error("Erro ao enviar imagem:", error);
     res.status(500).json({ error: "Falha no upload", details: error.message });
   }
 };

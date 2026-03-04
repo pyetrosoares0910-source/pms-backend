@@ -1,6 +1,23 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 
+function normalizeRoomPayload(data) {
+  const title = typeof data.title === "string" ? data.title.trim() : "";
+  const category =
+    typeof data.category === "string" ? data.category.trim() : "";
+  const description =
+    typeof data.description === "string" ? data.description.trim() : "";
+
+  return {
+    ...data,
+    title,
+    category: category || null,
+    description: description || null,
+    stayId: data.stayId || null,
+    position: data.position === "" ? null : Number.parseInt(data.position, 10),
+  };
+}
+
 export default function Rooms() {
   const [rooms, setRooms] = useState([]);
   const [stays, setStays] = useState([]);
@@ -49,7 +66,7 @@ export default function Rooms() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/rooms", formData);
+      await api.post("/rooms", normalizeRoomPayload(formData));
       setFormData({
         title: "",
         category: "",
@@ -102,7 +119,7 @@ export default function Rooms() {
 
   const handleUpdate = async (id) => {
     try {
-      await api.put(`/rooms/${id}`, editData);
+      await api.put(`/rooms/${id}`, normalizeRoomPayload(editData));
       setEditId(null);
       fetchRoomsAndStays();
     } catch (err) {

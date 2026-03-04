@@ -1,20 +1,33 @@
 const { body } = require("express-validator");
 
-
 exports.validateRoom = [
-body("name")
-  .optional()
-  .notEmpty().withMessage("Nome não pode ser vazio."),
+  body("title")
+    .trim()
+    .notEmpty()
+    .withMessage("Titulo do quarto e obrigatorio."),
 
-body("capacity")
-  .optional()
-  .isInt({ min: 1 }).withMessage("Capacidade deve ser um número positivo."),
+  body("category")
+    .optional({ values: "falsy" })
+    .isString()
+    .withMessage("Categoria invalida."),
 
-body("status")
-  .optional()
-  .isIn(["disponivel", "indisponivel"]).withMessage("Status inválido."),
+  body("description")
+    .optional({ values: "falsy" })
+    .isString()
+    .withMessage("Descricao invalida."),
 
-body("type")
-  .optional()
-  .notEmpty().withMessage("Tipo do quarto não pode ser vazio."),
-]
+  body("active")
+    .optional()
+    .isBoolean()
+    .withMessage("Campo active deve ser booleano."),
+
+  body("stayId")
+    .optional({ values: "falsy" })
+    .isUUID()
+    .withMessage("Empreendimento invalido."),
+
+  body("position")
+    .optional({ values: "falsy" })
+    .isInt()
+    .withMessage("Posicao deve ser um numero inteiro."),
+];
