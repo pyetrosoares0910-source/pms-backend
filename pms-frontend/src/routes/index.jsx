@@ -26,6 +26,7 @@ import Products from "../pages/Products";
 import Inventory from "../pages/Inventory";
 import Purchases from "../pages/Purchases";
 import ConsumptionProfiles from "../pages/ConsumptionProfiles";
+import GuestCheckins from "../pages/GuestCheckins";
 
 const router = createBrowserRouter([
   {
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
           { path: "/performance-report", element: <PerformanceReport />,},
           { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
           { path: "/maid-assignments", element: <MaidAssignments /> },
+          { path: "/guest-checkins", element: <GuestCheckins /> },
           { path: "/products", element: <Products /> },
           { path: "/inventory", element: <Inventory /> },
           { path: "/purchases", element: <Purchases /> },

@@ -11,6 +11,7 @@ import {
   Users,
   Puzzle,
   UsersRound,
+  MessageSquareText,
   Building,
   Bed,
   UserCog,
@@ -221,6 +222,7 @@ export default function DashboardLayout() {
       "/rooms",
       "/staff",
       "/maids",
+      "/guest-checkins",
     ].includes(path);
 
     const inEstoque = [
@@ -335,6 +337,11 @@ export default function DashboardLayout() {
           {!viewerOnly && (
             <Item to="/maid-assignments" icon={UsersRound} showText={showText}>
               Listagem Diaristas
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item to="/guest-checkins" icon={MessageSquareText} showText={showText}>
+              Check-ins Hóspedes
             </Item>
           )}
 
