@@ -9,7 +9,7 @@ exports.overviewStats = async (req, res) => {
     const activeRooms = await prisma.room.count({ where: { active: true } });
 
     const occupancyRaw = await prisma.reservation.findMany({
-      where: { status: { in: ["agendada", "ativa", "concluida"] } },
+      where: { status: { in: ["registrada", "agendada", "ativa", "concluida"] } },
       select: {
         checkinDate: true,
         checkoutDate: true,

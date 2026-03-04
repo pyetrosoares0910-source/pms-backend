@@ -259,7 +259,7 @@ async function seedReservas() {
         roomId,
         checkinDate: new Date(checkinISO),
         checkoutDate: new Date(checkoutISO),
-        status: "agendada",
+        status: "registrada",
         notes: ""
       }
     });

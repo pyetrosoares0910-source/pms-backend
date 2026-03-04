@@ -17,7 +17,8 @@ const validateReservationCreate = [
     .isISO8601()
     .withMessage("Data de check-out inválida."),
   body("status")
-    .isIn(["agendada", "ativa", "concluida", "cancelada"])
+    .optional()
+    .isIn(["registrada", "agendada", "ativa", "concluida", "cancelada"])
     .withMessage("Status inválido."),
   body("notes").optional().isString(),
 ];
@@ -42,7 +43,7 @@ const validateReservationUpdate = [
     .withMessage("Data de check-out inválida."),
   body("status")
     .optional()
-    .isIn(["agendada", "ativa", "concluida", "cancelada"])
+    .isIn(["registrada", "agendada", "ativa", "concluida", "cancelada"])
     .withMessage("Status inválido."),
   body("notes").optional().isString(),
 ];

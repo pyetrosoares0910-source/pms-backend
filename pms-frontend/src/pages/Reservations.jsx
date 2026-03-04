@@ -12,7 +12,7 @@ export default function Reservations() {
     roomId: "",
     checkinDate: "",
     checkoutDate: "",
-    status: "agendada",
+    status: "registrada",
   });
 
   const [editId, setEditId] = useState(null);
@@ -21,7 +21,7 @@ export default function Reservations() {
     roomId: "",
     checkinDate: "",
     checkoutDate: "",
-    status: "agendada",
+    status: "registrada",
   });
 
   // 🔹 Buscar lista de reservas, hóspedes e quartos
@@ -56,7 +56,7 @@ export default function Reservations() {
         roomId: "",
         checkinDate: "",
         checkoutDate: "",
-        status: "agendada",
+        status: "registrada",
       });
       fetchData();
     } catch (err) {
@@ -95,7 +95,7 @@ export default function Reservations() {
       roomId: "",
       checkinDate: "",
       checkoutDate: "",
-      status: "agendada",
+      status: "registrada",
     });
   };
 
@@ -211,6 +211,7 @@ export default function Reservations() {
             setFormData({ ...formData, status: e.target.value })
           }
         >
+          <option value="registrada">Registrada</option>
           <option value="agendada">Agendada</option>
           <option value="ativa">Ativa</option>
           <option value="concluida">Concluída</option>
@@ -342,6 +343,7 @@ export default function Reservations() {
                         })
                       }
                     >
+                      <option value="registrada">Registrada</option>
                       <option value="agendada">Agendada</option>
                       <option value="ativa">Ativa</option>
                       <option value="concluida">Concluída</option>

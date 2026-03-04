@@ -45,6 +45,10 @@ async function getReservationById(req, res) {
 // POST /reservations
 async function createReservation(req, res) {
   const { roomId, guestId, checkinDate, checkoutDate, status, notes } = req.body;
+  const normalizedStatus =
+    typeof status === "string" && status.trim()
+      ? status.trim().toLowerCase()
+      : "registrada";
 
   try {
     // 🔹 Verifica conflito de datas no mesmo quarto (exceto reservas canceladas)
@@ -62,7 +66,7 @@ async function createReservation(req, res) {
     if (overlapping) {
       return res.status(400).json({
         error:
-          "Já existe uma reserva ativa ou agendada neste período para esta acomodação.",
+          "Já existe uma reserva ativa, agendada ou registrada neste período para esta acomodação.",
       });
     }
 
@@ -73,7 +77,7 @@ async function createReservation(req, res) {
         guestId: guestId ? String(guestId) : null,
         checkinDate: new Date(checkinDate),
         checkoutDate: new Date(checkoutDate),
-        status,
+        status: normalizedStatus,
         notes: notes || null,
       },
       include: {
@@ -117,7 +121,7 @@ async function updateReservation(req, res) {
         guestId: guestId !== undefined ? String(guestId) : undefined,
         checkinDate: checkinDate ? new Date(checkinDate) : undefined,
         checkoutDate: checkoutDate ? new Date(checkoutDate) : undefined,
-        status,
+        status: status !== undefined ? String(status).toLowerCase() : undefined,
         notes,
       },
       include: {

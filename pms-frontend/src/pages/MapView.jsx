@@ -33,6 +33,7 @@ function toISODateOnlyLocal(d) {
 }
 
 const ReservationStatus = {
+  REGISTRADA: "registrada",
   AGENDADA: "agendada",
   ATIVA: "ativa",
   CONCLUIDA: "concluida",
@@ -41,6 +42,8 @@ const ReservationStatus = {
 
 function colorByStatus(status) {
   switch (status) {
+    case ReservationStatus.REGISTRADA:
+      return "bg-[#8E44AD]";
     case ReservationStatus.AGENDADA:
       return "bg-sky-500";
     case ReservationStatus.ATIVA:
@@ -577,7 +580,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
           roomId,
           checkinDate: checkin,
           checkoutDate: checkout,
-          status: ReservationStatus.AGENDADA,
+          status: ReservationStatus.REGISTRADA,
           notes,
         }),
       });
