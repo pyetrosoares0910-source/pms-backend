@@ -177,11 +177,11 @@ export function getPresentationMessages(reservation, settings) {
       [
         `Ola, ${greeting}!`,
         "",
-        `Seja ${welcome} ao Condominio Edificio Clariza`,
+        `*Seja ${welcome} ao Condominio Edifício Clariza*`,
         "",
-        `Confirmada reserva no apartamento ${roomName}, com inicio em ${formatDate(
+        `Confirmada reserva no apartamento *${roomName}*, com inicio em ${formatDate(
           reservation.checkinDate
-        )} e termino em ${formatDate(reservation.checkoutDate)}.`,
+        )} e término em ${formatDate(reservation.checkoutDate)}.`,
         "",
         `Me chamo ${hostName}, estarei responsavel pelo acompanhamento da estadia e disponivel para qualquer suporte que se fizer necessario.`,
       ].join("\n"),
@@ -192,8 +192,8 @@ export function getPresentationMessages(reservation, settings) {
     [
       `Ola, ${greeting}!`,
       "",
-      `Seja ${welcome} ao ${stayName}`,
-      `Sua reserva no studio ${roomName} esta confirmada, com check-in no dia ${formatDate(
+      `*Seja ${welcome} ao ${stayName}*`,
+      `Sua reserva no studio *${roomName}* esta confirmada, com check-in no dia ${formatDate(
         reservation.checkinDate
       )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
       "",
