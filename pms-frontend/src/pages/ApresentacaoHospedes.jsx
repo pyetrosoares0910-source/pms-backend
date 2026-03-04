@@ -9,9 +9,7 @@ import {
   getGenderKey,
   getPresentationMessages,
   inferGender,
-  MessageBlock,
   sortReservations,
-  StatusBadge,
 } from "./guestPresentationShared";
 
 dayjs.extend(utc);
@@ -48,6 +46,45 @@ function getReservationRoomKey(reservation) {
   return (
     reservation.room?.id ||
     `${reservation.room?.stay?.name || "sem-stay"}|${reservation.room?.title || reservation.id}`
+  );
+}
+
+function StatusBadge({ status }) {
+  const classes =
+    status === "ativa"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+      : status === "concluida"
+      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${classes}`}>
+      {status}
+    </span>
+  );
+}
+
+function MessageBlock({ text, label }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+          {label}
+        </div>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard.writeText(text)}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] dark:border-slate-700"
+        >
+          Copiar
+        </button>
+      </div>
+      <textarea
+        readOnly
+        value={text}
+        className="min-h-[220px] w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+      />
+    </div>
   );
 }
 
