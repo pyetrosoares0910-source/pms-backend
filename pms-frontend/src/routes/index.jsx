@@ -21,12 +21,12 @@ import CleaningReport from "../pages/CleaningReport";
 import PerformanceReport from "../pages/PerformanceReport";
 import MaintenanceCalendar from "../pages/MaintenanceCalendar";
 import MaidAssignments from "../pages/MaidAssignments";
-import { useParams } from "react-router-dom";
 import Products from "../pages/Products";
 import Inventory from "../pages/Inventory";
 import Purchases from "../pages/Purchases";
 import ConsumptionProfiles from "../pages/ConsumptionProfiles";
 import GuestCheckins from "../pages/GuestCheckins";
+import ApresentacaoHospedes from "../pages/ApresentacaoHospedes";
 
 const router = createBrowserRouter([
   {
@@ -55,6 +55,7 @@ const router = createBrowserRouter([
           { path: "/performance-report", element: <PerformanceReport />,},
           { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
           { path: "/maid-assignments", element: <MaidAssignments /> },
+          { path: "/apresentacao-hospedes", element: <ApresentacaoHospedes /> },
           { path: "/guest-checkins", element: <GuestCheckins /> },
           { path: "/products", element: <Products /> },
           { path: "/inventory", element: <Inventory /> },

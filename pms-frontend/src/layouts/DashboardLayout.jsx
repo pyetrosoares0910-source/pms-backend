@@ -222,6 +222,7 @@ export default function DashboardLayout() {
       "/rooms",
       "/staff",
       "/maids",
+      "/apresentacao-hospedes",
       "/guest-checkins",
     ].includes(path);
 
@@ -337,6 +338,11 @@ export default function DashboardLayout() {
           {!viewerOnly && (
             <Item to="/maid-assignments" icon={UsersRound} showText={showText}>
               Listagem Diaristas
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item to="/apresentacao-hospedes" icon={MessageSquareText} showText={showText}>
+              Apresentacao Hospedes
             </Item>
           )}
           {!viewerOnly && (

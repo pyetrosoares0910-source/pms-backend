@@ -404,6 +404,8 @@ function getPresentationMessages(reservation, settings) {
   ];
 }
 
+void getPresentationMessages;
+
 function buildAccessData(reservation, settings) {
   const stayInfo = getStayInfo(settings, reservation);
   const staySecrets = getStaySecrets(settings, reservation);
@@ -658,7 +660,6 @@ function getAccessMessages(reservation, settings) {
 export default function GuestCheckins() {
   const api = useApi();
   const today = dayjs().format("YYYY-MM-DD");
-  const [presentationStartDate, setPresentationStartDate] = useState(today);
   const [accessDate, setAccessDate] = useState(today);
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState(null);
@@ -683,11 +684,6 @@ export default function GuestCheckins() {
     fetchData();
   }, [api]);
 
-  const presentationEndDate = useMemo(
-    () => dayjs(presentationStartDate).add(7, "day").format("YYYY-MM-DD"),
-    [presentationStartDate]
-  );
-
   const roomMetaById = useMemo(
     () =>
       rooms.reduce((acc, room) => {
@@ -696,22 +692,6 @@ export default function GuestCheckins() {
       }, {}),
     [rooms]
   );
-
-  const weeklyPresentationReservations = useMemo(() => {
-    const start = dayjs(presentationStartDate).startOf("day");
-    const end = dayjs(presentationStartDate).add(7, "day").endOf("day");
-    return sortReservations(
-      reservations.filter((reservation) => {
-        if (reservation.status === "cancelada" || !reservation.checkinDate) return false;
-        const checkin = dayjs.utc(reservation.checkinDate);
-        return (
-          checkin.isAfter(start.subtract(1, "millisecond")) &&
-          checkin.isBefore(end.add(1, "millisecond"))
-        );
-      }),
-      roomMetaById
-    );
-  }, [presentationStartDate, reservations, roomMetaById]);
 
   const accessReservations = useMemo(
     () =>
@@ -726,30 +706,6 @@ export default function GuestCheckins() {
       ),
     [accessDate, reservations, roomMetaById]
   );
-
-  const groupedWeeklyPresentations = useMemo(() => {
-    const groups = new Map();
-    weeklyPresentationReservations.forEach((reservation) => {
-      const stayName = reservation.room?.stay?.name || "Sem empreendimento";
-      const roomKey = getReservationRoomKey(reservation);
-      const roomName = reservation.room?.title || "Sem acomodacao";
-
-      if (!groups.has(stayName)) {
-        groups.set(stayName, { stayName, rooms: new Map() });
-      }
-
-      const stayGroup = groups.get(stayName);
-      if (!stayGroup.rooms.has(roomKey)) {
-        stayGroup.rooms.set(roomKey, { roomKey, roomName, items: [] });
-      }
-
-      stayGroup.rooms.get(roomKey).items.push(reservation);
-    });
-    return [...groups.values()].map((stayGroup) => ({
-      stayName: stayGroup.stayName,
-      rooms: [...stayGroup.rooms.values()],
-    }));
-  }, [weeklyPresentationReservations]);
 
   const uniqueStays = useMemo(() => {
     const stays = new Map();
@@ -818,21 +774,6 @@ export default function GuestCheckins() {
     handleRoomInfoChange(reservation.room, field, value);
   };
 
-  const handleGenderOverride = (reservation, value) => {
-    const key = getGenderKey(reservation);
-    setSettings((prev) => {
-      const next = {
-        ...prev,
-        genderOverrides: {
-          ...prev.genderOverrides,
-          [key]: value,
-        },
-      };
-      saveSettings(next);
-      return next;
-    });
-  };
-
   const updateReservationStatus = async (reservation, newStatus) => {
     setSubmittingId(reservation.id);
     try {
@@ -874,17 +815,6 @@ export default function GuestCheckins() {
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Inicio apresentacoes
-          </div>
-          <input
-            type="date"
-            value={presentationStartDate}
-            onChange={(e) => setPresentationStartDate(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-          />
-        </div>
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Data acessos
           </div>
           <input
@@ -906,102 +836,6 @@ export default function GuestCheckins() {
         </div>
       ) : (
         <>
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                Apresentacoes da semana
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Janela de {formatFullDate(presentationStartDate)} ate {formatFullDate(presentationEndDate)}
-              </p>
-            </div>
-
-            {groupedWeeklyPresentations.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Nenhuma reserva com check-in dentro desta janela de 8 dias.
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {groupedWeeklyPresentations.map((stayGroup) => (
-                  <div key={stayGroup.stayName} className="space-y-4">
-                    <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                      {stayGroup.stayName}
-                    </div>
-
-                    {stayGroup.rooms.map((roomGroup) => (
-                      <div
-                        key={roomGroup.roomKey}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                              {roomGroup.roomName}
-                            </div>
-                            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                              Entradas: {roomGroup.items.map((item) => formatDate(item.checkinDate)).join(", ")}
-                            </div>
-                          </div>
-                          <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
-                            {roomGroup.items.length} check-in(s)
-                          </div>
-                        </div>
-
-                        <div className="mt-4 space-y-4">
-                          {roomGroup.items.map((reservation) => {
-                            const genderValue =
-                              settings.genderOverrides[getGenderKey(reservation)] ||
-                              inferGender(reservation.guest?.name);
-
-                            return (
-                              <article
-                                key={reservation.id}
-                                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/80"
-                              >
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div>
-                                    <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                      {reservation.guest?.name || "Hospede sem nome"}
-                                    </div>
-                                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                      {formatDate(reservation.checkinDate)} a {formatDate(reservation.checkoutDate)}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap gap-2">
-                                    <StatusBadge status={reservation.status} />
-                                    <select
-                                      value={genderValue}
-                                      onChange={(e) => handleGenderOverride(reservation, e.target.value)}
-                                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                                    >
-                                      <option value="feminine">Texto feminino</option>
-                                      <option value="masculine">Texto masculino</option>
-                                    </select>
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                                  {getPresentationMessages(reservation, settings).map((text, index) => (
-                                    <MessageBlock
-                                      key={`${reservation.id}-presentation-${index}`}
-                                      text={text}
-                                      label={`Mensagem ${index + 1}`}
-                                    />
-                                  ))}
-                                </div>
-                              </article>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr,0.8fr]">
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
               <div className="mb-5">
