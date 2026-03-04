@@ -10,8 +10,11 @@ const SETTINGS_KEY = "guest-checkins-settings-v2";
 const defaultSettings = {
   hostName: "Pyetro",
   genderOverrides: {},
-  stayAccess: {},
-  roomAccess: {},
+  stayInfo: {},
+  staySecrets: {},
+  roomInfo: {},
+  roomSecrets: {},
+  reservationSecrets: {},
 };
 
 const femaleNames = new Set([
@@ -92,16 +95,72 @@ function normalizeText(value) {
     .trim();
 }
 
+function pickFields(source, fields) {
+  const next = {};
+  fields.forEach((field) => {
+    next[field] = source?.[field] || "";
+  });
+  return next;
+}
+
 function getStoredSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw);
+    const legacyStayAccess = parsed.stayAccess || {};
+    const legacyRoomAccess = parsed.roomAccess || {};
+
+    const stayInfoFromLegacy = Object.fromEntries(
+      Object.entries(legacyStayAccess).map(([stayName, data]) => [
+        stayName,
+        pickFields(data, [
+          "address",
+          "pickupAddress",
+          "apartmentAddress",
+          "wifiName",
+          "wifiPassword",
+          "tokenLabel",
+        ]),
+      ])
+    );
+
+    const staySecretsFromLegacy = Object.fromEntries(
+      Object.entries(legacyStayAccess).map(([stayName, data]) => [
+        stayName,
+        pickFields(data, ["door1", "door2", "keySafeCode"]),
+      ])
+    );
+
+    const roomInfoFromLegacy = Object.fromEntries(
+      Object.entries(legacyRoomAccess).map(([roomKey, data]) => [
+        roomKey,
+        pickFields(data, [
+          "address",
+          "pickupAddress",
+          "apartmentAddress",
+          "wifiName",
+          "wifiPassword",
+          "tokenLabel",
+        ]),
+      ])
+    );
+
+    const roomSecretsFromLegacy = Object.fromEntries(
+      Object.entries(legacyRoomAccess).map(([roomKey, data]) => [
+        roomKey,
+        pickFields(data, ["door1", "door2", "unitDoor", "keySafeCode", "apartmentDoorCode"]),
+      ])
+    );
+
     return {
       hostName: parsed.hostName || defaultSettings.hostName,
       genderOverrides: parsed.genderOverrides || {},
-      stayAccess: parsed.stayAccess || {},
-      roomAccess: parsed.roomAccess || {},
+      stayInfo: parsed.stayInfo || stayInfoFromLegacy,
+      staySecrets: parsed.staySecrets || staySecretsFromLegacy,
+      roomInfo: parsed.roomInfo || roomInfoFromLegacy,
+      roomSecrets: parsed.roomSecrets || roomSecretsFromLegacy,
+      reservationSecrets: parsed.reservationSecrets || {},
     };
   } catch {
     return defaultSettings;
@@ -152,42 +211,99 @@ function getGreetingTarget(gender) {
 }
 
 function getReservationRoomKey(reservation) {
-  return (
-    reservation.room?.id ||
-    `${reservation.room?.stay?.name || "sem-stay"}|${reservation.room?.title || reservation.id}`
-  );
+  return getRoomKey(reservation);
 }
 
-function getStayConfig(settings, reservation) {
-  return settings.stayAccess[reservation.room?.stay?.name || ""] || {};
+function getRoomKey(input) {
+  if (!input) return "sem-room";
+  const room = input.room || input;
+  return room.id || `${room.stay?.name || "sem-stay"}|${room.title || input.id || "sem-room"}`;
+}
+
+function getStayInfo(settings, reservation) {
+  return settings.stayInfo[reservation.room?.stay?.name || ""] || {};
+}
+
+function getStaySecrets(settings, reservation) {
+  return settings.staySecrets[reservation.room?.stay?.name || ""] || {};
+}
+
+function getRoomInfo(settings, input) {
+  return settings.roomInfo[getRoomKey(input)] || {};
+}
+
+function getRoomSecrets(settings, input) {
+  return settings.roomSecrets[getRoomKey(input)] || {};
+}
+
+function getReservationSecrets(settings, reservation) {
+  return settings.reservationSecrets[reservation.id] || {};
 }
 
 function getRoomConfig(settings, reservation) {
-  return settings.roomAccess[getReservationRoomKey(reservation)] || {};
+  return {
+    ...getRoomInfo(settings, reservation),
+    ...getRoomSecrets(settings, reservation),
+    ...getReservationSecrets(settings, reservation),
+  };
 }
 
-function sortReservations(items) {
+function extractRoomNumber(value) {
+  const match = String(value || "").match(/(\d+)/);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
+
+function compareRoomsInMapOrder(a, b) {
+  const stayPosDiff = (a?.stay?.position ?? 9999) - (b?.stay?.position ?? 9999);
+  if (stayPosDiff !== 0) return stayPosDiff;
+
+  const stayNameDiff = String(a?.stay?.name || "").localeCompare(String(b?.stay?.name || ""), "pt-BR");
+  if (stayNameDiff !== 0) return stayNameDiff;
+
+  const roomPosDiff = (a?.position ?? 9999) - (b?.position ?? 9999);
+  if (roomPosDiff !== 0) return roomPosDiff;
+
+  const roomNumberDiff = (extractRoomNumber(a?.title) ?? 9999) - (extractRoomNumber(b?.title) ?? 9999);
+  if (roomNumberDiff !== 0) return roomNumberDiff;
+
+  return String(a?.title || "").localeCompare(String(b?.title || ""), "pt-BR");
+}
+
+function sortReservations(items, roomMetaById = {}) {
   return [...items].sort((a, b) => {
-    const dateCompare = dayjs.utc(a.checkinDate).valueOf() - dayjs.utc(b.checkinDate).valueOf();
-    if (dateCompare !== 0) return dateCompare;
+    const roomA = roomMetaById[a.roomId] || a.room || {};
+    const roomB = roomMetaById[b.roomId] || b.room || {};
 
-    const stayCompare = String(a.room?.stay?.name || "").localeCompare(
-      String(b.room?.stay?.name || ""),
-      "pt-BR"
-    );
-    if (stayCompare !== 0) return stayCompare;
-
-    const roomCompare = String(a.room?.title || "").localeCompare(
-      String(b.room?.title || ""),
-      "pt-BR"
-    );
+    const roomCompare = compareRoomsInMapOrder(roomA, roomB);
     if (roomCompare !== 0) return roomCompare;
 
-    return String(a.guest?.name || "").localeCompare(
-      String(b.guest?.name || ""),
-      "pt-BR"
-    );
+    const checkinCompare = dayjs.utc(a.checkinDate).valueOf() - dayjs.utc(b.checkinDate).valueOf();
+    if (checkinCompare !== 0) return checkinCompare;
+
+    const checkoutCompare =
+      dayjs.utc(a.checkoutDate).valueOf() - dayjs.utc(b.checkoutDate).valueOf();
+    if (checkoutCompare !== 0) return checkoutCompare;
+
+    return String(a.guest?.name || "").localeCompare(String(b.guest?.name || ""), "pt-BR");
   });
+}
+
+function getIguatemiBStairsHint(roomName) {
+  const roomNumber = extractRoomNumber(roomName);
+  if (roomNumber === 7) return "Depois da segunda porta, suba 1 lance de escadas ate a acomodacao 7.";
+  if (roomNumber === 8 || roomNumber === 9) {
+    return "Depois da segunda porta, suba 2 lances de escadas ate a acomodacao.";
+  }
+  return "";
+}
+
+function getInternacionalFloorHint(roomName) {
+  const roomNumber = extractRoomNumber(roomName);
+  if (roomNumber >= 1 && roomNumber <= 4) return "As acomodacoes 1 a 4 ficam no terreo.";
+  if (roomNumber >= 5 && roomNumber <= 10) {
+    return "As acomodacoes 5 a 10 ficam no 1o andar, acessado por 1 lance de escadas.";
+  }
+  return "";
 }
 
 function getClassification(reservation) {
@@ -289,20 +405,36 @@ function getPresentationMessages(reservation, settings) {
 }
 
 function buildAccessData(reservation, settings) {
-  const stay = getStayConfig(settings, reservation);
-  const room = getRoomConfig(settings, reservation);
+  const stayInfo = getStayInfo(settings, reservation);
+  const staySecrets = getStaySecrets(settings, reservation);
+  const roomInfo = getRoomInfo(settings, reservation);
+  const roomSecrets = getRoomSecrets(settings, reservation);
+  const reservationSecrets = getReservationSecrets(settings, reservation);
+
   return {
-    address: room.address || room.apartmentAddress || stay.address || stay.apartmentAddress || "",
-    pickupAddress: room.pickupAddress || stay.pickupAddress || "",
-    apartmentAddress: room.apartmentAddress || stay.apartmentAddress || room.address || stay.address || "",
-    door1: room.door1 || stay.door1 || "",
-    door2: room.door2 || stay.door2 || "",
-    unitDoor: room.unitDoor || "",
-    wifiName: room.wifiName || "",
-    wifiPassword: room.wifiPassword || stay.wifiPassword || "",
-    keySafeCode: room.keySafeCode || stay.keySafeCode || "",
-    apartmentDoorCode: room.apartmentDoorCode || "",
-    tokenLabel: room.tokenLabel || "token cinza",
+    address:
+      roomInfo.address ||
+      roomInfo.apartmentAddress ||
+      stayInfo.address ||
+      stayInfo.apartmentAddress ||
+      "",
+    pickupAddress: roomInfo.pickupAddress || stayInfo.pickupAddress || "",
+    apartmentAddress:
+      roomInfo.apartmentAddress ||
+      stayInfo.apartmentAddress ||
+      roomInfo.address ||
+      stayInfo.address ||
+      "",
+    door1: reservationSecrets.door1 || roomSecrets.door1 || staySecrets.door1 || "",
+    door2: reservationSecrets.door2 || roomSecrets.door2 || staySecrets.door2 || "",
+    unitDoor: reservationSecrets.unitDoor || roomSecrets.unitDoor || "",
+    wifiName: roomInfo.wifiName || stayInfo.wifiName || "",
+    wifiPassword: roomInfo.wifiPassword || stayInfo.wifiPassword || "",
+    keySafeCode:
+      reservationSecrets.keySafeCode || roomSecrets.keySafeCode || staySecrets.keySafeCode || "",
+    apartmentDoorCode:
+      reservationSecrets.apartmentDoorCode || roomSecrets.apartmentDoorCode || "",
+    tokenLabel: roomInfo.tokenLabel || stayInfo.tokenLabel || "token cinza",
   };
 }
 
@@ -358,23 +490,21 @@ function getAccessMessages(reservation, settings) {
   if (classification === "clariza") {
     return [
       [
-        "Instrucoes para retirada das chaves - Itaim Stay",
+        "Instrucoes para retirada das chaves - Edificio Clariza",
         "",
         "Para retirar suas chaves, siga ate:",
-        `📍${data.pickupAddress || "Rua Tabapua, 909"}`,
+        `Endereco: ${data.pickupAddress || "Rua Tabapua, 909"}`,
         "",
-        "* No portao eletronico, digite o codigo:",
+        "1. No portao eletronico, digite o codigo:",
         `#*${data.door1}`,
-        "(Um som de liberacao sera emitido - empurre rapidamente a porta para abrir)",
+        "Um som de liberacao sera emitido. Empurre rapidamente a porta.",
         "",
-        '* Ao entrar no hall, a sua direita, localize o armario com a imagem de "Bem-vindo" na porta.',
-        "Abra e procure o cofre numero 5.",
+        '2. Ao entrar no hall, a sua direita, localize o armario com a imagem de "Bem-vindo" na porta.',
+        "Abra e procure o cofre indicado.",
         "",
-        "* Digite a senha:",
+        "3. Digite a senha do cofre:",
         `${data.keySafeCode}`,
-        "para destravar e retirar o molho de chaves.",
-        "",
-        "* Feche o cofre, aperte o botao no armario para sair do local e dirija-se ao proximo endereco.",
+        "Retire o molho de chaves, feche o cofre e siga para o apartamento.",
       ].join("\n"),
       [
         "Acesso ao apartamento",
@@ -382,14 +512,10 @@ function getAccessMessages(reservation, settings) {
         "Check-in: 16:00",
         "Check-out: 10:00",
         "",
-        `* Ao chegar na portaria, use o ${data.tokenLabel} para liberar o portao eletronico.`,
-        "* Entre no elevador e siga ate o apartamento.",
-        "* Na porta do apto, abrir as duas fechaduras com as chaves. Em seguida, passe a palma da mao sobre o visor da fechadura para ativa-la.",
-        `* Digite o codigo: *${data.apartmentDoorCode}`,
-        "(aguarde o som de liberacao e puxe a macaneta).",
-        "",
-        "A porta tranca automaticamente ao ser encostada corretamente.",
-        "Para sair, pressione o botao branco da fechadura e aguarde a liberacao. (Nao girar manualmente)",
+        `1. Ao chegar na portaria, use o ${data.tokenLabel} para liberar o primeiro acesso.`,
+        "2. Use o mesmo molho de chaves/token para liberar as duas portas de entrada do predio.",
+        "3. Na porta do apartamento, ative a fechadura passando a palma da mao no visor.",
+        `4. Digite o codigo do apartamento: ${data.apartmentDoorCode}`,
         "",
         "Wi-Fi:",
         `Rede: ${data.wifiName}`,
@@ -402,54 +528,50 @@ function getAccessMessages(reservation, settings) {
 
   if (classification === "itaim") {
     return [[
-      `*${welcome.charAt(0).toUpperCase() + welcome.slice(1)} ao ${stayName}*🌎`,
-      `*${roomName}*`,
-      "Check-in 16:00 - Check-out 10:00",
+      `Seja ${welcome} ao ${stayName}`,
+      `${roomName}`,
+      "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      `• Ao chegar ao endereco, dirija-se a porta de entrada. Para abrir digite o codigo: #*${data.door1}`,
-      `• Prossiga para a proxima porta e insira o codigo: ${data.door2}`,
-      `• Direcione-se ao apartamento ${roomName} e repita o processo inserindo o codigo: ${data.unitDoor}`,
+      `1a porta de entrada do predio: digite o codigo compartilhado #*${data.door1}`,
+      `2a porta de entrada: utilize o codigo especifico do hospede ${data.door2}`,
+      `Porta do apartamento ${roomName}: utilize o codigo especifico do hospede ${data.unitDoor}`,
       "",
-      "Ao sair do apartamento, lembre-se de encostar a mao no visor da fechadura para acionar seu fechamento.",
-      `• A senha do wi-fi e: ${data.wifiPassword}`,
-      "",
-      "Tenha uma otima estadia.",
+      "Ao sair do apartamento, encoste a mao no visor para acionar o fechamento.",
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
     ].join("\n")];
   }
 
   if (classification === "jk") {
     return [[
-      `*${welcome.charAt(0).toUpperCase() + welcome.slice(1)} ao ${stayName}*🌎`,
-      `*${roomName}*`,
-      "Check-in 16:00 - Check-out 10:00",
+      `Seja ${welcome} ao ${stayName}`,
+      `${roomName}`,
+      "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      `* Chegando ao endereco, dirija-se a porta de entrada na lateral do imovel e insira o codigo: #*${data.door1}`,
-      `* Prossiga para a proxima porta e insira o codigo: ${data.door2}`,
-      `* Direcione-se ao apartamento ${roomName} e repita o processo inserindo o codigo: ${data.unitDoor}`,
+      `1a porta de entrada, na lateral do imovel: digite o codigo compartilhado #*${data.door1}`,
+      `2a porta: utilize o codigo especifico do hospede ${data.door2}`,
+      `Porta do apartamento ${roomName}: utilize o codigo especifico do hospede ${data.unitDoor}`,
       "",
-      `* A Senha do WiFi e: ${data.wifiPassword}`,
-      "",
-      "Tenha uma otima estadia!",
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
     ].join("\n")];
   }
 
   if (classification === "internacional") {
+    const floorHint = getInternacionalFloorHint(roomName);
     return [[
-      `*Seja ${welcome} ao ${stayName}* 🌎`,
-      `*${roomName}*`,
-      "Check-in 16:00 - Check-out 10:00",
+      `Seja ${welcome} ao ${stayName}`,
+      `${roomName}`,
+      "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      `* Chegando ao endereco, localize o porteiro eletronico e insira o codigo: #*${data.door1}`,
-      `* Prossiga para a proxima porta e insira a senha: ${data.door2}`,
-      `* Na entrada do studio, repita o processo inserindo a senha: ${data.unitDoor}`,
+      `1a porta de entrada: localize o porteiro eletronico e insira o codigo compartilhado #*${data.door1}`,
+      `2a porta: utilize o codigo especifico do hospede ${data.door2}`,
+      floorHint,
+      `Porta da acomodacao: utilize o codigo especifico do hospede ${data.unitDoor}`,
       "",
-      `* A Senha do WiFi e: ${data.wifiPassword}`,
-      "",
-      "Tenha uma otima estadia!",
-    ].join("\n")];
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
+    ].filter(Boolean).join("\n")];
   }
 
   if (classification === "iguatemi-a" || classification === "iguatemi-b") {
@@ -458,84 +580,63 @@ function getAccessMessages(reservation, settings) {
       classification === "iguatemi-a"
         ? "a esquerda da academia de Pilates"
         : "a direita da academia de Pilates, proxima a uma grande palmeira no final do imovel";
+    const stairsHint = classification === "iguatemi-b" ? getIguatemiBStairsHint(roomName) : "";
 
     return [[
-      `*${welcome.charAt(0).toUpperCase() + welcome.slice(1)} ao ${stayName}* 🌎`,
-      `*${roomName}*`,
+      `Seja ${welcome} ao ${stayName}`,
+      `${roomName}`,
       "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      "Importante: A entrada principal do imovel esta localizada na Rua Dr. Roberto Kikawa, mas o endereco oficial e na Rua Butanta, 324.",
+      "Importante: a entrada principal fica na Rua Dr. Roberto Kikawa, embora o endereco oficial seja Rua Butanta, 324.",
+      `Chegando ao endereco, localize a entrada Iguatemi ${wing}, situada ${wingHint}.`,
+      `1a porta: insira o codigo compartilhado #*${data.door1} e empurre a porta.`,
+      `2a porta: passe a palma da mao no visor e insira o codigo especifico do hospede ${data.door2}.`,
+      stairsHint,
+      `No apartamento: dirija-se ao ${roomName} e repita o processo com o codigo especifico do hospede ${data.unitDoor}.`,
       "",
-      "Como acessar o apartamento:",
-      `* Chegando ao endereco: Localize a entrada Iguatemi ${wing}, situada ${wingHint}.`,
-      `* Primeira porta: insira o codigo #*${data.door1} e empurre a porta.`,
-      `* Segunda porta: passe a palma da mao no visor e insira o codigo ${data.door2}.`,
-      `* No apartamento: dirija-se ao ${roomName} e repita o processo com o codigo ${data.unitDoor}.`,
-      "",
-      "Ao sair do apartamento, toque no visor da fechadura para acionar a trava de seguranca.",
-      "",
-      "Informacoes de Wi-Fi:",
-      `Rede: ${data.wifiName}`,
-      `Senha: ${data.wifiPassword}`,
-      "",
-      "Desejo-lhe uma otima estadia!",
-    ].join("\n")];
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
+    ].filter(Boolean).join("\n")];
   }
 
   if (classification === "iguatemi-at") {
     return [[
-      `*${welcome.charAt(0).toUpperCase() + welcome.slice(1)} ao ${stayName}* 🌎`,
-      `*${roomName}*`,
-      "Check-in: 16:00",
-      "Check-out: 10:00",
+      `Seja ${welcome} ao ${stayName}`,
+      `${roomName}`,
+      "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      "Importante: A entrada principal do imovel fica pela Rua Dr. Roberto Kikawa, embora o endereco oficial seja Rua Butanta, 324.",
-      "Ao chegar ao local, localize a entrada Iguatemi A, situada a esquerda da academia de Pilates.",
-      `Primeira porta: digite o codigo #*${data.door1} e empurre a porta.`,
+      "Importante: a entrada principal fica na Rua Dr. Roberto Kikawa, embora o endereco oficial seja Rua Butanta, 324.",
+      "Ao chegar, localize a entrada Iguatemi A, a esquerda da academia de Pilates.",
+      `1a porta: digite o codigo compartilhado #*${data.door1} e empurre a porta.`,
       "Ao entrar, siga para a porta da esquerda.",
-      `Segunda porta: passe a palma da mao sobre o visor e digite o codigo ${data.door2}.`,
-      `Porta do apartamento: dirija-se ao ${roomName} e insira o codigo ${data.unitDoor}.`,
+      `2a porta: passe a palma da mao sobre o visor e digite o codigo especifico do hospede ${data.door2}.`,
+      `Porta do apartamento: dirija-se ao ${roomName} e insira o codigo especifico do hospede ${data.unitDoor}.`,
       "",
-      "Ao sair do apartamento, toque no visor da fechadura para acionar a trava de seguranca.",
-      "",
-      "Wi-Fi:",
-      `Rede: ${data.wifiName}`,
-      `Senha: ${data.wifiPassword}`,
-      "",
-      "Desejamos uma otima estadia!",
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
     ].join("\n")];
   }
 
   if (classification === "iguatemi-bt-15" || classification === "iguatemi-bt-16") {
     const direction =
       classification === "iguatemi-bt-15"
-        ? "Ao entrar, localize a porta a sua esquerda."
-        : "Ao entrar, localize a porta a sua direita, passando pelo WC.";
+        ? "Ao entrar apos a 1a porta, a acomodacao 15 fica a esquerda."
+        : "Ao entrar apos a 1a porta, a acomodacao 16 fica a direita.";
 
     return [[
-      `Bem-vindo ao ${stayName} 🌎`,
+      `Seja bem-vindo ao ${stayName}`,
       `${roomName}`,
       "Check-in: 16:00 | Check-out: 10:00",
       `Endereco: ${data.address}`,
       "",
-      "Importante: A entrada principal do imovel esta localizada na Rua Dr. Roberto Kikawa, embora o endereco oficial seja Rua Butanta, 324.",
-      "",
-      "Como acessar o apartamento:",
-      "Chegando ao endereco: localize a entrada Iguatemi B, situada a direita da academia de Pilates, proxima a uma grande palmeira no final do imovel.",
-      `Primeira porta: para abrir, insira o codigo #*${data.door1} e empurre a porta.`,
+      "Importante: a entrada principal fica na Rua Dr. Roberto Kikawa, embora o endereco oficial seja Rua Butanta, 324.",
+      "Chegando ao endereco, localize a entrada Iguatemi B.",
+      `1a porta: insira o codigo compartilhado #*${data.door1} e empurre a porta.`,
       direction,
-      `Segunda porta: passe a palma da mao sobre o visor e insira o codigo ${data.door2}.`,
-      `No apartamento: dirija-se ao ${roomName} e repita o processo com o codigo ${data.unitDoor}.`,
+      `2a porta: passe a palma da mao sobre o visor e insira o codigo especifico do hospede ${data.door2}.`,
+      `No apartamento: dirija-se ao ${roomName} e repita o processo com o codigo especifico do hospede ${data.unitDoor}.`,
       "",
-      "Ao sair do apartamento, toque no visor da fechadura para acionar a trava de seguranca.",
-      "",
-      "Informacoes de Wi-Fi:",
-      `Rede: ${data.wifiName}`,
-      `Senha: ${data.wifiPassword}`,
-      "",
-      "Desejamos uma otima estadia!",
+      `Wi-Fi: ${data.wifiName || "-"} / ${data.wifiPassword}`,
     ].join("\n")];
   }
 
@@ -562,14 +663,16 @@ export default function GuestCheckins() {
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState(null);
   const [reservations, setReservations] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [settings, setSettings] = useState(() => getStoredSettings());
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const reservationsRes = await api("/reservations");
+        const [reservationsRes, roomsRes] = await Promise.all([api("/reservations"), api("/rooms")]);
         setReservations(reservationsRes || []);
+        setRooms(roomsRes || []);
       } catch (err) {
         console.error("Erro ao carregar check-ins:", err);
       } finally {
@@ -585,6 +688,15 @@ export default function GuestCheckins() {
     [presentationStartDate]
   );
 
+  const roomMetaById = useMemo(
+    () =>
+      rooms.reduce((acc, room) => {
+        acc[room.id] = room;
+        return acc;
+      }, {}),
+    [rooms]
+  );
+
   const weeklyPresentationReservations = useMemo(() => {
     const start = dayjs(presentationStartDate).startOf("day");
     const end = dayjs(presentationStartDate).add(7, "day").endOf("day");
@@ -596,9 +708,10 @@ export default function GuestCheckins() {
           checkin.isAfter(start.subtract(1, "millisecond")) &&
           checkin.isBefore(end.add(1, "millisecond"))
         );
-      })
+      }),
+      roomMetaById
     );
-  }, [presentationStartDate, reservations]);
+  }, [presentationStartDate, reservations, roomMetaById]);
 
   const accessReservations = useMemo(
     () =>
@@ -608,28 +721,54 @@ export default function GuestCheckins() {
             reservation.status !== "cancelada" &&
             reservation.checkinDate &&
             sameDay(reservation.checkinDate, accessDate)
-        )
+        ),
+        roomMetaById
       ),
-    [accessDate, reservations]
+    [accessDate, reservations, roomMetaById]
   );
 
   const groupedWeeklyPresentations = useMemo(() => {
-    const groups = {};
+    const groups = new Map();
     weeklyPresentationReservations.forEach((reservation) => {
-      const key = dayjs.utc(reservation.checkinDate).format("YYYY-MM-DD");
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(reservation);
+      const stayName = reservation.room?.stay?.name || "Sem empreendimento";
+      const roomKey = getReservationRoomKey(reservation);
+      const roomName = reservation.room?.title || "Sem acomodacao";
+
+      if (!groups.has(stayName)) {
+        groups.set(stayName, { stayName, rooms: new Map() });
+      }
+
+      const stayGroup = groups.get(stayName);
+      if (!stayGroup.rooms.has(roomKey)) {
+        stayGroup.rooms.set(roomKey, { roomKey, roomName, items: [] });
+      }
+
+      stayGroup.rooms.get(roomKey).items.push(reservation);
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return [...groups.values()].map((stayGroup) => ({
+      stayName: stayGroup.stayName,
+      rooms: [...stayGroup.rooms.values()],
+    }));
   }, [weeklyPresentationReservations]);
 
   const uniqueStays = useMemo(() => {
-    const names = new Set();
-    reservations.forEach((reservation) => {
-      if (reservation.room?.stay?.name) names.add(reservation.room.stay.name);
+    const stays = new Map();
+    rooms.forEach((room) => {
+      if (room.stay?.name) stays.set(room.stay.name, room.stay);
     });
-    return [...names].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [reservations]);
+    reservations.forEach((reservation) => {
+      if (reservation.room?.stay?.name && !stays.has(reservation.room.stay.name)) {
+        stays.set(reservation.room.stay.name, reservation.room.stay);
+      }
+    });
+    return [...stays.values()]
+      .sort((a, b) => {
+        const posDiff = (a.position ?? 9999) - (b.position ?? 9999);
+        if (posDiff !== 0) return posDiff;
+        return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR");
+      })
+      .map((stay) => stay.name);
+  }, [reservations, rooms]);
 
   const handleSettingChange = (field, value) => {
     setSettings((prev) => {
@@ -639,14 +778,14 @@ export default function GuestCheckins() {
     });
   };
 
-  const handleStayAccessChange = (stayName, field, value) => {
+  const updateSettingsBranch = (branch, key, field, value) => {
     setSettings((prev) => {
       const next = {
         ...prev,
-        stayAccess: {
-          ...prev.stayAccess,
-          [stayName]: {
-            ...(prev.stayAccess[stayName] || {}),
+        [branch]: {
+          ...prev[branch],
+          [key]: {
+            ...(prev[branch][key] || {}),
             [field]: value,
           },
         },
@@ -656,22 +795,27 @@ export default function GuestCheckins() {
     });
   };
 
+  const handleStayInfoChange = (stayName, field, value) =>
+    updateSettingsBranch("stayInfo", stayName, field, value);
+  const handleStaySecretChange = (stayName, field, value) =>
+    updateSettingsBranch("staySecrets", stayName, field, value);
+  const handleRoomInfoChange = (room, field, value) =>
+    updateSettingsBranch("roomInfo", getRoomKey(room), field, value);
+  const handleRoomSecretChange = (room, field, value) =>
+    updateSettingsBranch("roomSecrets", getRoomKey(room), field, value);
+  const handleReservationSecretChange = (reservation, field, value) =>
+    updateSettingsBranch("reservationSecrets", reservation.id, field, value);
+
   const handleRoomAccessChange = (reservation, field, value) => {
-    const key = getReservationRoomKey(reservation);
-    setSettings((prev) => {
-      const next = {
-        ...prev,
-        roomAccess: {
-          ...prev.roomAccess,
-          [key]: {
-            ...(prev.roomAccess[key] || {}),
-            [field]: value,
-          },
-        },
-      };
-      saveSettings(next);
-      return next;
-    });
+    if (field === "door1" || field === "door2" || field === "unitDoor" || field === "keySafeCode") {
+      handleReservationSecretChange(reservation, field, value);
+      return;
+    }
+    if (field === "apartmentDoorCode") {
+      handleRoomSecretChange(reservation.room, field, value);
+      return;
+    }
+    handleRoomInfoChange(reservation.room, field, value);
   };
 
   const handleGenderOverride = (reservation, value) => {
@@ -751,7 +895,8 @@ export default function GuestCheckins() {
           />
         </div>
         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-950/60 dark:text-slate-300">
-          Senhas, codigos e ajustes de genero ficam salvos apenas neste navegador.
+          Enderecos e Wi-Fi foram separados dos codigos locais, mas tudo ainda e salvo neste navegador
+          ate existir persistencia no backend.
         </div>
       </section>
 
@@ -777,62 +922,80 @@ export default function GuestCheckins() {
               </div>
             ) : (
               <div className="space-y-6">
-                {groupedWeeklyPresentations.map(([dateKey, items]) => (
-                  <div key={dateKey} className="space-y-4">
+                {groupedWeeklyPresentations.map((stayGroup) => (
+                  <div key={stayGroup.stayName} className="space-y-4">
                     <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                      {formatFullDate(dateKey)} • {items.length} check-in(s)
+                      {stayGroup.stayName}
                     </div>
 
-                    {items.map((reservation) => {
-                      const genderValue =
-                        settings.genderOverrides[getGenderKey(reservation)] ||
-                        inferGender(reservation.guest?.name);
-
-                      return (
-                        <article
-                          key={reservation.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/40"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                                {reservation.room?.stay?.name || "Sem empreendimento"}
-                              </div>
-                              <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                                {reservation.guest?.name || "Hospede sem nome"}
-                              </div>
-                              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                {reservation.room?.title || "Sem acomodacao"} • {formatDate(
-                                  reservation.checkinDate
-                                )} a {formatDate(reservation.checkoutDate)}
-                              </div>
+                    {stayGroup.rooms.map((roomGroup) => (
+                      <div
+                        key={roomGroup.roomKey}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                              {roomGroup.roomName}
                             </div>
+                            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                              Entradas: {roomGroup.items.map((item) => formatDate(item.checkinDate)).join(", ")}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
+                            {roomGroup.items.length} check-in(s)
+                          </div>
+                        </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              <StatusBadge status={reservation.status} />
-                              <select
-                                value={genderValue}
-                                onChange={(e) => handleGenderOverride(reservation, e.target.value)}
-                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                        <div className="mt-4 space-y-4">
+                          {roomGroup.items.map((reservation) => {
+                            const genderValue =
+                              settings.genderOverrides[getGenderKey(reservation)] ||
+                              inferGender(reservation.guest?.name);
+
+                            return (
+                              <article
+                                key={reservation.id}
+                                className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/80"
                               >
-                                <option value="feminine">Texto feminino</option>
-                                <option value="masculine">Texto masculino</option>
-                              </select>
-                            </div>
-                          </div>
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                      {reservation.guest?.name || "Hospede sem nome"}
+                                    </div>
+                                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                      {formatDate(reservation.checkinDate)} a {formatDate(reservation.checkoutDate)}
+                                    </div>
+                                  </div>
 
-                          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                            {getPresentationMessages(reservation, settings).map((text, index) => (
-                              <MessageBlock
-                                key={`${reservation.id}-presentation-${index}`}
-                                text={text}
-                                label={`Mensagem ${index + 1}`}
-                              />
-                            ))}
-                          </div>
-                        </article>
-                      );
-                    })}
+                                  <div className="flex flex-wrap gap-2">
+                                    <StatusBadge status={reservation.status} />
+                                    <select
+                                      value={genderValue}
+                                      onChange={(e) => handleGenderOverride(reservation, e.target.value)}
+                                      className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                                    >
+                                      <option value="feminine">Texto feminino</option>
+                                      <option value="masculine">Texto masculino</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                                  {getPresentationMessages(reservation, settings).map((text, index) => (
+                                    <MessageBlock
+                                      key={`${reservation.id}-presentation-${index}`}
+                                      text={text}
+                                      label={`Mensagem ${index + 1}`}
+                                    />
+                                  ))}
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -921,15 +1084,17 @@ export default function GuestCheckins() {
             <section className="space-y-6">
               <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                  Dados por empreendimento
+                  Informacoes por empreendimento
                 </h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Codigos compartilhados por empreendimento.
+                  Enderecos, Wi-Fi e dados estaveis do empreendimento.
                 </p>
 
                 <div className="mt-4 space-y-4">
                   {uniqueStays.map((stayName) => {
-                    const stay = settings.stayAccess[stayName] || {};
+                    const stay = settings.stayInfo[stayName] || {};
+                    const staySecrets = settings.staySecrets[stayName] || {};
+
                     return (
                       <div
                         key={stayName}
@@ -941,14 +1106,14 @@ export default function GuestCheckins() {
                         <div className="grid grid-cols-1 gap-3">
                           <input
                             value={stay.address || ""}
-                            onChange={(e) => handleStayAccessChange(stayName, "address", e.target.value)}
+                            onChange={(e) => handleStayInfoChange(stayName, "address", e.target.value)}
                             placeholder="Endereco base"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                           />
                           <input
                             value={stay.pickupAddress || ""}
                             onChange={(e) =>
-                              handleStayAccessChange(stayName, "pickupAddress", e.target.value)
+                              handleStayInfoChange(stayName, "pickupAddress", e.target.value)
                             }
                             placeholder="Endereco retirada chaves"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
@@ -956,35 +1121,55 @@ export default function GuestCheckins() {
                           <input
                             value={stay.apartmentAddress || ""}
                             onChange={(e) =>
-                              handleStayAccessChange(stayName, "apartmentAddress", e.target.value)
+                              handleStayInfoChange(stayName, "apartmentAddress", e.target.value)
                             }
                             placeholder="Endereco apartamento"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                           />
                           <input
-                            value={stay.door1 || ""}
-                            onChange={(e) => handleStayAccessChange(stayName, "door1", e.target.value)}
-                            placeholder="Codigo porta 1"
-                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                          />
-                          <input
-                            value={stay.door2 || ""}
-                            onChange={(e) => handleStayAccessChange(stayName, "door2", e.target.value)}
-                            placeholder="Codigo porta 2"
+                            value={stay.wifiName || ""}
+                            onChange={(e) => handleStayInfoChange(stayName, "wifiName", e.target.value)}
+                            placeholder="Nome rede wifi"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                           />
                           <input
                             value={stay.wifiPassword || ""}
                             onChange={(e) =>
-                              handleStayAccessChange(stayName, "wifiPassword", e.target.value)
+                              handleStayInfoChange(stayName, "wifiPassword", e.target.value)
                             }
-                            placeholder="Senha wifi padrao"
+                            placeholder="Senha wifi"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                           />
                           <input
-                            value={stay.keySafeCode || ""}
+                            value={stay.tokenLabel || ""}
                             onChange={(e) =>
-                              handleStayAccessChange(stayName, "keySafeCode", e.target.value)
+                              handleStayInfoChange(stayName, "tokenLabel", e.target.value)
+                            }
+                            placeholder="Descricao do token/tag"
+                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                          />
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 gap-3 border-t border-dashed border-slate-300 pt-4 dark:border-slate-700">
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                            Codigos locais do empreendimento
+                          </div>
+                          <input
+                            value={staySecrets.door1 || ""}
+                            onChange={(e) => handleStaySecretChange(stayName, "door1", e.target.value)}
+                            placeholder="Codigo porta 1 compartilhada"
+                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                          />
+                          <input
+                            value={staySecrets.door2 || ""}
+                            onChange={(e) => handleStaySecretChange(stayName, "door2", e.target.value)}
+                            placeholder="Codigo porta 2 compartilhada, se existir"
+                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                          />
+                          <input
+                            value={staySecrets.keySafeCode || ""}
+                            onChange={(e) =>
+                              handleStaySecretChange(stayName, "keySafeCode", e.target.value)
                             }
                             placeholder="Codigo cofre/chaves"
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
@@ -999,10 +1184,10 @@ export default function GuestCheckins() {
               {accessReservations.length > 0 && (
                 <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
                   <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Ajustes da unidade
+                    Ajustes da acomodacao do dia
                   </h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Use para wifi, porta da unidade e excecoes como Clariza, 15 e 16.
+                    Para a data filtrada, combine informacoes da unidade com codigos locais do hospede.
                   </p>
 
                   <div className="mt-4 space-y-4">
@@ -1089,6 +1274,76 @@ export default function GuestCheckins() {
                                 handleRoomAccessChange(reservation, "tokenLabel", e.target.value)
                               }
                               placeholder="Descricao do token/tag"
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {accessReservations.length > 0 && (
+                <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    Codigos locais do check-in do dia
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Use quando a 2a porta ou a senha da acomodacao mudam por hospede.
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    {accessReservations.map((reservation) => {
+                      const secret = getReservationSecrets(settings, reservation);
+
+                      return (
+                        <div
+                          key={`${reservation.id}-secrets`}
+                          className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/40"
+                        >
+                          <div className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                            {reservation.room?.stay?.name} - {reservation.room?.title} - {reservation.guest?.name}
+                          </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            <input
+                              value={secret.door2 || ""}
+                              onChange={(e) =>
+                                handleReservationSecretChange(reservation, "door2", e.target.value)
+                              }
+                              placeholder="Codigo 2a porta deste hospede"
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                            />
+                            <input
+                              value={secret.unitDoor || ""}
+                              onChange={(e) =>
+                                handleReservationSecretChange(reservation, "unitDoor", e.target.value)
+                              }
+                              placeholder="Codigo da porta da acomodacao deste hospede"
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                            />
+                            <input
+                              value={secret.apartmentDoorCode || ""}
+                              onChange={(e) =>
+                                handleReservationSecretChange(
+                                  reservation,
+                                  "apartmentDoorCode",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Codigo porta apartamento, se aplicavel"
+                              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                            />
+                            <input
+                              value={secret.keySafeCode || ""}
+                              onChange={(e) =>
+                                handleReservationSecretChange(
+                                  reservation,
+                                  "keySafeCode",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Codigo cofre/chaves deste hospede, se aplicavel"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                             />
                           </div>
