@@ -209,6 +209,16 @@ export default function ApresentacaoHospedes() {
       });
   }, [weeklyPresentationReservations, roomMetaById]);
 
+  const weeklyPresentationSummary = useMemo(() => {
+    const total = weeklyPresentationReservations.length;
+    const pending = weeklyPresentationReservations.filter(
+      (reservation) => String(reservation.status || "").toLowerCase() === "registrada"
+    ).length;
+    const completed = total - pending;
+
+    return { total, pending, completed };
+  }, [weeklyPresentationReservations]);
+
   const handleSettingChange = (field, value) => {
     setSettings((prev) => {
       const next = { ...prev, [field]: value };
@@ -350,6 +360,47 @@ export default function ApresentacaoHospedes() {
         </div>
       ) : (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
+          <div className="mb-5 space-y-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/50">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Concluidas
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {weeklyPresentationSummary.completed}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-900/60 dark:bg-rose-950/20">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-500 dark:text-rose-300">
+                  Pendentes
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-rose-700 dark:text-rose-300">
+                  {weeklyPresentationSummary.pending}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/50">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Total da semana
+                </div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                  {weeklyPresentationSummary.total}
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                weeklyPresentationSummary.pending > 0
+                  ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                  : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+              }`}
+            >
+              {weeklyPresentationSummary.pending > 0
+                ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
+                : "Tudo certo: todas as apresentações da semana foram concluídas."}
+            </div>
+          </div>
+
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
               Apresentacoes da semana
