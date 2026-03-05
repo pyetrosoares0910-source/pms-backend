@@ -166,16 +166,13 @@ export default function ApresentacaoHospedes() {
   );
 
   const weeklyPresentationReservations = useMemo(() => {
-    const start = dayjs(normalizedStartDate).startOf("day");
-    const end = dayjs(normalizedStartDate).add(8, "day").endOf("day");
+    const start = dayjs.utc(normalizedStartDate).startOf("day");
+    const end = dayjs.utc(normalizedStartDate).add(8, "day").endOf("day");
     return sortReservations(
       reservations.filter((reservation) => {
         if (reservation.status === "cancelada" || !reservation.checkinDate) return false;
         const checkin = dayjs.utc(reservation.checkinDate);
-        return (
-          checkin.isAfter(start.subtract(1, "millisecond")) &&
-          checkin.isBefore(end.add(1, "millisecond"))
-        );
+        return checkin.isBetween(start, end, null, "[]");
       }),
       roomMetaById
     );
