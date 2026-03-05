@@ -13,6 +13,7 @@ const defaultSettings = {
   },
   stays: {},
   tasks: {},
+  listDeliveryStatus: {},
 };
 
 const stayAliasRules = [
@@ -58,17 +59,23 @@ function makeTaskStorageKey(task) {
   ].join("|");
 }
 
+function makeListDeliveryKey(date, maidName) {
+  return [date, maidName || "sem-diarista"].join("|");
+}
+
 function getStoredSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return defaultSettings;
+    const parsed = JSON.parse(raw);
     return {
       defaults: {
         ...defaultSettings.defaults,
-        ...(JSON.parse(raw).defaults || {}),
+        ...(parsed.defaults || {}),
       },
-      stays: JSON.parse(raw).stays || {},
-      tasks: JSON.parse(raw).tasks || {},
+      stays: parsed.stays || {},
+      tasks: parsed.tasks || {},
+      listDeliveryStatus: parsed.listDeliveryStatus || {},
     };
   } catch {
     return defaultSettings;
@@ -386,11 +393,23 @@ export default function MaidAssignments() {
 
   const generatedLists = useMemo(
     () =>
-      tomorrowGroups.map((group) =>
-        buildGeneratedText(group.maidName, group.items, settings, nextDate)
-      ),
+      tomorrowGroups.map((group) => {
+        const base = buildGeneratedText(group.maidName, group.items, settings, nextDate);
+        const deliveryKey = makeListDeliveryKey(nextDate, group.maidName);
+        return {
+          ...base,
+          deliveryKey,
+          isSent: Boolean(settings.listDeliveryStatus[deliveryKey]),
+        };
+      }),
     [nextDate, settings, tomorrowGroups]
   );
+
+  const generatedListsSummary = useMemo(() => {
+    const total = generatedLists.length;
+    const sent = generatedLists.filter((list) => list.isSent).length;
+    return { total, sent, pending: total - sent };
+  }, [generatedLists]);
 
   const handleTaskSettingsChange = (taskKey, field, value) => {
     setSettings((prev) => {
@@ -433,6 +452,20 @@ export default function MaidAssignments() {
             ...(prev.stays[stayAlias] || {}),
             [field]: value,
           },
+        },
+      };
+      saveSettings(next);
+      return next;
+    });
+  };
+
+  const handleListDeliveryStatusChange = (deliveryKey, isSent) => {
+    setSettings((prev) => {
+      const next = {
+        ...prev,
+        listDeliveryStatus: {
+          ...prev.listDeliveryStatus,
+          [deliveryKey]: isSent,
         },
       };
       saveSettings(next);
@@ -605,6 +638,10 @@ export default function MaidAssignments() {
                 {dayjs(nextDate).format("DD/MM/YYYY")}
               </p>
             </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
+              Enviadas {generatedListsSummary.sent}/{generatedListsSummary.total} | Pendentes{" "}
+              {generatedListsSummary.pending}
+            </div>
           </div>
 
           {generatedLists.length === 0 ? (
@@ -615,20 +652,46 @@ export default function MaidAssignments() {
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {generatedLists.map((list) => (
                 <div
-                  key={list.maidName}
+                  key={list.deliveryKey}
                   className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/40"
                 >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {list.maidName}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText(list.text)}
-                      className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] dark:border-slate-700"
-                    >
-                      Copiar
-                    </button>
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {list.maidName}
+                      </h3>
+                      <div
+                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                          list.isSent
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        }`}
+                      >
+                        {list.isSent ? "Lista enviada" : "Pendente de envio"}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleListDeliveryStatusChange(list.deliveryKey, !list.isSent)
+                        }
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white ${
+                          list.isSent
+                            ? "bg-slate-600 hover:bg-slate-700"
+                            : "bg-emerald-700 hover:bg-emerald-800"
+                        }`}
+                      >
+                        {list.isSent ? "Marcar pendente" : "Confirmar envio"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(list.text)}
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] dark:border-slate-700"
+                      >
+                        Copiar
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     readOnly

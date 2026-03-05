@@ -74,6 +74,11 @@ function roomKeyOf(input) {
   );
 }
 
+function stayKeyOf(input) {
+  const stay = input?.room?.stay || input;
+  return stay?.id || stay?.name || "sem-stay";
+}
+
 function getStayName(reservation) {
   return reservation.room?.stay?.name || "Sem empreendimento";
 }
@@ -82,13 +87,23 @@ function getRoomSettings(settings, room) {
   return settings.roomData[roomKeyOf(room)] || {};
 }
 
-function getStaySettings(settings, stayName) {
-  return settings.stayData[stayName] || {};
+function getStaySettings(settings, stayInput) {
+  const stayKey = stayKeyOf(stayInput);
+  const byKey = settings.stayData[stayKey];
+  if (byKey) return byKey;
+
+  const legacyStayName =
+    typeof stayInput === "string" ? stayInput : stayInput?.name || stayInput?.stay?.name;
+  if (legacyStayName && settings.stayData[legacyStayName]) {
+    return settings.stayData[legacyStayName];
+  }
+
+  return {};
 }
 
 function buildTemplateData(reservation, settings) {
   const stayName = getStayName(reservation);
-  const staySettings = getStaySettings(settings, stayName);
+  const staySettings = getStaySettings(settings, reservation.room?.stay || stayName);
   const roomSettings = getRoomSettings(settings, reservation);
 
   const gender =
@@ -252,14 +267,16 @@ export default function GuestCheckins() {
 
     [...rooms].sort(compareRoomsInMapOrder).forEach((room) => {
       const stayName = room.stay?.name || "Sem empreendimento";
-      if (!grouped.has(stayName)) {
-        grouped.set(stayName, {
+      const stayKey = stayKeyOf(room.stay || stayName);
+      if (!grouped.has(stayKey)) {
+        grouped.set(stayKey, {
+          stayId: room.stay?.id || null,
           stayName,
           stayPosition: room.stay?.position ?? 9999,
           rooms: [],
         });
       }
-      grouped.get(stayName).rooms.push(room);
+      grouped.get(stayKey).rooms.push(room);
     });
 
     return [...grouped.values()].sort((a, b) => {
@@ -288,13 +305,17 @@ export default function GuestCheckins() {
     }));
   };
 
-  const handleStayFieldChange = (stayName, field, value) => {
+  const handleStayFieldChange = (stayInput, field, value) => {
+    const stayKey = stayKeyOf(stayInput);
+    const legacyStayName = typeof stayInput === "string" ? stayInput : stayInput?.name;
+
     updateSettings((prev) => ({
       ...prev,
       stayData: {
         ...prev.stayData,
-        [stayName]: {
-          ...(prev.stayData[stayName] || {}),
+        [stayKey]: {
+          ...(prev.stayData[stayKey] || {}),
+          ...((legacyStayName && prev.stayData[legacyStayName]) || {}),
           [field]: value,
         },
       },
@@ -524,18 +545,19 @@ export default function GuestCheckins() {
                 Dados por empreendimento e unidade
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Endereco e 1a porta no empreendimento. 2a porta, unidade, Wi-Fi e modelos por acomodacao.
+                Endereco do apto, 1a porta, endereco de retirada e senha do cofre sao salvos localmente por empreendimento.
               </p>
 
               <div className="mt-4 space-y-4">
                 {staysWithRooms.map((stayGroup) => {
                   const stayName = stayGroup.stayName;
-                  const stay = getStaySettings(settings, stayName);
+                  const stayIdentity = { id: stayGroup.stayId, name: stayName };
+                  const stay = getStaySettings(settings, stayIdentity);
                   const isOpen = expandedStay[stayName] ?? false;
 
                   return (
                     <div
-                      key={stayName}
+                      key={stayGroup.stayId || stayName}
                       className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/40"
                     >
                       <button
@@ -562,7 +584,11 @@ export default function GuestCheckins() {
                             <input
                               value={stay.apartmentAddress || ""}
                               onChange={(e) =>
-                                handleStayFieldChange(stayName, "apartmentAddress", e.target.value)
+                                handleStayFieldChange(
+                                  stayIdentity,
+                                  "apartmentAddress",
+                                  e.target.value
+                                )
                               }
                               placeholder="Endereco do apartamento (valido para todas as unidades)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
@@ -570,7 +596,7 @@ export default function GuestCheckins() {
                             <input
                               value={stay.door1 || ""}
                               onChange={(e) =>
-                                handleStayFieldChange(stayName, "door1", e.target.value)
+                                handleStayFieldChange(stayIdentity, "door1", e.target.value)
                               }
                               placeholder="Codigo da 1a porta (valido para todas as unidades)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
@@ -578,7 +604,11 @@ export default function GuestCheckins() {
                             <input
                               value={stay.pickupAddress || ""}
                               onChange={(e) =>
-                                handleStayFieldChange(stayName, "pickupAddress", e.target.value)
+                                handleStayFieldChange(
+                                  stayIdentity,
+                                  "pickupAddress",
+                                  e.target.value
+                                )
                               }
                               placeholder="Endereco de retirada das chaves (opcional)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
@@ -586,7 +616,11 @@ export default function GuestCheckins() {
                             <input
                               value={stay.keySafeCode || ""}
                               onChange={(e) =>
-                                handleStayFieldChange(stayName, "keySafeCode", e.target.value)
+                                handleStayFieldChange(
+                                  stayIdentity,
+                                  "keySafeCode",
+                                  e.target.value
+                                )
                               }
                               placeholder="Senha do cofre (opcional)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
