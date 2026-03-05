@@ -392,6 +392,13 @@ function ReservationActionsModal({
             Reverter check-in
           </button>
           <button
+            onClick={() => updateStatus("registrada")}
+            disabled={loading || reservation.status !== "agendada"}
+            className="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50 text-white rounded-lg"
+          >
+            Reverter para registrada
+          </button>
+          <button
             onClick={() => updateStatus("concluida")}
             disabled={loading}
             className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"

@@ -348,11 +348,18 @@ export default function Dashboard() {
         dayjs.utc(r.checkoutDate).isAfter(previousEquivalentDay)
     ).length;
 
-    const checkinsToday = reservations.filter(
+    const checkinsTodayItems = reservations.filter(
       (r) =>
         r.status !== "cancelada" &&
         dayjs.utc(r.checkinDate).isSame(todayLocal, "day")
-    ).length;
+    );
+
+    const checkinsToday = checkinsTodayItems.length;
+    const pendingCheckinsToday = checkinsTodayItems.filter((r) => {
+      const status = String(r.status || "").toLowerCase();
+      return status !== "ativa" && status !== "concluida" && status !== "cancelada";
+    }).length;
+    const finishedCheckinsToday = checkinsToday - pendingCheckinsToday;
 
     const checkinsTodayPrev = reservations.filter(
       (r) =>
@@ -642,6 +649,8 @@ export default function Dashboard() {
     return {
       activeToday,
       checkinsToday,
+      pendingCheckinsToday,
+      finishedCheckinsToday,
       checkoutsToday,
       nightsInMonth,
       reservasMes,
@@ -762,6 +771,9 @@ export default function Dashboard() {
     return acc;
   }, [tasks, tomorrowStr]);
 
+  const hasPendingCheckinsToday = kpis.pendingCheckinsToday > 0;
+  const hasCheckinsToday = kpis.checkinsToday > 0;
+
   return (
     <div className="p-6 space-y-8 min-h-screen bg-base-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
       <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-50">
@@ -770,6 +782,19 @@ export default function Dashboard() {
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
+        <div
+          className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            hasPendingCheckinsToday
+              ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+              : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+          }`}
+        >
+          {hasPendingCheckinsToday
+            ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
+            : hasCheckinsToday
+            ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
+            : "Tudo certo: não há check-ins previstos para hoje."}
+        </div>
         <DashboardKPIGrid kpis={kpis} />
       </div>
 

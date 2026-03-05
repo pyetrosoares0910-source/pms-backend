@@ -37,7 +37,7 @@ export default function DashboardKPIGrid({ kpis }) {
         prev={kpis.prev?.checkinsToday}
         compareLabel={sameDayPrevLabel}
         icon={<PremiumIcon>🛎️</PremiumIcon>}
-        to="/map"
+        to="/guest-checkins"
       />
 
       <StatCard
