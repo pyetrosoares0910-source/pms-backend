@@ -56,7 +56,11 @@ function getReservationRoomKey(reservation) {
   );
 }
 
-function StatusBadge({ status }) {
+function isPendingPresentation(reservation) {
+  return String(reservation.status || "").toLowerCase() === "registrada";
+}
+
+function StatusBadge({ status, compact = false }) {
   const normalized = String(status || "").toLowerCase();
   const classes =
     normalized === "registrada"
@@ -86,7 +90,9 @@ function StatusBadge({ status }) {
 
   return (
     <span
-      className={`inline-flex min-w-[112px] items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold uppercase ${classes}`}
+      className={`inline-flex items-center justify-center rounded-full text-center font-semibold uppercase ${classes} ${
+        compact ? "px-2.5 py-1 text-[11px]" : "min-w-[112px] px-3 py-1 text-xs"
+      }`}
     >
       {label}
     </span>
@@ -128,6 +134,8 @@ export default function ApresentacaoHospedes() {
   const [rooms, setRooms] = useState([]);
   const [settings, setSettings] = useState(() => getStoredPresentationSettings());
   const [submittingId, setSubmittingId] = useState(null);
+  const [showOnlyPending, setShowOnlyPending] = useState(true);
+  const [expandedSentCards, setExpandedSentCards] = useState({});
 
   const normalizedStartDate = useMemo(
     () => getWeekStartMonday(presentationStartDate).format("YYYY-MM-DD"),
@@ -221,13 +229,25 @@ export default function ApresentacaoHospedes() {
 
   const weeklyPresentationSummary = useMemo(() => {
     const total = weeklyPresentationReservations.length;
-    const pending = weeklyPresentationReservations.filter(
-      (reservation) => String(reservation.status || "").toLowerCase() === "registrada"
-    ).length;
+    const pending = weeklyPresentationReservations.filter(isPendingPresentation).length;
     const completed = total - pending;
 
     return { total, pending, completed };
   }, [weeklyPresentationReservations]);
+
+  const effectiveShowOnlyPending = showOnlyPending && weeklyPresentationSummary.pending > 0;
+
+  const visiblePresentationGroups = useMemo(() => {
+    if (!effectiveShowOnlyPending) return groupedWeeklyPresentations;
+    return groupedWeeklyPresentations
+      .map((stayGroup) => ({
+        ...stayGroup,
+        rooms: stayGroup.rooms.filter((roomGroup) =>
+          roomGroup.items.some((reservation) => isPendingPresentation(reservation))
+        ),
+      }))
+      .filter((stayGroup) => stayGroup.rooms.length > 0);
+  }, [groupedWeeklyPresentations, effectiveShowOnlyPending]);
 
   const handleSettingChange = (field, value) => {
     setSettings((prev) => {
@@ -269,15 +289,63 @@ export default function ApresentacaoHospedes() {
     }
   };
 
-  const renderReservationCard = (reservation) => {
+  const toggleSentCardDetails = (reservationId) => {
+    setExpandedSentCards((prev) => ({ ...prev, [reservationId]: !prev[reservationId] }));
+  };
+
+  const renderReservationCard = (reservation, { compact = false } = {}) => {
     const genderValue =
       settings.genderOverrides[getGenderKey(reservation)] || inferGender(reservation.guest?.name);
-    const isPending = reservation.status === "registrada";
+    const isPending = isPendingPresentation(reservation);
+    const isExpanded = Boolean(expandedSentCards[reservation.id]);
+
+    if (compact) {
+      return (
+        <article
+          key={reservation.id}
+          className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {reservation.guest?.name || "Hospede sem nome"}
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {formatDate(reservation.checkinDate)} a {formatDate(reservation.checkoutDate)}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <StatusBadge status={reservation.status} compact />
+              <button
+                type="button"
+                onClick={() => toggleSentCardDetails(reservation.id)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-slate-700 dark:text-slate-300"
+              >
+                {isExpanded ? "Ocultar mensagens" : "Ver mensagens"}
+              </button>
+            </div>
+          </div>
+
+          {isExpanded ? (
+            <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {getPresentationMessages(reservation, settings).map((text, index) => (
+                <MessageBlock
+                  key={`${reservation.id}-presentation-compact-${index}`}
+                  text={text}
+                  label={`Mensagem ${index + 1}`}
+                />
+              ))}
+            </div>
+          ) : null}
+        </article>
+      );
+    }
 
     return (
       <article
         key={reservation.id}
-        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
+        className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm dark:border-rose-900/60 dark:bg-slate-900/80"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -409,6 +477,36 @@ export default function ApresentacaoHospedes() {
                 ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
                 : "Tudo certo: todas as apresentações da semana foram concluídas."}
             </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowOnlyPending(true)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                  effectiveShowOnlyPending
+                    ? "bg-rose-700 text-white hover:bg-rose-800"
+                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                }`}
+              >
+                Somente pendentes
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowOnlyPending(false)}
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                  !effectiveShowOnlyPending
+                    ? "bg-slate-800 text-white hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-100"
+                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                }`}
+              >
+                Mostrar todas
+              </button>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                {effectiveShowOnlyPending
+                  ? "Visualizacao focada em pendentes."
+                  : "Visualizacao completa (pendentes + enviadas)."}
+              </span>
+            </div>
           </div>
 
           <div className="mb-5">
@@ -420,88 +518,91 @@ export default function ApresentacaoHospedes() {
             </p>
           </div>
 
-          {groupedWeeklyPresentations.length === 0 ? (
+          {weeklyPresentationReservations.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
               Nenhuma reserva com check-in dentro desta janela (segunda + 8 dias).
             </div>
+          ) : visiblePresentationGroups.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-rose-300 bg-rose-50 px-4 py-10 text-center text-sm text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300">
+              Nao ha apresentacoes pendentes para o filtro atual.
+            </div>
           ) : (
             <div className="space-y-6">
-              {groupedWeeklyPresentations.map((stayGroup) => (
+              {visiblePresentationGroups.map((stayGroup) => (
                 <div key={stayGroup.stayName} className="space-y-4">
                   <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                     {stayGroup.stayName}
                   </div>
 
-                  {stayGroup.rooms.map((roomGroup) => (
-                    <div
-                      key={roomGroup.roomKey}
-                      className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {roomGroup.roomName}
+                  {stayGroup.rooms.map((roomGroup) => {
+                    const pendingItems = roomGroup.items.filter((reservation) =>
+                      isPendingPresentation(reservation)
+                    );
+                    const sentItems = roomGroup.items.filter(
+                      (reservation) => !isPendingPresentation(reservation)
+                    );
+
+                    return (
+                      <div
+                        key={roomGroup.roomKey}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                              {roomGroup.roomName}
+                            </div>
+                            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                              Entradas: {roomGroup.items.map((item) => formatDate(item.checkinDate)).join(", ")}
+                            </div>
                           </div>
-                          <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Entradas: {roomGroup.items.map((item) => formatDate(item.checkinDate)).join(", ")}
+                          <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
+                            {roomGroup.items.length} check-in(s)
                           </div>
                         </div>
-                        <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
-                          {roomGroup.items.length} check-in(s)
+
+                        <div className="mt-4 space-y-5">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
+                              <span>Pendentes</span>
+                              <span>{pendingItems.length}</span>
+                            </div>
+
+                            {pendingItems.length > 0 ? (
+                              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                                {pendingItems.map((reservation) => renderReservationCard(reservation))}
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                Nenhuma apresentacao pendente para esta acomodacao.
+                              </div>
+                            )}
+                          </div>
+
+                          {!effectiveShowOnlyPending ? (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between rounded-xl bg-sky-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:bg-sky-950/30 dark:text-sky-300">
+                                <span>Enviadas</span>
+                                <span>{sentItems.length}</span>
+                              </div>
+
+                              {sentItems.length > 0 ? (
+                                <div className="space-y-3">
+                                  {sentItems.map((reservation) =>
+                                    renderReservationCard(reservation, { compact: true })
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                  Nenhuma apresentacao enviada para esta acomodacao.
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
-
-                      <div className="mt-4 space-y-5">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
-                            <span>Pendentes</span>
-                            <span>
-                              {
-                                roomGroup.items.filter((reservation) => reservation.status === "registrada")
-                                  .length
-                              }
-                            </span>
-                          </div>
-
-                          {roomGroup.items.some((reservation) => reservation.status === "registrada") ? (
-                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                              {roomGroup.items
-                                .filter((reservation) => reservation.status === "registrada")
-                                .map(renderReservationCard)}
-                            </div>
-                          ) : (
-                            <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                              Nenhuma apresentacao pendente para esta acomodacao.
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between rounded-xl bg-sky-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:bg-sky-950/30 dark:text-sky-300">
-                            <span>Enviadas</span>
-                            <span>
-                              {
-                                roomGroup.items.filter((reservation) => reservation.status !== "registrada")
-                                  .length
-                              }
-                            </span>
-                          </div>
-
-                          {roomGroup.items.some((reservation) => reservation.status !== "registrada") ? (
-                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                              {roomGroup.items
-                                .filter((reservation) => reservation.status !== "registrada")
-                                .map(renderReservationCard)}
-                            </div>
-                          ) : (
-                            <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                              Nenhuma apresentacao enviada para esta acomodacao.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
