@@ -16,6 +16,13 @@ dayjs.extend(utc);
 
 const SETTINGS_KEY = "guest-checkins-settings-v2";
 
+function getWeekStartMonday(value) {
+  const base = dayjs(value).startOf("day");
+  const weekday = base.day();
+  const diffToMonday = weekday === 0 ? -6 : 1 - weekday;
+  return base.add(diffToMonday, "day");
+}
+
 function getStoredPresentationSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -112,14 +119,20 @@ function MessageBlock({ text, label }) {
 
 export default function ApresentacaoHospedes() {
   const api = useApi();
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = dayjs();
+  const defaultWeekStart = getWeekStartMonday(today).format("YYYY-MM-DD");
 
-  const [presentationStartDate, setPresentationStartDate] = useState(today);
+  const [presentationStartDate, setPresentationStartDate] = useState(defaultWeekStart);
   const [loading, setLoading] = useState(true);
   const [reservations, setReservations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [settings, setSettings] = useState(() => getStoredPresentationSettings());
   const [submittingId, setSubmittingId] = useState(null);
+
+  const normalizedStartDate = useMemo(
+    () => getWeekStartMonday(presentationStartDate).format("YYYY-MM-DD"),
+    [presentationStartDate]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,8 +152,8 @@ export default function ApresentacaoHospedes() {
   }, [api]);
 
   const presentationEndDate = useMemo(
-    () => dayjs(presentationStartDate).add(7, "day").format("YYYY-MM-DD"),
-    [presentationStartDate]
+    () => dayjs(normalizedStartDate).add(7, "day").format("YYYY-MM-DD"),
+    [normalizedStartDate]
   );
 
   const roomMetaById = useMemo(
@@ -153,8 +166,8 @@ export default function ApresentacaoHospedes() {
   );
 
   const weeklyPresentationReservations = useMemo(() => {
-    const start = dayjs(presentationStartDate).startOf("day");
-    const end = dayjs(presentationStartDate).add(7, "day").endOf("day");
+    const start = dayjs(normalizedStartDate).startOf("day");
+    const end = dayjs(normalizedStartDate).add(7, "day").endOf("day");
     return sortReservations(
       reservations.filter((reservation) => {
         if (reservation.status === "cancelada" || !reservation.checkinDate) return false;
@@ -166,7 +179,7 @@ export default function ApresentacaoHospedes() {
       }),
       roomMetaById
     );
-  }, [presentationStartDate, reservations, roomMetaById]);
+  }, [normalizedStartDate, reservations, roomMetaById]);
 
   const groupedWeeklyPresentations = useMemo(() => {
     const groups = new Map();
@@ -347,7 +360,7 @@ export default function ApresentacaoHospedes() {
           </div>
           <input
             type="date"
-            value={presentationStartDate}
+            value={normalizedStartDate}
             onChange={(e) => setPresentationStartDate(e.target.value)}
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
           />
