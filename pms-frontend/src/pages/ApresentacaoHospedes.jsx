@@ -152,7 +152,7 @@ export default function ApresentacaoHospedes() {
   }, [api]);
 
   const presentationEndDate = useMemo(
-    () => dayjs(normalizedStartDate).add(7, "day").format("YYYY-MM-DD"),
+    () => dayjs(normalizedStartDate).add(8, "day").format("YYYY-MM-DD"),
     [normalizedStartDate]
   );
 
@@ -167,7 +167,7 @@ export default function ApresentacaoHospedes() {
 
   const weeklyPresentationReservations = useMemo(() => {
     const start = dayjs(normalizedStartDate).startOf("day");
-    const end = dayjs(normalizedStartDate).add(7, "day").endOf("day");
+    const end = dayjs(normalizedStartDate).add(8, "day").endOf("day");
     return sortReservations(
       reservations.filter((reservation) => {
         if (reservation.status === "cancelada" || !reservation.checkinDate) return false;
@@ -419,13 +419,13 @@ export default function ApresentacaoHospedes() {
               Apresentacoes da semana
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Janela de {formatFullDate(presentationStartDate)} ate {formatFullDate(presentationEndDate)}
+              Janela de {formatFullDate(normalizedStartDate)} ate {formatFullDate(presentationEndDate)}
             </p>
           </div>
 
           {groupedWeeklyPresentations.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              Nenhuma reserva com check-in dentro desta janela de 8 dias.
+              Nenhuma reserva com check-in dentro desta janela (segunda + 8 dias).
             </div>
           ) : (
             <div className="space-y-6">
