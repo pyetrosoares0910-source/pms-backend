@@ -358,7 +358,7 @@ function ReservationActionsModal({
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Erro ao atualizar reserva");
+      alert(err?.message || "Erro ao atualizar reserva");
     } finally {
       setLoading(false);
     }
@@ -473,7 +473,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
       onClose();
     } catch (err) {
       console.error("Erro ao editar reserva:", err);
-      alert("Erro ao salvar alterações");
+      alert(err?.message || "Erro ao salvar alteracoes");
     } finally {
       setLoading(false);
     }
@@ -598,7 +598,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
       setNotes("");
     } catch (err) {
       console.error(err);
-      setError("Erro ao salvar reserva");
+      setError(err?.message || "Erro ao salvar reserva");
     } finally {
       setLoading(false);
     }
@@ -997,3 +997,4 @@ export default function MapView() {
     </div>
   );
 }
+

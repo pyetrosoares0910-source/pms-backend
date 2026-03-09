@@ -6,6 +6,8 @@ export default function Reservations() {
   const [guests, setGuests] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const getApiErrorMessage = (err, fallback) =>
+    err?.response?.data?.error || err?.message || fallback;
 
   const [formData, setFormData] = useState({
     guestId: "",
@@ -61,6 +63,7 @@ export default function Reservations() {
       fetchData();
     } catch (err) {
       console.error("Erro ao criar reserva:", err);
+      alert(getApiErrorMessage(err, "Erro ao criar reserva."));
     }
   };
 
@@ -72,6 +75,7 @@ export default function Reservations() {
       fetchData();
     } catch (err) {
       console.error("Erro ao excluir reserva:", err);
+      alert(getApiErrorMessage(err, "Erro ao excluir reserva."));
     }
   };
 
@@ -107,6 +111,7 @@ export default function Reservations() {
       fetchData();
     } catch (err) {
       console.error("Erro ao atualizar reserva:", err);
+      alert(getApiErrorMessage(err, "Erro ao atualizar reserva."));
     }
   };
 

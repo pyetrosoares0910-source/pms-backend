@@ -22,8 +22,20 @@ export function useApi() {
       const res = await fetch(base + path, { ...opts, headers });
 
       if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(txt || res.statusText);
+        const ct = res.headers.get("content-type") || "";
+        let message = res.statusText || "Erro na requisicao";
+
+        if (ct.includes("application/json")) {
+          const payload = await res.json().catch(() => null);
+          if (payload && typeof payload === "object") {
+            message = payload.error || payload.message || message;
+          }
+        } else {
+          const txt = await res.text().catch(() => "");
+          if (txt) message = txt;
+        }
+
+        throw new Error(message);
       }
 
       const ct = res.headers.get("content-type") || "";

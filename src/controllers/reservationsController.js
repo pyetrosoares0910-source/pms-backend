@@ -1,5 +1,195 @@
 const { PrismaClient } = require("@prisma/client");
+
 const prisma = new PrismaClient();
+
+const STATUS_CANCELADA = "cancelada";
+const DEFAULT_STATUS = "registrada";
+
+function makeHttpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function normalizeStatus(value, fallback = DEFAULT_STATUS) {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.trim().toLowerCase();
+  return normalized || fallback;
+}
+
+function toValidDate(value) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function getUtcDayRange(value) {
+  const parsed = toValidDate(value);
+  if (!parsed) {
+    return { day: null, start: null, end: null };
+  }
+
+  const day = parsed.toISOString().slice(0, 10);
+  return {
+    day,
+    start: new Date(`${day}T00:00:00.000Z`),
+    end: new Date(`${day}T23:59:59.999Z`),
+  };
+}
+
+function isSameUtcDay(a, b) {
+  const dayA = getUtcDayRange(a).day;
+  const dayB = getUtcDayRange(b).day;
+  return Boolean(dayA && dayB && dayA === dayB);
+}
+
+function getTaskScopeFromReservation(reservation) {
+  const { start, end } = getUtcDayRange(reservation.checkoutDate);
+  return {
+    start,
+    end,
+    date: start,
+    stay: reservation.room?.stay?.name || "Sem Stay",
+    rooms: reservation.room?.title || "Sem identificacao",
+  };
+}
+
+function getTaskWhereFromScope(scope) {
+  return {
+    date: { gte: scope.start, lte: scope.end },
+    stay: scope.stay,
+    rooms: scope.rooms,
+  };
+}
+
+function getTaskScopeKey(scope) {
+  const day = scope.date?.toISOString?.().slice(0, 10) || "sem-data";
+  return [day, scope.stay, scope.rooms].join("|");
+}
+
+function pickTaskToKeep(tasks) {
+  return tasks.find((task) => task.maidId !== null && task.maidId !== undefined) || tasks[0];
+}
+
+async function ensureSingleCheckoutTask(tx, scope) {
+  const tasks = await tx.task.findMany({
+    where: getTaskWhereFromScope(scope),
+    orderBy: { id: "asc" },
+  });
+
+  if (tasks.length === 0) {
+    return tx.task.create({
+      data: {
+        date: scope.date,
+        stay: scope.stay,
+        rooms: scope.rooms,
+      },
+    });
+  }
+
+  const keep = pickTaskToKeep(tasks);
+  const duplicateIds = tasks.filter((task) => task.id !== keep.id).map((task) => task.id);
+
+  if (duplicateIds.length > 0) {
+    await tx.task.deleteMany({
+      where: { id: { in: duplicateIds } },
+    });
+  }
+
+  const keepInSync =
+    !isSameUtcDay(keep.date, scope.date) || keep.stay !== scope.stay || keep.rooms !== scope.rooms;
+
+  if (!keepInSync) {
+    return keep;
+  }
+
+  return tx.task.update({
+    where: { id: keep.id },
+    data: {
+      date: scope.date,
+      stay: scope.stay,
+      rooms: scope.rooms,
+    },
+  });
+}
+
+async function hasAssignedMaidInScope(tx, scope) {
+  const assignedTask = await tx.task.findFirst({
+    where: {
+      ...getTaskWhereFromScope(scope),
+      maidId: { not: null },
+    },
+    select: { id: true },
+  });
+
+  return Boolean(assignedTask);
+}
+
+async function syncOldScopeAfterReservationChange(
+  tx,
+  { reservationIdToIgnore, roomId, checkoutDate, oldScope }
+) {
+  const { start, end } = getUtcDayRange(checkoutDate);
+
+  const anotherReservationOnSameDay = await tx.reservation.findFirst({
+    where: {
+      id: { not: reservationIdToIgnore },
+      roomId: String(roomId),
+      status: { not: STATUS_CANCELADA },
+      checkoutDate: { gte: start, lte: end },
+    },
+    select: { id: true },
+  });
+
+  if (anotherReservationOnSameDay) {
+    await ensureSingleCheckoutTask(tx, oldScope);
+    return;
+  }
+
+  await tx.task.deleteMany({
+    where: getTaskWhereFromScope(oldScope),
+  });
+}
+
+async function findOverlappingReservation(tx, { roomId, checkinDate, checkoutDate, excludeId }) {
+  const where = {
+    roomId: String(roomId),
+    status: { not: STATUS_CANCELADA },
+    AND: [{ checkinDate: { lt: checkoutDate } }, { checkoutDate: { gt: checkinDate } }],
+  };
+
+  if (excludeId) {
+    where.id = { not: String(excludeId) };
+  }
+
+  return tx.reservation.findFirst({
+    where,
+    select: { id: true },
+  });
+}
+
+function isPrismaError(error, code) {
+  return Boolean(error && typeof error === "object" && error.code === code);
+}
+
+function handleReservationError(res, error, fallbackMessage) {
+  if (error?.status) {
+    return res.status(error.status).json({ error: error.message });
+  }
+
+  if (isPrismaError(error, "P2003")) {
+    return res.status(400).json({
+      error: "guestId ou roomId invalido. Verifique se hospede e quarto existem.",
+    });
+  }
+
+  if (isPrismaError(error, "P2025")) {
+    return res.status(404).json({ error: "Reserva nao encontrada." });
+  }
+
+  console.error(fallbackMessage, error);
+  return res.status(500).json({ error: fallbackMessage });
+}
 
 // GET /reservations
 async function getAllReservations(req, res) {
@@ -22,6 +212,7 @@ async function getAllReservations(req, res) {
 // GET /reservations/:id
 async function getReservationById(req, res) {
   const { id } = req.params;
+
   try {
     const reservation = await prisma.reservation.findUnique({
       where: { id: String(id) },
@@ -32,7 +223,7 @@ async function getReservationById(req, res) {
     });
 
     if (!reservation) {
-      return res.status(404).json({ error: "Reserva não encontrada." });
+      return res.status(404).json({ error: "Reserva nao encontrada." });
     }
 
     return res.json(reservation);
@@ -45,126 +236,176 @@ async function getReservationById(req, res) {
 // POST /reservations
 async function createReservation(req, res) {
   const { roomId, guestId, checkinDate, checkoutDate, status, notes } = req.body;
-  const normalizedStatus =
-    typeof status === "string" && status.trim()
-      ? status.trim().toLowerCase()
-      : "registrada";
+  const normalizedStatus = normalizeStatus(status, DEFAULT_STATUS);
 
   try {
-    // 🔹 Verifica conflito de datas no mesmo quarto (exceto reservas canceladas)
-    const overlapping = await prisma.reservation.findFirst({
-      where: {
-        roomId: roomId,
-        status: { not: "cancelada" },
-        AND: [
-          { checkinDate: { lt: new Date(checkoutDate) } }, // começa antes do checkout
-          { checkoutDate: { gt: new Date(checkinDate) } }, // termina depois do checkin
-        ],
-      },
-    });
+    const created = await prisma.$transaction(async (tx) => {
+      const checkin = toValidDate(checkinDate);
+      const checkout = toValidDate(checkoutDate);
 
-    if (overlapping) {
-      return res.status(400).json({
-        error:
-          "Já existe uma reserva ativa, agendada ou registrada neste período para esta acomodação.",
+      if (!checkin || !checkout) {
+        throw makeHttpError(400, "Datas de check-in/check-out invalidas.");
+      }
+
+      if (checkout <= checkin) {
+        throw makeHttpError(400, "Data de check-out deve ser posterior ao check-in.");
+      }
+
+      const overlapping = await findOverlappingReservation(tx, {
+        roomId,
+        checkinDate: checkin,
+        checkoutDate: checkout,
       });
-    }
 
-    // 🔹 Cria a reserva
-    const reservation = await prisma.reservation.create({
-      data: {
-        roomId: roomId ? String(roomId) : null,
-        guestId: guestId ? String(guestId) : null,
-        checkinDate: new Date(checkinDate),
-        checkoutDate: new Date(checkoutDate),
-        status: normalizedStatus,
-        notes: notes || null,
-      },
-      include: {
-        room: { include: { stay: true } },
-        guest: true,
-      },
+      if (overlapping) {
+        throw makeHttpError(
+          400,
+          "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao."
+        );
+      }
+
+      const reservation = await tx.reservation.create({
+        data: {
+          roomId: String(roomId),
+          guestId: String(guestId),
+          checkinDate: checkin,
+          checkoutDate: checkout,
+          status: normalizedStatus,
+          notes: notes || null,
+        },
+        include: {
+          room: { include: { stay: true } },
+          guest: true,
+        },
+      });
+
+      if (reservation.status !== STATUS_CANCELADA) {
+        const scope = getTaskScopeFromReservation(reservation);
+        await ensureSingleCheckoutTask(tx, scope);
+      }
+
+      return reservation;
     });
 
-    // 🔹 Cria a Task correspondente ao checkout
-    await prisma.task.create({
-      data: {
-        date: reservation.checkoutDate,
-        stay: reservation.room?.stay?.name || "Sem Stay",
-        rooms: reservation.room?.title || "Sem identificação",
-      },
-    });
-
-    return res.status(201).json(reservation);
+    return res.status(201).json(created);
   } catch (error) {
-    if (error.code === "P2003") {
-      return res.status(400).json({
-        error:
-          "guestId ou roomId inválido — verifique se o hóspede e o quarto existem.",
-      });
-    }
-    console.error("Erro ao criar reserva:", error);
-    return res.status(500).json({ error: "Erro ao criar reserva." });
+    return handleReservationError(res, error, "Erro ao criar reserva.");
   }
 }
 
 // PUT /reservations/:id
 async function updateReservation(req, res) {
+  const { id } = req.params;
+  const { roomId, guestId, checkinDate, checkoutDate, status, notes } = req.body;
+
   try {
-    const { id } = req.params;
-    const { roomId, guestId, checkinDate, checkoutDate, status, notes } = req.body;
-
-    const updated = await prisma.reservation.update({
-      where: { id: String(id) },
-      data: {
-        roomId: roomId !== undefined ? String(roomId) : undefined,
-        guestId: guestId !== undefined ? String(guestId) : undefined,
-        checkinDate: checkinDate ? new Date(checkinDate) : undefined,
-        checkoutDate: checkoutDate ? new Date(checkoutDate) : undefined,
-        status: status !== undefined ? String(status).toLowerCase() : undefined,
-        notes,
-      },
-      include: {
-        room: { include: { stay: true } },
-        guest: true,
-      },
-    });
-
-    // 🔹 Atualiza ou cria Task vinculada
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        date: updated.checkoutDate,
-        stay: updated.room.stay.name,
-        rooms: updated.room.title,
-      },
-    });
-
-    if (existingTask) {
-      await prisma.task.update({
-        where: { id: existingTask.id },
-        data: {
-          date: updated.checkoutDate,
-          stay: updated.room?.stay?.name || "Sem Stay",
-          rooms: updated.room?.title || "Sem identificação",
+    const updated = await prisma.$transaction(async (tx) => {
+      const current = await tx.reservation.findUnique({
+        where: { id: String(id) },
+        include: {
+          room: { include: { stay: true } },
+          guest: true,
         },
       });
-    } else {
-      await prisma.task.create({
+
+      if (!current) {
+        throw makeHttpError(404, "Reserva nao encontrada.");
+      }
+
+      const nextRoomId = roomId !== undefined ? String(roomId) : current.roomId;
+      const nextGuestId = guestId !== undefined ? String(guestId) : current.guestId;
+      const nextCheckin = checkinDate ? toValidDate(checkinDate) : current.checkinDate;
+      const nextCheckout = checkoutDate ? toValidDate(checkoutDate) : current.checkoutDate;
+      const nextStatus =
+        status !== undefined ? normalizeStatus(status, current.status) : current.status;
+      const nextNotes = notes !== undefined ? notes : current.notes;
+
+      if (!nextCheckin || !nextCheckout) {
+        throw makeHttpError(400, "Datas de check-in/check-out invalidas.");
+      }
+
+      if (nextCheckout <= nextCheckin) {
+        throw makeHttpError(400, "Data de check-out deve ser posterior ao check-in.");
+      }
+
+      if (nextStatus !== STATUS_CANCELADA) {
+        const overlapping = await findOverlappingReservation(tx, {
+          roomId: nextRoomId,
+          checkinDate: nextCheckin,
+          checkoutDate: nextCheckout,
+          excludeId: id,
+        });
+
+        if (overlapping) {
+          throw makeHttpError(
+            400,
+            "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao."
+          );
+        }
+      }
+
+      const oldScope = getTaskScopeFromReservation(current);
+      const scheduleAffected =
+        nextStatus === STATUS_CANCELADA ||
+        nextRoomId !== current.roomId ||
+        !isSameUtcDay(nextCheckin, current.checkinDate) ||
+        !isSameUtcDay(nextCheckout, current.checkoutDate);
+
+      if (scheduleAffected) {
+        const hasAssignedMaid = await hasAssignedMaidInScope(tx, oldScope);
+        if (hasAssignedMaid) {
+          throw makeHttpError(
+            409,
+            "Nao e permitido alterar ou cancelar a reserva: existe diarista designada para esse check-out."
+          );
+        }
+      }
+
+      const reservation = await tx.reservation.update({
+        where: { id: String(id) },
         data: {
-          date: updated.checkoutDate,
-          stay: updated.room.stay.name,
-          rooms: updated.room.title,
+          roomId: nextRoomId,
+          guestId: nextGuestId,
+          checkinDate: nextCheckin,
+          checkoutDate: nextCheckout,
+          status: nextStatus,
+          notes: nextNotes,
+        },
+        include: {
+          room: { include: { stay: true } },
+          guest: true,
         },
       });
-    }
+
+      if (nextStatus === STATUS_CANCELADA) {
+        await syncOldScopeAfterReservationChange(tx, {
+          reservationIdToIgnore: current.id,
+          roomId: current.roomId,
+          checkoutDate: current.checkoutDate,
+          oldScope,
+        });
+        return reservation;
+      }
+
+      const newScope = getTaskScopeFromReservation(reservation);
+      const scopeChanged = getTaskScopeKey(oldScope) !== getTaskScopeKey(newScope);
+
+      if (scopeChanged) {
+        await syncOldScopeAfterReservationChange(tx, {
+          reservationIdToIgnore: current.id,
+          roomId: current.roomId,
+          checkoutDate: current.checkoutDate,
+          oldScope,
+        });
+      }
+
+      await ensureSingleCheckoutTask(tx, newScope);
+      return reservation;
+    });
 
     return res.json(updated);
-  } catch (err) {
-    if (err.code === "P2025") {
-      return res.status(404).json({ error: "Reserva não encontrada." });
-    }
-    console.error("Erro ao atualizar reserva:", err);
-    return res.status(500).json({ error: "Erro interno ao atualizar reserva." });
+  } catch (error) {
+    return handleReservationError(res, error, "Erro interno ao atualizar reserva.");
   }
 }
 
@@ -173,29 +414,43 @@ async function deleteReservation(req, res) {
   const { id } = req.params;
 
   try {
-    const deleted = await prisma.reservation.delete({
-      where: { id: String(id) },
-      include: { room: { include: { stay: true } } },
-    });
+    await prisma.$transaction(async (tx) => {
+      const current = await tx.reservation.findUnique({
+        where: { id: String(id) },
+        include: { room: { include: { stay: true } } },
+      });
 
-    // 🔹 Remove a Task correspondente
-    await prisma.task.deleteMany({
-      where: {
-        date: deleted.checkoutDate,
-        stay: deleted.room.stay.name,
-        rooms: deleted.room.title,
-      },
+      if (!current) {
+        throw makeHttpError(404, "Reserva nao encontrada.");
+      }
+
+      const oldScope = getTaskScopeFromReservation(current);
+      const hasAssignedMaid = await hasAssignedMaidInScope(tx, oldScope);
+
+      if (hasAssignedMaid) {
+        throw makeHttpError(
+          409,
+          "Nao e permitido excluir/cancelar a reserva: existe diarista designada para esse check-out."
+        );
+      }
+
+      await tx.reservation.delete({
+        where: { id: String(id) },
+      });
+
+      await syncOldScopeAfterReservationChange(tx, {
+        reservationIdToIgnore: current.id,
+        roomId: current.roomId,
+        checkoutDate: current.checkoutDate,
+        oldScope,
+      });
     });
 
     return res.json({
-      message: "Reserva e tarefa de limpeza removidas com sucesso.",
+      message: "Reserva removida com sucesso.",
     });
-  } catch (err) {
-    if (err.code === "P2025") {
-      return res.status(404).json({ error: "Reserva não encontrada." });
-    }
-    console.error("Erro ao deletar reserva:", err);
-    return res.status(500).json({ error: "Erro interno ao deletar reserva." });
+  } catch (error) {
+    return handleReservationError(res, error, "Erro interno ao deletar reserva.");
   }
 }
 
