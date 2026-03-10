@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { useApi } from "../lib/api";
@@ -216,6 +216,7 @@ export default function GuestCheckins() {
   const [settings, setSettings] = useState(() => getStoredSettings());
   const [expandedStay, setExpandedStay] = useState({});
   const [generated, setGenerated] = useState(false);
+  const inFlightReservationIdsRef = useRef(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -391,6 +392,8 @@ export default function GuestCheckins() {
   };
 
   const updateReservationStatus = async (reservation, newStatus) => {
+    if (inFlightReservationIdsRef.current.has(reservation.id)) return;
+    inFlightReservationIdsRef.current.add(reservation.id);
     setSubmittingId(reservation.id);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
@@ -403,7 +406,8 @@ export default function GuestCheckins() {
       console.error("Erro ao atualizar reserva:", err);
       alert("Erro ao atualizar reserva.");
     } finally {
-      setSubmittingId(null);
+      inFlightReservationIdsRef.current.delete(reservation.id);
+      setSubmittingId((current) => (current === reservation.id ? null : current));
     }
   };
 

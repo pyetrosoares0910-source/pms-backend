@@ -17,6 +17,12 @@ function normalizeStatus(value, fallback = DEFAULT_STATUS) {
   return normalized || fallback;
 }
 
+function normalizeTaskText(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized || fallback;
+}
+
 function toValidDate(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
@@ -49,22 +55,21 @@ function getTaskScopeFromReservation(reservation) {
     start,
     end,
     date: start,
-    stay: reservation.room?.stay?.name || "Sem Stay",
-    rooms: reservation.room?.title || "Sem identificacao",
+    stay: normalizeTaskText(reservation.room?.stay?.name, "Sem Stay"),
+    rooms: normalizeTaskText(reservation.room?.title, "Sem identificacao"),
   };
 }
 
-function getTaskWhereFromScope(scope) {
+function getTaskWhereByRoomScope(scope) {
   return {
     date: { gte: scope.start, lte: scope.end },
-    stay: scope.stay,
     rooms: scope.rooms,
   };
 }
 
 function getTaskScopeKey(scope) {
   const day = scope.date?.toISOString?.().slice(0, 10) || "sem-data";
-  return [day, scope.stay, scope.rooms].join("|");
+  return [day, scope.rooms].join("|");
 }
 
 function pickTaskToKeep(tasks) {
@@ -73,7 +78,7 @@ function pickTaskToKeep(tasks) {
 
 async function ensureSingleCheckoutTask(tx, scope) {
   const tasks = await tx.task.findMany({
-    where: getTaskWhereFromScope(scope),
+    where: getTaskWhereByRoomScope(scope),
     orderBy: { id: "asc" },
   });
 
@@ -116,7 +121,7 @@ async function ensureSingleCheckoutTask(tx, scope) {
 async function hasAssignedMaidInScope(tx, scope) {
   const assignedTask = await tx.task.findFirst({
     where: {
-      ...getTaskWhereFromScope(scope),
+      ...getTaskWhereByRoomScope(scope),
       maidId: { not: null },
     },
     select: { id: true },
@@ -147,7 +152,7 @@ async function syncOldScopeAfterReservationChange(
   }
 
   await tx.task.deleteMany({
-    where: getTaskWhereFromScope(oldScope),
+    where: getTaskWhereByRoomScope(oldScope),
   });
 }
 
