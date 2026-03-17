@@ -49,11 +49,62 @@ function savePresentationSettings(patch) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 }
 
-function getReservationRoomKey(reservation) {
-  return (
-    reservation.room?.id ||
-    `${reservation.room?.stay?.name || "sem-stay"}|${reservation.room?.title || reservation.id}`
+function getStayKey(reservation) {
+  return reservation.room?.stay?.id || reservation.room?.stay?.name || "sem-stay";
+}
+
+function buildPresentationGroupKey(stayKey, guestKey) {
+  return `${stayKey}::${guestKey}`;
+}
+
+function formatJoinedLabels(values) {
+  if (values.length <= 1) return values[0] || "";
+  if (values.length === 2) return `${values[0]} e ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")} e ${values[values.length - 1]}`;
+}
+
+function getGroupRoomNames(items) {
+  const labels = [];
+  const seen = new Set();
+
+  items.forEach((reservation) => {
+    const roomKey = reservation.room?.id || reservation.room?.title || reservation.id;
+    if (seen.has(roomKey)) return;
+
+    seen.add(roomKey);
+    labels.push(reservation.room?.title || "Sem acomodacao");
+  });
+
+  return formatJoinedLabels(labels);
+}
+
+function hasSameReservationPeriod(items) {
+  if (items.length <= 1) return true;
+
+  const firstCheckin = dayjs.utc(items[0]?.checkinDate);
+  const firstCheckout = dayjs.utc(items[0]?.checkoutDate);
+
+  return items.every(
+    (reservation) =>
+      dayjs.utc(reservation.checkinDate).isSame(firstCheckin, "day") &&
+      dayjs.utc(reservation.checkoutDate).isSame(firstCheckout, "day")
   );
+}
+
+function formatReservationPeriod(reservation) {
+  return `${formatDate(reservation.checkinDate)} a ${formatDate(reservation.checkoutDate)}`;
+}
+
+function getGroupDateSummary(items) {
+  if (items.length === 0) return "";
+  if (hasSameReservationPeriod(items)) return formatReservationPeriod(items[0]);
+
+  return items
+    .map(
+      (reservation) =>
+        `${reservation.room?.title || "Sem acomodacao"}: ${formatReservationPeriod(reservation)}`
+    )
+    .join(" | ");
 }
 
 function isPendingPresentation(reservation) {
@@ -190,50 +241,107 @@ export default function ApresentacaoHospedes() {
     const groups = new Map();
 
     weeklyPresentationReservations.forEach((reservation) => {
+      const stayKey = getStayKey(reservation);
       const stayName = reservation.room?.stay?.name || "Sem empreendimento";
-      const roomKey = getReservationRoomKey(reservation);
-      const roomName = reservation.room?.title || "Sem acomodacao";
+      const guestKey = getGenderKey(reservation);
 
-      if (!groups.has(stayName)) {
-        groups.set(stayName, { stayName, rooms: new Map() });
+      if (!groups.has(stayKey)) {
+        groups.set(stayKey, {
+          stayKey,
+          stayName,
+          presentationGroups: new Map(),
+        });
       }
 
-      const stayGroup = groups.get(stayName);
-      if (!stayGroup.rooms.has(roomKey)) {
-        stayGroup.rooms.set(roomKey, { roomKey, roomName, items: [] });
+      const stayGroup = groups.get(stayKey);
+      if (!stayGroup.presentationGroups.has(guestKey)) {
+        stayGroup.presentationGroups.set(guestKey, {
+          guestKey,
+          groupKey: buildPresentationGroupKey(stayKey, guestKey),
+          items: [],
+        });
       }
 
-      stayGroup.rooms.get(roomKey).items.push(reservation);
+      stayGroup.presentationGroups.get(guestKey).items.push(reservation);
     });
 
-    const ordered = [...groups.values()].map((stayGroup) => ({
-      stayName: stayGroup.stayName,
-      rooms: [...stayGroup.rooms.values()],
-    }));
+    return [...groups.values()]
+      .map((stayGroup) => {
+        const presentationGroups = [...stayGroup.presentationGroups.values()]
+          .map((presentationGroup) => {
+            const items = sortReservations(presentationGroup.items, roomMetaById);
+            const pendingItems = items.filter((reservation) => isPendingPresentation(reservation));
+            const sentItems = items.filter((reservation) => !isPendingPresentation(reservation));
 
-    return ordered
-      .map((stayGroup) => ({
-        ...stayGroup,
-        rooms: [...stayGroup.rooms].sort((a, b) => {
-          const roomA = roomMetaById[a.items[0]?.roomId] || a.items[0]?.room || {};
-          const roomB = roomMetaById[b.items[0]?.roomId] || b.items[0]?.room || {};
-          return compareRoomsInMapOrder(roomA, roomB);
-        }),
-      }))
+            return {
+              ...presentationGroup,
+              items,
+              pendingItems,
+              sentItems,
+              primaryReservation: items[0],
+              roomNames: getGroupRoomNames(items),
+              dateSummary: getGroupDateSummary(items),
+              samePeriod: hasSameReservationPeriod(items),
+              roomCount: new Set(
+                items.map(
+                  (reservation) =>
+                    reservation.room?.id || reservation.room?.title || reservation.id
+                )
+              ).size,
+            };
+          })
+          .sort((a, b) => {
+            const roomA =
+              roomMetaById[a.primaryReservation?.roomId] || a.primaryReservation?.room || {};
+            const roomB =
+              roomMetaById[b.primaryReservation?.roomId] || b.primaryReservation?.room || {};
+            const roomCompare = compareRoomsInMapOrder(roomA, roomB);
+            if (roomCompare !== 0) return roomCompare;
+
+            const checkinCompare =
+              dayjs.utc(a.primaryReservation?.checkinDate).valueOf() -
+              dayjs.utc(b.primaryReservation?.checkinDate).valueOf();
+            if (checkinCompare !== 0) return checkinCompare;
+
+            return String(a.primaryReservation?.guest?.name || "").localeCompare(
+              String(b.primaryReservation?.guest?.name || ""),
+              "pt-BR"
+            );
+          });
+
+        return {
+          stayKey: stayGroup.stayKey,
+          stayName: stayGroup.stayName,
+          reservationCount: presentationGroups.reduce((total, group) => total + group.items.length, 0),
+          presentationGroups,
+        };
+      })
       .sort((a, b) => {
-        const roomA = roomMetaById[a.rooms[0]?.items[0]?.roomId] || a.rooms[0]?.items[0]?.room || {};
-        const roomB = roomMetaById[b.rooms[0]?.items[0]?.roomId] || b.rooms[0]?.items[0]?.room || {};
+        const roomA =
+          roomMetaById[a.presentationGroups[0]?.primaryReservation?.roomId] ||
+          a.presentationGroups[0]?.primaryReservation?.room ||
+          {};
+        const roomB =
+          roomMetaById[b.presentationGroups[0]?.primaryReservation?.roomId] ||
+          b.presentationGroups[0]?.primaryReservation?.room ||
+          {};
         return compareRoomsInMapOrder(roomA, roomB);
       });
   }, [weeklyPresentationReservations, roomMetaById]);
 
   const weeklyPresentationSummary = useMemo(() => {
-    const total = weeklyPresentationReservations.length;
-    const pending = weeklyPresentationReservations.filter(isPendingPresentation).length;
+    const groups = groupedWeeklyPresentations.flatMap((stayGroup) => stayGroup.presentationGroups);
+    const total = groups.length;
+    const pending = groups.filter((group) => group.pendingItems.length > 0).length;
     const completed = total - pending;
 
-    return { total, pending, completed };
-  }, [weeklyPresentationReservations]);
+    return {
+      total,
+      pending,
+      completed,
+      reservations: weeklyPresentationReservations.length,
+    };
+  }, [groupedWeeklyPresentations, weeklyPresentationReservations]);
 
   const effectiveShowOnlyPending = showOnlyPending && weeklyPresentationSummary.pending > 0;
 
@@ -242,11 +350,11 @@ export default function ApresentacaoHospedes() {
     return groupedWeeklyPresentations
       .map((stayGroup) => ({
         ...stayGroup,
-        rooms: stayGroup.rooms.filter((roomGroup) =>
-          roomGroup.items.some((reservation) => isPendingPresentation(reservation))
+        presentationGroups: stayGroup.presentationGroups.filter(
+          (presentationGroup) => presentationGroup.pendingItems.length > 0
         ),
       }))
-      .filter((stayGroup) => stayGroup.rooms.length > 0);
+      .filter((stayGroup) => stayGroup.presentationGroups.length > 0);
   }, [groupedWeeklyPresentations, effectiveShowOnlyPending]);
 
   const handleSettingChange = (field, value) => {
@@ -272,37 +380,72 @@ export default function ApresentacaoHospedes() {
     });
   };
 
-  const updateReservationStatus = async (reservation, newStatus) => {
-    setSubmittingId(reservation.id);
+  const updatePresentationStatus = async (items, newStatus, submitKey) => {
+    if (!items.length) return;
+
+    setSubmittingId(submitKey);
     try {
-      const updated = await api(`/reservations/${reservation.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ status: newStatus }),
+      const results = await Promise.allSettled(
+        items.map((reservation) =>
+          api(`/reservations/${reservation.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: newStatus }),
+          })
+        )
+      );
+
+      const updatedById = new Map();
+
+      results.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          updatedById.set(result.value.id, result.value);
+          return;
+        }
+
+        console.error("Erro ao atualizar reserva:", items[index]?.id, result.reason);
       });
 
-      setReservations((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      if (updatedById.size > 0) {
+        setReservations((prev) =>
+          prev.map((item) => (updatedById.has(item.id) ? updatedById.get(item.id) : item))
+        );
+      }
+
+      if (updatedById.size !== items.length) {
+        alert("Erro ao atualizar uma ou mais reservas desta apresentacao.");
+      }
     } catch (err) {
-      console.error("Erro ao atualizar reserva:", err);
-      alert("Erro ao atualizar status da reserva.");
+      console.error("Erro ao atualizar apresentacao:", err);
+      alert("Erro ao atualizar o status da apresentacao.");
     } finally {
       setSubmittingId(null);
     }
   };
 
-  const toggleSentCardDetails = (reservationId) => {
-    setExpandedSentCards((prev) => ({ ...prev, [reservationId]: !prev[reservationId] }));
+  const toggleSentCardDetails = (groupKey) => {
+    setExpandedSentCards((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
   };
 
-  const renderReservationCard = (reservation, { compact = false } = {}) => {
+  const renderPresentationCard = (presentationGroup, { compact = false } = {}) => {
+    const reservation = presentationGroup.primaryReservation;
     const genderValue =
       settings.genderOverrides[getGenderKey(reservation)] || inferGender(reservation.guest?.name);
-    const isPending = isPendingPresentation(reservation);
-    const isExpanded = Boolean(expandedSentCards[reservation.id]);
+    const hasPending = presentationGroup.pendingItems.length > 0;
+    const isExpanded = Boolean(expandedSentCards[presentationGroup.groupKey]);
+    const isSubmitting = submittingId === presentationGroup.groupKey;
+    const accommodationLabel =
+      presentationGroup.roomCount === 1
+        ? "1 acomodacao"
+        : `${presentationGroup.roomCount} acomodacoes`;
+    const reservationLabel =
+      presentationGroup.items.length === 1
+        ? "1 reserva"
+        : `${presentationGroup.items.length} reservas`;
 
     if (compact) {
       return (
         <article
-          key={reservation.id}
+          key={presentationGroup.groupKey}
           className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/70"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -311,15 +454,23 @@ export default function ApresentacaoHospedes() {
                 {reservation.guest?.name || "Hospede sem nome"}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {formatDate(reservation.checkinDate)} a {formatDate(reservation.checkoutDate)}
+                {presentationGroup.items.length > 1
+                  ? `Acomodacoes: ${presentationGroup.roomNames}`
+                  : presentationGroup.roomNames}
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {presentationGroup.dateSummary}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <StatusBadge status={reservation.status} compact />
+              <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                {reservationLabel}
+              </div>
+              <StatusBadge status={hasPending ? "registrada" : "agendada"} compact />
               <button
                 type="button"
-                onClick={() => toggleSentCardDetails(reservation.id)}
+                onClick={() => toggleSentCardDetails(presentationGroup.groupKey)}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:border-slate-700 dark:text-slate-300"
               >
                 {isExpanded ? "Ocultar mensagens" : "Ver mensagens"}
@@ -329,9 +480,9 @@ export default function ApresentacaoHospedes() {
 
           {isExpanded ? (
             <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {getPresentationMessages(reservation, settings).map((text, index) => (
+              {getPresentationMessages(presentationGroup.items, settings).map((text, index) => (
                 <MessageBlock
-                  key={`${reservation.id}-presentation-compact-${index}`}
+                  key={`${presentationGroup.groupKey}-presentation-compact-${index}`}
                   text={text}
                   label={`Mensagem ${index + 1}`}
                 />
@@ -344,7 +495,7 @@ export default function ApresentacaoHospedes() {
 
     return (
       <article
-        key={reservation.id}
+        key={presentationGroup.groupKey}
         className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm dark:border-rose-900/60 dark:bg-slate-900/80"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -353,12 +504,23 @@ export default function ApresentacaoHospedes() {
               {reservation.guest?.name || "Hospede sem nome"}
             </div>
             <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {formatDate(reservation.checkinDate)} a {formatDate(reservation.checkoutDate)}
+              {presentationGroup.items.length > 1
+                ? `Acomodacoes: ${presentationGroup.roomNames}`
+                : presentationGroup.roomNames}
+            </div>
+            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {presentationGroup.dateSummary}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={reservation.status} />
+            <div className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
+              {accommodationLabel}
+            </div>
+            <div className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+              {reservationLabel}
+            </div>
+            <StatusBadge status={hasPending ? "registrada" : "agendada"} />
             <select
               value={genderValue}
               onChange={(e) => handleGenderOverride(reservation, e.target.value)}
@@ -369,27 +531,35 @@ export default function ApresentacaoHospedes() {
             </select>
             <button
               type="button"
-              onClick={() => updateReservationStatus(reservation, "agendada")}
-              disabled={!isPending || submittingId === reservation.id}
+              onClick={() =>
+                updatePresentationStatus(
+                  presentationGroup.pendingItems,
+                  "agendada",
+                  presentationGroup.groupKey
+                )
+              }
+              disabled={!hasPending || isSubmitting}
               className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${
-                isPending
+                hasPending
                   ? "bg-sky-700 hover:bg-sky-800"
                   : "cursor-not-allowed bg-slate-500 hover:bg-slate-500"
               }`}
             >
-              {submittingId === reservation.id
+              {isSubmitting
                 ? "Salvando..."
-                : isPending
-                ? "Confirmar enviada"
+                : hasPending
+                ? presentationGroup.pendingItems.length > 1
+                  ? "Confirmar enviadas"
+                  : "Confirmar enviada"
                 : "Apresentacao enviada"}
             </button>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {getPresentationMessages(reservation, settings).map((text, index) => (
+          {getPresentationMessages(presentationGroup.items, settings).map((text, index) => (
             <MessageBlock
-              key={`${reservation.id}-presentation-${index}`}
+              key={`${presentationGroup.groupKey}-presentation-${index}`}
               text={text}
               label={`Mensagem ${index + 1}`}
             />
@@ -516,6 +686,10 @@ export default function ApresentacaoHospedes() {
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Janela de {formatFullDate(normalizedStartDate)} ate {formatFullDate(presentationEndDate)}
             </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {weeklyPresentationSummary.reservations} reserva(s) agrupada(s) em{" "}
+              {weeklyPresentationSummary.total} apresentacao(oes).
+            </p>
           </div>
 
           {weeklyPresentationReservations.length === 0 ? (
@@ -529,35 +703,28 @@ export default function ApresentacaoHospedes() {
           ) : (
             <div className="space-y-6">
               {visiblePresentationGroups.map((stayGroup) => (
-                <div key={stayGroup.stayName} className="space-y-4">
+                <div key={stayGroup.stayKey} className="space-y-4">
                   <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
                     {stayGroup.stayName}
                   </div>
 
-                  {stayGroup.rooms.map((roomGroup) => {
-                    const pendingItems = roomGroup.items.filter((reservation) =>
-                      isPendingPresentation(reservation)
+                  {(() => {
+                    const pendingGroups = stayGroup.presentationGroups.filter(
+                      (presentationGroup) => presentationGroup.pendingItems.length > 0
                     );
-                    const sentItems = roomGroup.items.filter(
-                      (reservation) => !isPendingPresentation(reservation)
+                    const sentGroups = stayGroup.presentationGroups.filter(
+                      (presentationGroup) => presentationGroup.pendingItems.length === 0
                     );
 
                     return (
-                      <div
-                        key={roomGroup.roomKey}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40"
-                      >
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-950/40">
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                              {roomGroup.roomName}
-                            </div>
-                            <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                              Entradas: {roomGroup.items.map((item) => formatDate(item.checkinDate)).join(", ")}
-                            </div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            {stayGroup.reservationCount} reserva(s) na janela, agrupada(s) em{" "}
+                            {stayGroup.presentationGroups.length} apresentacao(oes).
                           </div>
                           <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
-                            {roomGroup.items.length} check-in(s)
+                            {stayGroup.presentationGroups.length} grupo(s)
                           </div>
                         </div>
 
@@ -565,16 +732,18 @@ export default function ApresentacaoHospedes() {
                           <div className="space-y-3">
                             <div className="flex items-center justify-between rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-rose-700 dark:bg-rose-950/30 dark:text-rose-300">
                               <span>Pendentes</span>
-                              <span>{pendingItems.length}</span>
+                              <span>{pendingGroups.length}</span>
                             </div>
 
-                            {pendingItems.length > 0 ? (
+                            {pendingGroups.length > 0 ? (
                               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                                {pendingItems.map((reservation) => renderReservationCard(reservation))}
+                                {pendingGroups.map((presentationGroup) =>
+                                  renderPresentationCard(presentationGroup)
+                                )}
                               </div>
                             ) : (
                               <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                Nenhuma apresentacao pendente para esta acomodacao.
+                                Nenhuma apresentacao pendente para este empreendimento.
                               </div>
                             )}
                           </div>
@@ -583,18 +752,18 @@ export default function ApresentacaoHospedes() {
                             <div className="space-y-3">
                               <div className="flex items-center justify-between rounded-xl bg-sky-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-sky-700 dark:bg-sky-950/30 dark:text-sky-300">
                                 <span>Enviadas</span>
-                                <span>{sentItems.length}</span>
+                                <span>{sentGroups.length}</span>
                               </div>
 
-                              {sentItems.length > 0 ? (
+                              {sentGroups.length > 0 ? (
                                 <div className="space-y-3">
-                                  {sentItems.map((reservation) =>
-                                    renderReservationCard(reservation, { compact: true })
+                                  {sentGroups.map((presentationGroup) =>
+                                    renderPresentationCard(presentationGroup, { compact: true })
                                   )}
                                 </div>
                               ) : (
                                 <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                  Nenhuma apresentacao enviada para esta acomodacao.
+                                  Nenhuma apresentacao enviada para este empreendimento.
                                 </div>
                               )}
                             </div>
@@ -602,7 +771,7 @@ export default function ApresentacaoHospedes() {
                         </div>
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               ))}
             </div>

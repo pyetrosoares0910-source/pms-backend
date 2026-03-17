@@ -467,7 +467,72 @@ export function sortReservations(items, roomMetaById = {}) {
   });
 }
 
-export function getPresentationMessages(reservation, settings) {
+function sortPresentationGroupReservations(items) {
+  return [...items].sort((a, b) => {
+    const roomCompare = compareRoomsInMapOrder(a.room || {}, b.room || {});
+    if (roomCompare !== 0) return roomCompare;
+
+    const checkinCompare = dayjs.utc(a.checkinDate).valueOf() - dayjs.utc(b.checkinDate).valueOf();
+    if (checkinCompare !== 0) return checkinCompare;
+
+    const checkoutCompare = dayjs.utc(a.checkoutDate).valueOf() - dayjs.utc(b.checkoutDate).valueOf();
+    if (checkoutCompare !== 0) return checkoutCompare;
+
+    return String(a.guest?.name || "").localeCompare(String(b.guest?.name || ""), "pt-BR");
+  });
+}
+
+function formatJoinedList(values) {
+  if (values.length <= 1) return values[0] || "";
+  if (values.length === 2) return `${values[0]} e ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")} e ${values[values.length - 1]}`;
+}
+
+function formatRoomNamesForMessage(reservations) {
+  const names = [];
+  const seen = new Set();
+
+  sortPresentationGroupReservations(reservations).forEach((reservation) => {
+    const roomKey = reservation.room?.id || reservation.room?.title || reservation.id;
+    if (seen.has(roomKey)) return;
+
+    seen.add(roomKey);
+    names.push(`*${reservation.room?.title || "sua acomodacao"}*`);
+  });
+
+  return formatJoinedList(names);
+}
+
+function hasSameReservationPeriod(reservations) {
+  if (reservations.length <= 1) return true;
+
+  const firstCheckin = dayjs.utc(reservations[0]?.checkinDate);
+  const firstCheckout = dayjs.utc(reservations[0]?.checkoutDate);
+
+  return reservations.every(
+    (reservation) =>
+      dayjs.utc(reservation.checkinDate).isSame(firstCheckin, "day") &&
+      dayjs.utc(reservation.checkoutDate).isSame(firstCheckout, "day")
+  );
+}
+
+function buildReservationPeriodLines(reservations) {
+  return sortPresentationGroupReservations(reservations).map((reservation) => {
+    const roomName = reservation.room?.title || "sua acomodacao";
+    return `*${roomName}*: de *${formatDate(reservation.checkinDate)}* ate *${formatDate(
+      reservation.checkoutDate
+    )}*.`;
+  });
+}
+
+export function getPresentationMessages(input, settings) {
+  const reservations = sortPresentationGroupReservations(
+    Array.isArray(input) ? input.filter(Boolean) : [input].filter(Boolean)
+  );
+  const reservation = reservations[0];
+
+  if (!reservation) return [];
+
   const stayName = reservation.room?.stay?.name || "seu empreendimento";
   const roomName = reservation.room?.title || "sua acomodacao";
   const guestName = reservation.guest?.name || "hospede";
@@ -477,7 +542,7 @@ export function getPresentationMessages(reservation, settings) {
   const hostName = settings.hostName || "Pyetro";
   const classification = getClassification(reservation);
 
-  if (classification === "clariza") {
+  if (classification === "clariza" && reservations.length === 1) {
     return [
       [
         `Ola, ${greeting}!`,
@@ -489,6 +554,45 @@ export function getPresentationMessages(reservation, settings) {
         )} e término em ${formatDate(reservation.checkoutDate)}.`,
         "",
         `Me chamo ${hostName}, estarei responsavel pelo acompanhamento da estadia e disponivel para qualquer suporte que se fizer necessario.`,
+      ].join("\n"),
+    ];
+  }
+
+  if (reservations.length > 1) {
+    if (hasSameReservationPeriod(reservations)) {
+      return [
+        [
+          `Ola, ${greeting}!`,
+          "",
+          `*Seja ${welcome} ao ${stayName}* ðŸŒŽ`,
+          `Suas reservas nos studios ${formatRoomNamesForMessage(
+            reservations
+          )} estao confirmadas, com check-in no dia ${formatDate(
+            reservation.checkinDate
+          )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
+          "",
+          `Meu nome e ${hostName}, e estarei a disposicao para ajuda-${pronoun} durante sua estadia.`,
+          "No dia do check-in, enviarei as informacoes de acesso e as instrucoes necessarias para entrar nas acomodacoes.",
+          "",
+          "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
+          "Ate breve!",
+        ].join("\n"),
+      ];
+    }
+
+    return [
+      [
+        `Ola, ${greeting}!`,
+        "",
+        `*Seja ${welcome} ao ${stayName}* ðŸŒŽ`,
+        "Confirmamos o recebimento das seguintes reservas:",
+        ...buildReservationPeriodLines(reservations),
+        "",
+        `Meu nome e ${hostName}, e estarei a disposicao para ajuda-${pronoun} durante sua estadia.`,
+        "No dia do check-in, enviarei as informacoes de acesso e as instrucoes necessarias para entrar nas acomodacoes.",
+        "",
+        "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
+        "Ate breve!",
       ].join("\n"),
     ];
   }
