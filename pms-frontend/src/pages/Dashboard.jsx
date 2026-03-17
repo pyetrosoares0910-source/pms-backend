@@ -31,6 +31,7 @@ import KpiTotalReservas from "../components/KpiTotalReservas";
 import { useTheme } from "../context/ThemeContext";
 import { buildMaidListAlert, getMaidListDeliverySummary } from "./maidAssignmentsShared";
 import { getWeeklyPresentationSummary } from "./guestPresentationShared";
+import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "./maintenanceShared";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -777,6 +778,14 @@ export default function Dashboard() {
     () => buildMaidListAlert(maidAssignmentsSummary, "amanhã"),
     [maidAssignmentsSummary]
   );
+  const maintenanceAlertSummary = useMemo(
+    () => getMaintenanceAlertSummary(maintenance, dayjs()),
+    [maintenance]
+  );
+  const maintenanceAlert = useMemo(
+    () => buildMaintenanceAlert(maintenanceAlertSummary),
+    [maintenanceAlertSummary]
+  );
 
   const hasPendingCheckinsToday = kpis.pendingCheckinsToday > 0;
   const hasCheckinsToday = kpis.checkinsToday > 0;
@@ -790,7 +799,7 @@ export default function Dashboard() {
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
-        <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
+        <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-4">
           <div
             className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               hasPendingCheckinsToday
@@ -825,6 +834,16 @@ export default function Dashboard() {
             }`}
           >
             {maidAssignmentsAlert.message}
+          </div>
+
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              maintenanceAlert.isPending
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {maintenanceAlert.message}
           </div>
         </div>
         <DashboardKPIGrid kpis={kpis} />

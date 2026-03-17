@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useApi } from "../lib/api";
+import { buildMaintenanceAlert } from "./maintenanceShared";
 
 dayjs.extend(utc);
 
@@ -66,6 +67,14 @@ const WEEKDAY_OPTIONS = [
   { value: "SA", label: "Sab" },
   { value: "SU", label: "Dom" },
 ];
+
+const FOCUS_LABELS = {
+  all: "Tudo",
+  open: "Em aberto",
+  overdue: "Atrasadas",
+  dueToday: "Vencem hoje",
+  completed: "Concluidas",
+};
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -331,27 +340,6 @@ function getDueTone(task, referenceDate) {
   };
 }
 
-function buildMaintenanceAlert(summary) {
-  if (summary.overdue > 0) {
-    return {
-      isPending: true,
-      message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) exigem atencao. ${summary.active} atividade(s) seguem em aberto.`,
-    };
-  }
-
-  if (summary.active > 0) {
-    return {
-      isPending: false,
-      message: `Tudo certo: nenhuma atividade atrasada. ${summary.dueToday} vence(m) hoje, ${summary.next7} vence(m) nos proximos 7 dias e ${summary.unscheduled} segue(m) sem prazo.`,
-    };
-  }
-
-  return {
-    isPending: false,
-    message: "Tudo certo: nao ha atividades ativas no momento.",
-  };
-}
-
 function sanitizeRecurrence(form) {
   const recurrence = form.recurrence || {};
   const startDate = recurrence.startDate || form.dueDate || dayjs().format("YYYY-MM-DD");
@@ -544,7 +532,7 @@ function Modal({ open, onClose, title, subtitle, children, maxWidthClass = "max-
   );
 }
 
-function SummaryCard({ title, value, helper, tone, icon: Icon }) {
+function SummaryCard({ title, value, helper, tone, icon: Icon, active = false, onClick }) {
   const toneMap = {
     sky: {
       shell: "border-sky-200 bg-gradient-to-br from-white via-sky-50 to-sky-100/70 dark:border-sky-900/50 dark:from-slate-950 dark:via-sky-950/30 dark:to-slate-950",
@@ -569,9 +557,21 @@ function SummaryCard({ title, value, helper, tone, icon: Icon }) {
   };
 
   const style = toneMap[tone] || toneMap.slate;
+  const Component = onClick ? "button" : "article";
 
   return (
-    <article className={cx("rounded-[28px] border p-5 shadow-sm", style.shell)}>
+    <Component
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cx(
+        "rounded-[28px] border p-5 shadow-sm",
+        style.shell,
+        onClick
+          ? "w-full text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/60 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-sky-400/60 dark:focus:ring-offset-slate-950"
+          : "",
+        active ? "ring-2 ring-sky-500 ring-offset-2 ring-offset-gray-50 dark:ring-sky-400 dark:ring-offset-slate-950" : ""
+      )}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
@@ -579,13 +579,18 @@ function SummaryCard({ title, value, helper, tone, icon: Icon }) {
           </div>
           <div className={cx("mt-3 text-3xl font-black tracking-[-0.04em]", style.value)}>{value}</div>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{helper}</p>
+          {onClick ? (
+            <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              {active ? "Filtro ativo" : "Clique para filtrar"}
+            </div>
+          ) : null}
         </div>
 
         <div className={cx("flex h-12 w-12 items-center justify-center rounded-2xl", style.icon)}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
-    </article>
+    </Component>
   );
 }
 
@@ -614,10 +619,10 @@ function TaskCard({ task, referenceDate, onEdit, onGenerate, generatingId }) {
   const shellClass = task.isRecurring
     ? "border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-white dark:border-emerald-900/40 dark:from-slate-950 dark:via-emerald-950/20 dark:to-slate-950"
     : isTaskCompleted(task)
-    ? "border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white dark:border-slate-700/70 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
-    : isTaskOverdue(task, referenceDate)
-    ? "border-rose-200 bg-gradient-to-br from-white via-rose-50 to-white dark:border-rose-900/40 dark:from-slate-950 dark:via-rose-950/20 dark:to-slate-950"
-    : "border-sky-200 bg-gradient-to-br from-white via-sky-50 to-white dark:border-sky-900/40 dark:from-slate-950 dark:via-sky-950/20 dark:to-slate-950";
+      ? "border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white dark:border-slate-700/70 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      : isTaskOverdue(task, referenceDate)
+        ? "border-rose-200 bg-gradient-to-br from-white via-rose-50 to-white dark:border-rose-900/40 dark:from-slate-950 dark:via-rose-950/20 dark:to-slate-950"
+        : "border-sky-200 bg-gradient-to-br from-white via-sky-50 to-white dark:border-sky-900/40 dark:from-slate-950 dark:via-sky-950/20 dark:to-slate-950";
 
   return (
     <article className={cx("rounded-[28px] border p-5 shadow-sm", shellClass)}>
@@ -922,7 +927,7 @@ function TaskFormFields({
                   />
                 </div>
               </div>
- 
+
               {(form.recurrence.mode === "monthly_by_day" ||
                 form.recurrence.mode === "monthly_twice") ? (
                 <div>
@@ -1045,6 +1050,7 @@ function buildDefaultFilters() {
     type: "",
     stayId: "",
     roomId: "",
+    focus: "all",
     datePreset: "all",
     dateFrom: "",
     dateTo: "",
@@ -1216,10 +1222,26 @@ export default function Maintenance() {
     () => sortTasksByDate(filteredOperationalTasks.filter((task) => isTaskCompleted(task)), "desc"),
     [filteredOperationalTasks]
   );
+  const dueTodayTasks = useMemo(
+    () =>
+      sortTasksByDate(
+        filteredOperationalTasks.filter((task) => isTaskDueToday(task, referenceDate)),
+        "asc"
+      ),
+    [filteredOperationalTasks, referenceDate]
+  );
 
-  const visibleTaskCount =
-    filteredOperationalTasks.length + (filters.showRecurringModels ? filteredRecurringModels.length : 0);
-  const hiddenModelsCount = filters.showRecurringModels ? 0 : filteredRecurringModels.length;
+  const visibleTaskCountByFocus = {
+    all: filteredOperationalTasks.length + (filters.showRecurringModels ? filteredRecurringModels.length : 0),
+    open: activeTasks.length,
+    overdue: overdueTasks.length,
+    dueToday: dueTodayTasks.length,
+    completed: completedTasks.length,
+  };
+
+  const visibleTaskCount = visibleTaskCountByFocus[filters.focus] ?? visibleTaskCountByFocus.all;
+  const hiddenModelsCount =
+    filters.focus === "all" && !filters.showRecurringModels ? filteredRecurringModels.length : 0;
 
   const openCreateModal = useCallback(() => {
     setForm(buildEmptyForm());
@@ -1238,6 +1260,21 @@ export default function Maintenance() {
 
   const clearFilters = useCallback(() => {
     setFilters(buildDefaultFilters());
+  }, []);
+
+  const handleSummaryCardClick = useCallback((focus) => {
+    setFilters((current) => {
+      const nextFocus = current.focus === focus ? "all" : focus;
+
+      return {
+        ...current,
+        focus: nextFocus,
+        status: "",
+        datePreset: "all",
+        dateFrom: "",
+        dateTo: "",
+      };
+    });
   }, []);
 
   const handleCreateFieldChange = useCallback(
@@ -1370,8 +1407,8 @@ export default function Maintenance() {
   );
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.10),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] text-slate-900 dark:bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.16),_transparent_22%),linear-gradient(180deg,_#020617_0%,_#0f172a_100%)] dark:text-slate-100">
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 lg:px-6 lg:py-8">
+    <div className="min-h-screen bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+      <div className="mx-auto max-w-7xl space-y-6">
         <section className="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur dark:border-slate-700/70 dark:bg-slate-950/80 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)] lg:p-8">
           <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-400/10" />
           <div className="pointer-events-none absolute -right-10 bottom-0 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-400/10" />
@@ -1384,10 +1421,10 @@ export default function Maintenance() {
               </div>
 
               <h1 className="mt-5 text-4xl font-black tracking-[-0.06em] text-slate-950 dark:text-white sm:text-5xl">
-                Operacao de manutencao mais clara, filtravel e acionavel.
+                Controle total da manutenção, sem perder tempo.
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                Reestruturei a pagina para trabalhar com cards, prazos, leitura rapida e uma area de filtros de verdade. Os dados continuam vindo das mesmas rotas e as atividades salvas permanecem intactas.
+                Identifique atrasos, organize prioridades e execute mais rápido com uma visão clara do que precisa ser feito agora.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -1483,6 +1520,8 @@ export default function Maintenance() {
             helper="Atividades ativas na operacao."
             tone="sky"
             icon={Clock3}
+            active={filters.focus === "open"}
+            onClick={() => handleSummaryCardClick("open")}
           />
           <SummaryCard
             title="Atrasadas"
@@ -1490,6 +1529,8 @@ export default function Maintenance() {
             helper="Demandam intervencao imediata."
             tone="rose"
             icon={AlertTriangle}
+            active={filters.focus === "overdue"}
+            onClick={() => handleSummaryCardClick("overdue")}
           />
           <SummaryCard
             title="Vencem hoje"
@@ -1497,6 +1538,8 @@ export default function Maintenance() {
             helper="Precisam entrar no fluxo do dia."
             tone="emerald"
             icon={CalendarClock}
+            active={filters.focus === "dueToday"}
+            onClick={() => handleSummaryCardClick("dueToday")}
           />
           <SummaryCard
             title="Concluidas"
@@ -1504,6 +1547,8 @@ export default function Maintenance() {
             helper="Historico operacional concluido."
             tone="slate"
             icon={CheckCircle2}
+            active={filters.focus === "completed"}
+            onClick={() => handleSummaryCardClick("completed")}
           />
         </div>
 
@@ -1630,9 +1675,9 @@ export default function Maintenance() {
                     ...(option.value === "custom"
                       ? {}
                       : {
-                          dateFrom: "",
-                          dateTo: "",
-                        }),
+                        dateFrom: "",
+                        dateTo: "",
+                      }),
                   }))
                 }
               >
@@ -1739,6 +1784,9 @@ export default function Maintenance() {
                     {DATE_PRESET_OPTIONS.find((option) => option.value === filters.datePreset)?.label || "Tudo"}
                   </span>
                   <span className="rounded-full border border-slate-200 px-3 py-1 dark:border-slate-700">
+                    Visao: {FOCUS_LABELS[filters.focus] || FOCUS_LABELS.all}
+                  </span>
+                  <span className="rounded-full border border-slate-200 px-3 py-1 dark:border-slate-700">
                     Atualizacao: {referenceDate.format("DD/MM/YYYY")}
                   </span>
                 </div>
@@ -1773,73 +1821,103 @@ export default function Maintenance() {
               </div>
             ) : (
               <div className="space-y-6">
-                <TaskSection
-                  title="Criticas"
-                  subtitle="Atividades vencidas e ainda sem conclusao."
-                  icon={AlertTriangle}
-                  count={overdueTasks.length}
-                  emptyText="Nenhuma atividade atrasada neste recorte."
-                  tone="rose"
-                >
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {overdueTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        referenceDate={referenceDate}
-                        onEdit={openEditModal}
-                        onGenerate={handleGenerate}
-                        generatingId={generatingId}
-                      />
-                    ))}
-                  </div>
-                </TaskSection>
+                {filters.focus === "all" || filters.focus === "overdue" ? (
+                  <TaskSection
+                    title="Criticas"
+                    subtitle="Atividades vencidas e ainda sem conclusao."
+                    icon={AlertTriangle}
+                    count={overdueTasks.length}
+                    emptyText="Nenhuma atividade atrasada neste recorte."
+                    tone="rose"
+                  >
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {overdueTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          referenceDate={referenceDate}
+                          onEdit={openEditModal}
+                          onGenerate={handleGenerate}
+                          generatingId={generatingId}
+                        />
+                      ))}
+                    </div>
+                  </TaskSection>
+                ) : null}
 
-                <TaskSection
-                  title="Em andamento / pendentes"
-                  subtitle="Fila operacional organizada por prazo."
-                  icon={Wrench}
-                  count={activeTasks.length}
-                  emptyText="Nenhuma atividade ativa restante para este recorte."
-                  tone="sky"
-                >
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {activeTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        referenceDate={referenceDate}
-                        onEdit={openEditModal}
-                        onGenerate={handleGenerate}
-                        generatingId={generatingId}
-                      />
-                    ))}
-                  </div>
-                </TaskSection>
+                {filters.focus === "all" || filters.focus === "open" ? (
+                  <TaskSection
+                    title="Em andamento / pendentes"
+                    subtitle="Fila operacional organizada por prazo."
+                    icon={Wrench}
+                    count={activeTasks.length}
+                    emptyText="Nenhuma atividade ativa restante para este recorte."
+                    tone="sky"
+                  >
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {activeTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          referenceDate={referenceDate}
+                          onEdit={openEditModal}
+                          onGenerate={handleGenerate}
+                          generatingId={generatingId}
+                        />
+                      ))}
+                    </div>
+                  </TaskSection>
+                ) : null}
 
-                <TaskSection
-                  title="Concluidas"
-                  subtitle="Historico recente de atividades finalizadas."
-                  icon={CheckCircle2}
-                  count={completedTasks.length}
-                  emptyText="Nenhuma atividade concluida neste recorte."
-                  tone="slate"
-                >
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    {completedTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        referenceDate={referenceDate}
-                        onEdit={openEditModal}
-                        onGenerate={handleGenerate}
-                        generatingId={generatingId}
-                      />
-                    ))}
-                  </div>
-                </TaskSection>
+                {filters.focus === "dueToday" ? (
+                  <TaskSection
+                    title="Vencem hoje"
+                    subtitle="Demandas que precisam entrar na operacao ainda hoje."
+                    icon={CalendarClock}
+                    count={dueTodayTasks.length}
+                    emptyText="Nenhuma atividade com vencimento hoje neste recorte."
+                    tone="emerald"
+                  >
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {dueTodayTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          referenceDate={referenceDate}
+                          onEdit={openEditModal}
+                          onGenerate={handleGenerate}
+                          generatingId={generatingId}
+                        />
+                      ))}
+                    </div>
+                  </TaskSection>
+                ) : null}
 
-                {filters.showRecurringModels ? (
+                {filters.focus === "all" || filters.focus === "completed" ? (
+                  <TaskSection
+                    title="Concluidas"
+                    subtitle="Historico recente de atividades finalizadas."
+                    icon={CheckCircle2}
+                    count={completedTasks.length}
+                    emptyText="Nenhuma atividade concluida neste recorte."
+                    tone="slate"
+                  >
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {completedTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          referenceDate={referenceDate}
+                          onEdit={openEditModal}
+                          onGenerate={handleGenerate}
+                          generatingId={generatingId}
+                        />
+                      ))}
+                    </div>
+                  </TaskSection>
+                ) : null}
+
+                {filters.focus === "all" && filters.showRecurringModels ? (
                   <TaskSection
                     title="Modelos recorrentes"
                     subtitle="Area de auditoria para os templates de recorrencia."
