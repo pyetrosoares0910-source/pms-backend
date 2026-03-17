@@ -53,6 +53,10 @@ function getStayKey(reservation) {
   return reservation.room?.stay?.id || reservation.room?.stay?.name || "sem-stay";
 }
 
+function getPresentationGuestNameKey(reservation) {
+  return String(reservation.guest?.name || "").trim() || `sem-nome:${reservation.id}`;
+}
+
 function buildPresentationGroupKey(stayKey, guestKey) {
   return `${stayKey}::${guestKey}`;
 }
@@ -243,7 +247,7 @@ export default function ApresentacaoHospedes() {
     weeklyPresentationReservations.forEach((reservation) => {
       const stayKey = getStayKey(reservation);
       const stayName = reservation.room?.stay?.name || "Sem empreendimento";
-      const guestKey = getGenderKey(reservation);
+      const guestKey = getPresentationGuestNameKey(reservation);
 
       if (!groups.has(stayKey)) {
         groups.set(stayKey, {
