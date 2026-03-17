@@ -12,13 +12,10 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock3,
-  Filter,
   LoaderCircle,
   PencilLine,
   Plus,
   RefreshCw,
-  Search,
-  Sparkles,
   Trash2,
   UserRound,
   Wrench,
@@ -57,14 +54,6 @@ function buildEmptyForm(dueDate = "") {
     type: "corretiva",
     dueDate,
   };
-}
-
-function normalizeText(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
 
 function sortStays(a, b) {
@@ -443,17 +432,10 @@ export default function MaintenanceCalendar() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [filters, setFilters] = useState({
-    search: "",
-    status: "",
-    type: "",
-    stayId: "",
-    roomId: "",
-  });
-
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(buildEmptyForm(dayjs().format("YYYY-MM-DD")));
   const [savingCreate, setSavingCreate] = useState(false);
+  const [unscheduledOpen, setUnscheduledOpen] = useState(false);
 
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(buildEmptyForm());
@@ -465,11 +447,6 @@ export default function MaintenanceCalendar() {
   const roomMap = useMemo(
     () => new Map(orderedRooms.map((room) => [room.id, room])),
     [orderedRooms]
-  );
-
-  const roomsForFilters = useMemo(
-    () => orderedRooms.filter((room) => !filters.stayId || room.stayId === filters.stayId),
-    [filters.stayId, orderedRooms]
   );
   const roomsForCreate = useMemo(
     () => orderedRooms.filter((room) => !createForm.stayId || room.stayId === createForm.stayId),
@@ -517,51 +494,16 @@ export default function MaintenanceCalendar() {
     await loadData({ silent: true });
   }, [loadData]);
 
-  const filteredTasks = useMemo(() => {
-    const search = normalizeText(filters.search);
-
-    return tasks.filter((task) => {
-      if (filters.status && task.status !== filters.status) return false;
-      if (filters.type && task.type !== filters.type) return false;
-      if (filters.stayId && (task.stayId || task.stay?.id) !== filters.stayId) return false;
-      if (filters.roomId && (task.roomId || task.room?.id) !== filters.roomId) return false;
-
-      if (search) {
-        const blob = normalizeText(
-          [
-            task.title,
-            task.description,
-            task.responsible,
-            task.stay?.name,
-            task.room?.title,
-            task.code,
-          ]
-            .filter(Boolean)
-            .join(" ")
-        );
-
-        if (!blob.includes(search)) return false;
-      }
-
-      return true;
-    });
-  }, [filters, tasks]);
-
   const scheduledTasks = useMemo(
-    () => filteredTasks.filter((task) => Boolean(task.dueDate)),
-    [filteredTasks]
+    () => tasks.filter((task) => Boolean(task.dueDate)),
+    [tasks]
   );
   const unscheduledTasks = useMemo(
     () =>
-      [...filteredTasks.filter((task) => !task.dueDate)].sort((a, b) =>
+      [...tasks.filter((task) => !task.dueDate)].sort((a, b) =>
         String(a.title || "").localeCompare(String(b.title || ""), "pt-BR")
       ),
-    [filteredTasks]
-  );
-
-  const filteredSummary = useMemo(
-    () => getMaintenanceAlertSummary(filteredTasks, referenceDate),
-    [filteredTasks, referenceDate]
+    [tasks]
   );
   const overallSummary = useMemo(
     () => getMaintenanceAlertSummary(tasks, referenceDate),
@@ -728,65 +670,7 @@ export default function MaintenanceCalendar() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.10)] backdrop-blur dark:border-slate-700/70 dark:bg-slate-950/80 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)] lg:p-8">
-          <div className="pointer-events-none absolute -left-20 top-0 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-400/10" />
-          <div className="pointer-events-none absolute -right-10 bottom-0 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-400/10" />
-
-          <div className="relative grid gap-8 lg:grid-cols-[1.45fr,0.95fr]">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-300">
-                <Sparkles className="h-3.5 w-3.5" />
-                Maintenance Calendar
-              </div>
-
-              <h1 className="mt-5 text-4xl font-black tracking-[-0.06em] text-slate-950 dark:text-white sm:text-5xl">
-                Agenda operacional com edicao real direto no calendario.
-              </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300 sm:text-base">
-                Agora voce pode criar atividades simples clicando em um dia, arrastar tarefas para outro prazo e editar praticamente todo o item sem sair da agenda.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => openCreateModal()}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-sky-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-800 dark:bg-sky-500 dark:text-slate-950 dark:hover:bg-sky-400"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nova atividade simples
-                </button>
-
-                <button
-                  type="button"
-                  onClick={reloadData}
-                  disabled={refreshing}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  <RefreshCw className={cx("h-4 w-4", refreshing ? "animate-spin" : "")} />
-                  Atualizar agenda
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-[30px] border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-emerald-50/70 p-5 shadow-sm dark:border-slate-700/70 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950/20">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Como usar
-              </div>
-              <div className="mt-5 space-y-4 text-sm text-slate-600 dark:text-slate-300">
-                <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
-                  Clique em qualquer dia do calendario para abrir um cadastro rapido com a data ja preenchida.
-                </div>
-                <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
-                  Arraste eventos para remarcar o prazo sem sair da tela.
-                </div>
-                <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-950/50">
-                  Itens sem prazo continuam visiveis abaixo, prontos para receber uma data.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="mx-auto max-w-7xl space-y-5">
 
         {!loading ? (
           <div
@@ -804,309 +688,281 @@ export default function MaintenanceCalendar() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
           <StatCard
             title="Em aberto"
-            value={filteredSummary.active}
+            value={overallSummary.active}
             helper="Itens ativos no recorte atual."
             tone="sky"
             icon={Clock3}
           />
           <StatCard
             title="Atrasadas"
-            value={filteredSummary.overdue}
+            value={overallSummary.overdue}
             helper="Ja passaram do prazo."
             tone="rose"
             icon={AlertTriangle}
           />
           <StatCard
             title="Vencem hoje"
-            value={filteredSummary.dueToday}
+            value={overallSummary.dueToday}
             helper="Entram na operacao do dia."
             tone="emerald"
             icon={CalendarClock}
           />
           <StatCard
             title="Concluidas"
-            value={filteredSummary.completed}
+            value={overallSummary.completed}
             helper="Ja finalizadas neste recorte."
             tone="slate"
             icon={CheckCircle2}
           />
         </div>
 
-        <section className="rounded-[32px] border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/80">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
-                <Filter className="h-3.5 w-3.5" />
-                Filtros
-              </div>
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                Refine a agenda por texto, status, tipo, empreendimento ou unidade.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setFilters({
-                  search: "",
-                  status: "",
-                  type: "",
-                  stayId: "",
-                  roomId: "",
-                })
-              }
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Limpar filtros
-            </button>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-5">
-            <div className="xl:col-span-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Busca</label>
-              <div className="relative mt-2">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={filters.search}
-                  onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
-                  placeholder="Buscar por titulo, local, responsavel..."
-                  className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters((current) => ({ ...current, status: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option.value || "all"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo</label>
-              <select
-                value={filters.type}
-                onChange={(e) => setFilters((current) => ({ ...current, type: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                {TYPE_OPTIONS.map((option) => (
-                  <option key={option.value || "all"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Empreendimento</label>
-              <select
-                value={filters.stayId}
-                onChange={(e) =>
-                  setFilters((current) => {
-                    const nextStayId = e.target.value;
-                    const activeRoom = roomMap.get(current.roomId);
-                    return {
-                      ...current,
-                      stayId: nextStayId,
-                      roomId: activeRoom && activeRoom.stayId !== nextStayId ? "" : current.roomId,
-                    };
-                  })
-                }
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="">Todos</option>
-                {orderedStays.map((stay) => (
-                  <option key={stay.id} value={stay.id}>
-                    {stay.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Unidade / local</label>
-              <select
-                value={filters.roomId}
-                onChange={(e) => setFilters((current) => ({ ...current, roomId: e.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              >
-                <option value="">Todos</option>
-                {roomsForFilters.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.stay?.name ? `${room.stay.name} - ` : ""}
-                    {room.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </section>
-
         {loading ? (
-          <div className="rounded-[32px] border border-slate-200 bg-white/90 p-10 text-center shadow-sm dark:border-slate-700/70 dark:bg-slate-900/80">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-sky-600 dark:text-sky-400" />
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
               Carregando agenda de manutencao...
             </p>
           </div>
         ) : (
-          <>
-            <section className="rounded-[32px] border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/80">
-              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
-                Clique em um dia vazio para criar uma atividade simples. Arraste eventos para remarcar o prazo.
+          <section className="rounded-[32px] border border-slate-200 bg-white/95 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/90 lg:p-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">
+                  Calendario de manutencao
+                </h1>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Clique em um dia para inserir uma atividade simples, arraste eventos para remarcar e clique para editar.
+                </p>
               </div>
 
-              <div
-                className={cx(
-                  "rounded-[28px] border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950",
-                  "[&_.fc-toolbar-title]:text-xl [&_.fc-toolbar-title]:font-semibold [&_.fc-toolbar-title]:text-slate-900 dark:[&_.fc-toolbar-title]:text-slate-100",
-                  "[&_.fc-button]:rounded-xl [&_.fc-button]:border-0 [&_.fc-button]:bg-slate-900 [&_.fc-button]:shadow-none [&_.fc-button]:transition [&_.fc-button:hover]:bg-slate-800 dark:[&_.fc-button]:bg-slate-200 dark:[&_.fc-button]:text-slate-950 dark:[&_.fc-button:hover]:bg-white",
-                  "[&_.fc-button-primary.fc-button-active]:bg-sky-700 dark:[&_.fc-button-primary.fc-button-active]:bg-sky-500",
-                  "[&_.fc-col-header-cell-cushion]:px-2 [&_.fc-col-header-cell-cushion]:py-3 [&_.fc-col-header-cell-cushion]:text-xs [&_.fc-col-header-cell-cushion]:font-semibold [&_.fc-col-header-cell-cushion]:uppercase [&_.fc-col-header-cell-cushion]:tracking-[0.18em] [&_.fc-col-header-cell-cushion]:text-slate-400",
-                  "[&_.fc-daygrid-day-number]:px-2 [&_.fc-daygrid-day-number]:pt-2 [&_.fc-daygrid-day-number]:text-sm [&_.fc-daygrid-day-number]:font-semibold [&_.fc-daygrid-day-number]:text-slate-500 dark:[&_.fc-daygrid-day-number]:text-slate-300",
-                  "[&_.fc-scrollgrid]:rounded-2xl [&_.fc-scrollgrid]:border-slate-200 dark:[&_.fc-scrollgrid]:border-slate-800",
-                  "[&_.fc-daygrid-event]:rounded-xl [&_.fc-daygrid-event]:px-1.5 [&_.fc-daygrid-event]:py-1 [&_.fc-daygrid-event]:shadow-sm [&_.fc-daygrid-event]:border",
-                  "[&_.fc-day-today]:bg-sky-50/50 dark:[&_.fc-day-today]:bg-sky-950/20"
-                )}
-              >
-                <FullCalendar
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                  initialView="dayGridMonth"
-                  locale={ptLocale}
-                  height="80vh"
-                  editable
-                  eventStartEditable
-                  dayMaxEvents={4}
-                  timeZone="local"
-                  nowIndicator
-                  stickyHeaderDates
-                  headerToolbar={{
-                    left: "prev,next today",
-                    center: "title",
-                    right: "dayGridMonth,timeGridWeek,timeGridDay",
-                  }}
-                  buttonText={{
-                    today: "Hoje",
-                    month: "Mes",
-                    week: "Semana",
-                    day: "Dia",
-                  }}
-                  events={events}
-                  dateClick={(info) => openCreateModal(info.dateStr)}
-                  eventClick={(info) => openEditModal(info.event.extendedProps.task)}
-                  eventDrop={handleEventDrop}
-                  eventContent={(info) => {
-                    const task = info.event.extendedProps.task;
-                    return (
-                      <div className="overflow-hidden px-1 py-0.5">
-                        <div className="truncate text-[11px] font-semibold">{task.title}</div>
-                        <div className="truncate text-[10px] opacity-80">
-                          {task.room?.title || task.responsible || "Sem detalhe"}
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUnscheduledOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  <Wrench className="h-4 w-4" />
+                  Sem prazo {unscheduledTasks.length > 0 ? `(${unscheduledTasks.length})` : ""}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openCreateModal()}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                >
+                  <Plus className="h-4 w-4" />
+                  Inserir atividade
+                </button>
+
+                <button
+                  type="button"
+                  onClick={reloadData}
+                  disabled={refreshing}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900"
+                >
+                  <RefreshCw className={cx("h-4 w-4", refreshing ? "animate-spin" : "")} />
+                  Atualizar
+                </button>
               </div>
-            </section>
+            </div>
 
-            <section className="rounded-[32px] border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-700/70 dark:bg-slate-900/80">
-              <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
-                    <Wrench className="h-3.5 w-3.5" />
-                    Sem prazo
-                  </div>
-                  <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                    Tarefas que ainda nao entram no calendario porque nao possuem data definida.
-                  </p>
-                </div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-slate-500" />
+                Pendente
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-blue-500" />
+                Em andamento
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                Vence hoje
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                Atrasada
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Concluida
+              </span>
+            </div>
 
-                <div className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:border-slate-700 dark:text-slate-300">
-                  {unscheduledTasks.length} item(ns)
-                </div>
-              </div>
-
-              {unscheduledTasks.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Nenhuma atividade sem prazo neste recorte.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  {unscheduledTasks.map((task) => (
-                    <article
-                      key={task.id}
-                      className="rounded-[26px] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-white p-5 shadow-sm dark:border-slate-700/70 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            {task.code}
-                          </div>
-                          <h3 className="mt-3 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {task.title}
-                          </h3>
-                          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            {task.description || "Sem descricao informada."}
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(task)}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 dark:border-slate-800 dark:bg-slate-950/50">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            <Building2 className="h-3.5 w-3.5" />
-                            Empreendimento
-                          </div>
-                          <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {task.stay?.name || "Sem empreendimento"}
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 dark:border-slate-800 dark:bg-slate-950/50">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            <UserRound className="h-3.5 w-3.5" />
-                            Responsavel
-                          </div>
-                          <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {task.responsible || "Nao definido"}
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 dark:border-slate-800 dark:bg-slate-950/50">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            <CalendarClock className="h-3.5 w-3.5" />
-                            Prazo
-                          </div>
-                          <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Sem prazo definido
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+            <div
+              className={cx(
+                "rounded-[28px] border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950",
+                "[&_.fc]:font-sans",
+                "[&_.fc-toolbar]:mb-5 [&_.fc-toolbar]:flex-wrap [&_.fc-toolbar]:gap-3",
+                "[&_.fc-toolbar-title]:text-2xl [&_.fc-toolbar-title]:font-semibold [&_.fc-toolbar-title]:tracking-[-0.03em] [&_.fc-toolbar-title]:text-slate-900 dark:[&_.fc-toolbar-title]:text-slate-100",
+                "[&_.fc-button]:rounded-2xl [&_.fc-button]:border-0 [&_.fc-button]:bg-slate-900 [&_.fc-button]:px-3.5 [&_.fc-button]:py-2 [&_.fc-button]:text-sm [&_.fc-button]:font-semibold [&_.fc-button]:shadow-none [&_.fc-button]:transition [&_.fc-button:hover]:bg-slate-800 dark:[&_.fc-button]:bg-slate-200 dark:[&_.fc-button]:text-slate-950 dark:[&_.fc-button:hover]:bg-white",
+                "[&_.fc-button-primary.fc-button-active]:bg-sky-700 dark:[&_.fc-button-primary.fc-button-active]:bg-sky-500",
+                "[&_.fc-button-group]:overflow-hidden [&_.fc-button-group]:rounded-2xl",
+                "[&_.fc-scrollgrid]:overflow-hidden [&_.fc-scrollgrid]:rounded-[24px] [&_.fc-scrollgrid]:border [&_.fc-scrollgrid]:border-slate-200 dark:[&_.fc-scrollgrid]:border-slate-800",
+                "[&_.fc-theme-standard_td]:border-slate-100 dark:[&_.fc-theme-standard_td]:border-slate-800",
+                "[&_.fc-theme-standard_th]:border-slate-100 dark:[&_.fc-theme-standard_th]:border-slate-800",
+                "[&_.fc-col-header-cell]:bg-slate-50/80 dark:[&_.fc-col-header-cell]:bg-slate-950/50",
+                "[&_.fc-col-header-cell-cushion]:px-2 [&_.fc-col-header-cell-cushion]:py-4 [&_.fc-col-header-cell-cushion]:text-[11px] [&_.fc-col-header-cell-cushion]:font-semibold [&_.fc-col-header-cell-cushion]:uppercase [&_.fc-col-header-cell-cushion]:tracking-[0.18em] [&_.fc-col-header-cell-cushion]:text-slate-400",
+                "[&_.fc-daygrid-day-frame]:min-h-[120px]",
+                "[&_.fc-daygrid-day-top]:px-2 [&_.fc-daygrid-day-top]:pt-2",
+                "[&_.fc-daygrid-day-number]:text-sm [&_.fc-daygrid-day-number]:font-semibold [&_.fc-daygrid-day-number]:text-slate-500 dark:[&_.fc-daygrid-day-number]:text-slate-300",
+                "[&_.fc-daygrid-day.fc-day-today]:bg-sky-50/60 dark:[&_.fc-daygrid-day.fc-day-today]:bg-sky-950/20",
+                "[&_.fc-daygrid-more-link]:rounded-full [&_.fc-daygrid-more-link]:bg-slate-100 [&_.fc-daygrid-more-link]:px-2.5 [&_.fc-daygrid-more-link]:py-1 [&_.fc-daygrid-more-link]:text-[11px] [&_.fc-daygrid-more-link]:font-semibold [&_.fc-daygrid-more-link]:text-slate-600 dark:[&_.fc-daygrid-more-link]:bg-slate-800 dark:[&_.fc-daygrid-more-link]:text-slate-200",
+                "[&_.fc-event]:cursor-pointer [&_.fc-event]:rounded-2xl [&_.fc-event]:border [&_.fc-event]:shadow-none",
+                "[&_.fc-event-main]:p-0",
+                "[&_.fc-timegrid-axis-cushion]:text-xs [&_.fc-timegrid-slot-label-cushion]:text-xs"
               )}
-            </section>
-          </>
+            >
+              <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                locale={ptLocale}
+                height="76vh"
+                editable
+                eventStartEditable
+                fixedWeekCount={false}
+                moreLinkClick="popover"
+                dayMaxEvents={4}
+                timeZone="local"
+                nowIndicator
+                stickyHeaderDates
+                headerToolbar={{
+                  left: "prev,next today",
+                  center: "title",
+                  right: "dayGridMonth,timeGridWeek,timeGridDay",
+                }}
+                buttonText={{
+                  today: "Hoje",
+                  month: "Mes",
+                  week: "Semana",
+                  day: "Dia",
+                }}
+                events={events}
+                dateClick={(info) => openCreateModal(info.dateStr)}
+                eventClick={(info) => openEditModal(info.event.extendedProps.task)}
+                eventDrop={handleEventDrop}
+                eventDidMount={(info) => {
+                  const task = info.event.extendedProps.task;
+                  info.el.title = [
+                    task?.title,
+                    task?.room?.title || task?.stay?.name,
+                    task?.responsible,
+                    task?.dueDate ? formatDisplayDate(task.dueDate) : "Sem prazo",
+                    task?.status,
+                  ]
+                    .filter(Boolean)
+                    .join(" | ");
+                }}
+                eventContent={(info) => {
+                  const task = info.event.extendedProps.task;
+                  const detail =
+                    task.room?.title || task.responsible || task.stay?.name || "Sem detalhe";
+                  const statusNote = isTaskOverdue(task, referenceDate)
+                    ? "Atrasada"
+                    : isTaskDueToday(task, referenceDate)
+                      ? "Hoje"
+                      : task.status === "concluido"
+                        ? "OK"
+                        : task.type === "preventiva"
+                          ? "Prev."
+                          : "";
+
+                  return (
+                    <div className="w-full overflow-hidden rounded-xl px-2.5 py-2">
+                      <div className="truncate text-[11px] font-semibold leading-4">{task.title}</div>
+                      <div className="mt-1 truncate text-[10px] leading-4 opacity-80">{detail}</div>
+                      {statusNote ? (
+                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] opacity-75">
+                          {statusNote}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                }}
+              />
+            </div>
+          </section>
         )}
       </div>
+
+      <Modal
+        open={unscheduledOpen}
+        onClose={() => setUnscheduledOpen(false)}
+        title="Atividades sem prazo"
+        subtitle="Itens que ainda nao entraram no calendario porque nao possuem data definida."
+      >
+        <div className="space-y-4">
+          {unscheduledTasks.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Nenhuma atividade sem prazo no momento.
+            </div>
+          ) : (
+            unscheduledTasks.map((task) => (
+              <article
+                key={task.id}
+                className="rounded-[24px] border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/80"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      {task.code || "Sem codigo"}
+                    </div>
+                    <h3 className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">
+                      {task.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      {task.description || "Sem descricao informada."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnscheduledOpen(false);
+                      openEditModal(task);
+                    }}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/60">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      <Building2 className="h-3.5 w-3.5" />
+                      Empreendimento
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {task.stay?.name || "Sem empreendimento"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/60">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      <UserRound className="h-3.5 w-3.5" />
+                      Responsavel
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                      {task.responsible || "Nao definido"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/60">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      Prazo
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Sem prazo definido
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </Modal>
 
       <Modal
         open={createOpen}
