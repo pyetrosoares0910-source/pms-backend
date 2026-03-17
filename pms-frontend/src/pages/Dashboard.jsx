@@ -29,6 +29,12 @@ import KpiGaugeOcupacao from "../components/KpiGaugeOcupacao";
 import KpiMaintenanceProgress from "../components/KpiMaintenanceProgress";
 import KpiTotalReservas from "../components/KpiTotalReservas";
 import { useTheme } from "../context/ThemeContext";
+import {
+  buildCheckinAlert,
+  buildCleaningCoverageAlert,
+  getCheckinAlertSummary,
+  getCleaningCoverageSummary,
+} from "../lib/operationalAlerts";
 import { buildMaidListAlert, getMaidListDeliverySummary } from "./maidAssignmentsShared";
 import { getWeeklyPresentationSummary } from "./guestPresentationShared";
 import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "./maintenanceShared";
@@ -770,6 +776,14 @@ export default function Dashboard() {
     () => getWeeklyPresentationSummary(reservations, dayjs()),
     [reservations]
   );
+  const checkinAlertSummary = useMemo(
+    () => getCheckinAlertSummary(reservations, dayjs()),
+    [reservations]
+  );
+  const checkinAlert = useMemo(
+    () => buildCheckinAlert(checkinAlertSummary),
+    [checkinAlertSummary]
+  );
   const maidAssignmentsSummary = useMemo(
     () => getMaidListDeliverySummary(tasks, tomorrowStr),
     [tasks, tomorrowStr]
@@ -786,9 +800,17 @@ export default function Dashboard() {
     () => buildMaintenanceAlert(maintenanceAlertSummary),
     [maintenanceAlertSummary]
   );
+  const cleaningAlertSummary = useMemo(
+    () => getCleaningCoverageSummary(tasks, dayjs()),
+    [tasks]
+  );
+  const cleaningAlert = useMemo(
+    () => buildCleaningCoverageAlert(cleaningAlertSummary),
+    [cleaningAlertSummary]
+  );
 
-  const hasPendingCheckinsToday = kpis.pendingCheckinsToday > 0;
-  const hasCheckinsToday = kpis.checkinsToday > 0;
+  const hasPendingCheckinsToday = checkinAlertSummary.pending > 0;
+  const hasCheckinsToday = checkinAlertSummary.total > 0;
   const hasPendingPresentations = weeklyPresentationSummary.pending > 0;
 
   return (
@@ -799,10 +821,10 @@ export default function Dashboard() {
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
-        <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-4">
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           <div
             className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              hasPendingCheckinsToday
+              checkinAlert.isPending
                 ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
                 : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
             }`}
@@ -834,6 +856,16 @@ export default function Dashboard() {
             }`}
           >
             {maidAssignmentsAlert.message}
+          </div>
+
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              cleaningAlert.isPending
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {cleaningAlert.message}
           </div>
 
           <div

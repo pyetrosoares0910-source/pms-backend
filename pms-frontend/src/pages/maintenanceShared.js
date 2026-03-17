@@ -57,10 +57,24 @@ export function getMaintenanceAlertSummary(tasks, referenceDate = dayjs()) {
 }
 
 export function buildMaintenanceAlert(summary) {
-  if (summary.overdue > 0) {
+  if (summary.overdue > 0 || summary.dueToday > 0) {
+    if (summary.overdue > 0 && summary.dueToday > 0) {
+      return {
+        isPending: true,
+        message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) e ${summary.dueToday} vence(m) hoje. ${summary.active} atividade(s) seguem em aberto.`,
+      };
+    }
+
+    if (summary.overdue > 0) {
+      return {
+        isPending: true,
+        message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) exigem atencao. ${summary.active} atividade(s) seguem em aberto.`,
+      };
+    }
+
     return {
       isPending: true,
-      message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) exigem atencao. ${summary.active} atividade(s) seguem em aberto.`,
+      message: `Alerta: ${summary.dueToday} atividade(s) vence(m) hoje. ${summary.active} atividade(s) seguem em aberto.`,
     };
   }
 

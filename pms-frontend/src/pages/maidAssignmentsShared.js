@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 export const MAID_ASSIGNMENTS_SETTINGS_KEY = "maid-assignments-settings-v1";
+export const MAID_ASSIGNMENTS_SETTINGS_EVENT = "maid-assignments-settings-changed";
 
 export const defaultMaidAssignmentsSettings = {
   defaults: {
@@ -43,6 +44,9 @@ export function getStoredMaidAssignmentsSettings() {
 export function saveMaidAssignmentsSettings(next) {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(MAID_ASSIGNMENTS_SETTINGS_KEY, JSON.stringify(next));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(MAID_ASSIGNMENTS_SETTINGS_EVENT));
+  }
 }
 
 export function getMaidListDeliverySummary(tasks, date, settings = getStoredMaidAssignmentsSettings()) {

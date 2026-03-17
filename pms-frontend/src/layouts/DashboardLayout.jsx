@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { isViewer } from "../lib/permissions";
+import { useApi } from "../lib/api";
+import dayjs from "dayjs";
 import {
   LayoutDashboard,
   Map,
@@ -30,9 +32,23 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
+import {
+  buildCheckinAlert,
+  buildCleaningCoverageAlert,
+  getCheckinAlertSummary,
+  getCleaningCoverageSummary,
+  mapCheckoutTask,
+} from "../lib/operationalAlerts";
+import {
+  buildMaidListAlert,
+  getMaidListDeliverySummary,
+  MAID_ASSIGNMENTS_SETTINGS_EVENT,
+} from "../pages/maidAssignmentsShared";
+import { getWeeklyPresentationSummary } from "../pages/guestPresentationShared";
+import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "../pages/maintenanceShared";
 
 // ======================= COMPONENTE ITEM =======================
-const Item = ({ to, children, icon: Icon, showText, highlight }) => {
+const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification = false }) => {
   const label = typeof children === "string" ? children : "";
 
   return (
@@ -40,7 +56,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
       <NavLink
         to={to}
         className={({ isActive }) =>
-          `flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ease-out
+          `relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ease-out
           ${
             isActive
               ? highlight
@@ -70,6 +86,15 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
             {children}
           </span>
         )}
+
+        {hasNotification ? (
+          <span
+            aria-hidden="true"
+            className={`rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)] ${
+              showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
+            }`}
+          />
+        ) : null}
       </NavLink>
 
       {/* Tooltip somente quando a barra está recolhida */}
@@ -94,7 +119,15 @@ const Item = ({ to, children, icon: Icon, showText, highlight }) => {
 };
 
 // ======================= GRUPO DE NAVEGAÇÃO =======================
-const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) => {
+const NavGroup = ({
+  label,
+  icon: Icon,
+  isOpen,
+  onToggle,
+  showText,
+  children,
+  hasNotification = false,
+}) => {
   // Modo barra recolhida: só ícone com tooltip
   if (!showText) {
     return (
@@ -104,6 +137,7 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
             type="button"
             onClick={onToggle}
             className="
+              relative
               w-10 h-10
               flex items-center justify-center
               rounded-xl
@@ -113,6 +147,12 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
             "
           >
             {Icon && <Icon size={18} className="text-slate-100" />}
+            {hasNotification ? (
+              <span
+                aria-hidden="true"
+                className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)]"
+              />
+            ) : null}
           </button>
 
           <span
@@ -178,10 +218,14 @@ const NavGroup = ({ label, icon: Icon, isOpen, onToggle, showText, children }) =
 
 // ======================= DASHBOARD LAYOUT =======================
 export default function DashboardLayout() {
+  const api = useApi();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const viewerOnly = isViewer(user);
+  const [alertReservations, setAlertReservations] = useState([]);
+  const [alertCheckouts, setAlertCheckouts] = useState([]);
+  const [alertMaintenance, setAlertMaintenance] = useState([]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [showText, setShowText] = useState(!collapsed);
@@ -247,6 +291,70 @@ export default function DashboardLayout() {
   const toggleGroup = (key) => {
     setGroupsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSidebarAlerts = async () => {
+      try {
+        const startWeek = dayjs().startOf("week").format("YYYY-MM-DD");
+        const endWindow = dayjs().endOf("week").add(1, "week").format("YYYY-MM-DD");
+        const [reservationsResponse, checkoutsResponse, maintenanceResponse] = await Promise.all([
+          api("/reservations"),
+          api(`/tasks/checkouts?start=${startWeek}&end=${endWindow}`),
+          api("/maintenance"),
+        ]);
+
+        if (!isMounted) return;
+
+        setAlertReservations(Array.isArray(reservationsResponse) ? reservationsResponse : []);
+        setAlertCheckouts(
+          Array.isArray(checkoutsResponse) ? checkoutsResponse.map(mapCheckoutTask) : []
+        );
+        setAlertMaintenance(Array.isArray(maintenanceResponse) ? maintenanceResponse : []);
+      } catch (err) {
+        console.error("Erro ao carregar alertas operacionais do menu:", err);
+      }
+    };
+
+    loadSidebarAlerts();
+
+    const intervalId = window.setInterval(loadSidebarAlerts, 60000);
+    window.addEventListener("focus", loadSidebarAlerts);
+    window.addEventListener("storage", loadSidebarAlerts);
+    window.addEventListener(MAID_ASSIGNMENTS_SETTINGS_EVENT, loadSidebarAlerts);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", loadSidebarAlerts);
+      window.removeEventListener("storage", loadSidebarAlerts);
+      window.removeEventListener(MAID_ASSIGNMENTS_SETTINGS_EVENT, loadSidebarAlerts);
+    };
+  }, [api, location.pathname]);
+
+  const tomorrowStr = dayjs().add(1, "day").format("YYYY-MM-DD");
+  const checkinAlert = useMemo(
+    () => buildCheckinAlert(getCheckinAlertSummary(alertReservations, dayjs())),
+    [alertReservations]
+  );
+  const presentationSummary = useMemo(
+    () => getWeeklyPresentationSummary(alertReservations, dayjs()),
+    [alertReservations]
+  );
+  const maidAssignmentsAlert = useMemo(
+    () =>
+      buildMaidListAlert(getMaidListDeliverySummary(alertCheckouts, tomorrowStr), "amanha"),
+    [alertCheckouts, tomorrowStr]
+  );
+  const cleaningAlert = useMemo(
+    () => buildCleaningCoverageAlert(getCleaningCoverageSummary(alertCheckouts, dayjs())),
+    [alertCheckouts]
+  );
+  const maintenanceAlert = useMemo(
+    () => buildMaintenanceAlert(getMaintenanceAlertSummary(alertMaintenance, dayjs())),
+    [alertMaintenance]
+  );
 
   // Listener de scroll na janela
   useEffect(() => {
@@ -318,11 +426,21 @@ export default function DashboardLayout() {
           <Item to="/dashboard" icon={LayoutDashboard} showText={showText}>
             Dashboard
           </Item>
-          <Item to="/map" icon={Map} showText={showText}>
+          <Item
+            to="/map"
+            icon={Map}
+            showText={showText}
+            hasNotification={checkinAlert.isPending}
+          >
             Mapa de Reservas
           </Item>
           {!viewerOnly && (
-            <Item to="/cleaning-schedule" icon={Puzzle} showText={showText}>
+            <Item
+              to="/cleaning-schedule"
+              icon={Puzzle}
+              showText={showText}
+              hasNotification={cleaningAlert.isPending}
+            >
               Controle Limpeza
             </Item>
           )}
@@ -336,17 +454,32 @@ export default function DashboardLayout() {
             </Item>
           )}
           {!viewerOnly && (
-            <Item to="/maid-assignments" icon={UsersRound} showText={showText}>
+            <Item
+              to="/maid-assignments"
+              icon={UsersRound}
+              showText={showText}
+              hasNotification={maidAssignmentsAlert.isPending}
+            >
               Listagem Diaristas
             </Item>
           )}
           {!viewerOnly && (
-            <Item to="/apresentacao-hospedes" icon={MessageSquareText} showText={showText}>
+            <Item
+              to="/apresentacao-hospedes"
+              icon={MessageSquareText}
+              showText={showText}
+              hasNotification={presentationSummary.pending > 0}
+            >
               Apresentacao Hospedes
             </Item>
           )}
           {!viewerOnly && (
-            <Item to="/guest-checkins" icon={MessageSquareText} showText={showText}>
+            <Item
+              to="/guest-checkins"
+              icon={MessageSquareText}
+              showText={showText}
+              hasNotification={checkinAlert.isPending}
+            >
               Check-ins Hóspedes
             </Item>
           )}
@@ -355,14 +488,20 @@ export default function DashboardLayout() {
           <div className="mt-4 space-y-2">
             {/* CADASTROS */}
             {!viewerOnly && (
-            <NavGroup
-              label="Cadastros"
-              icon={ClipboardList}
-              isOpen={groupsOpen.cadastros}
-              onToggle={() => toggleGroup("cadastros")}
-              showText={showText}
-            >
-              <Item to="/maintenance" icon={Wrench} showText={showText}>
+             <NavGroup
+               label="Cadastros"
+               icon={ClipboardList}
+               isOpen={groupsOpen.cadastros}
+               onToggle={() => toggleGroup("cadastros")}
+               showText={showText}
+               hasNotification={maintenanceAlert.isPending}
+             >
+              <Item
+                to="/maintenance"
+                icon={Wrench}
+                showText={showText}
+                hasNotification={maintenanceAlert.isPending}
+              >
                 Atividades
               </Item>
               <Item to="/reservations" icon={ClipboardList} showText={showText}>
