@@ -2,19 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { useApi } from "../lib/api";
+import {
+  buildMaidListAlert,
+  getMaidListDeliverySummary,
+  getStoredMaidAssignmentsSettings as getStoredSettings,
+  makeMaidListDeliveryKey as makeListDeliveryKey,
+  saveMaidAssignmentsSettings as saveSettings,
+} from "./maidAssignmentsShared";
 
 dayjs.extend(utc);
-
-const SETTINGS_KEY = "maid-assignments-settings-v1";
-const defaultSettings = {
-  defaults: {
-    checkoutTime: "10h",
-    checkinTime: "16h",
-  },
-  stays: {},
-  tasks: {},
-  listDeliveryStatus: {},
-};
 
 const stayAliasRules = [
   { match: ["itaim"], alias: "Tabapuã" },
@@ -57,33 +53,6 @@ function makeTaskStorageKey(task) {
     task.stay,
     task.rooms,
   ].join("|");
-}
-
-function makeListDeliveryKey(date, maidName) {
-  return [date, maidName || "sem-diarista"].join("|");
-}
-
-function getStoredSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return defaultSettings;
-    const parsed = JSON.parse(raw);
-    return {
-      defaults: {
-        ...defaultSettings.defaults,
-        ...(parsed.defaults || {}),
-      },
-      stays: parsed.stays || {},
-      tasks: parsed.tasks || {},
-      listDeliveryStatus: parsed.listDeliveryStatus || {},
-    };
-  } catch {
-    return defaultSettings;
-  }
-}
-
-function saveSettings(next) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
 }
 
 function buildTaskDetails(tasks, rooms, reservations, settings) {
@@ -406,10 +375,13 @@ export default function MaidAssignments() {
   );
 
   const generatedListsSummary = useMemo(() => {
-    const total = generatedLists.length;
-    const sent = generatedLists.filter((list) => list.isSent).length;
-    return { total, sent, pending: total - sent };
-  }, [generatedLists]);
+    return getMaidListDeliverySummary(tasks, nextDate, settings);
+  }, [nextDate, settings, tasks]);
+
+  const maidListAlert = useMemo(
+    () => buildMaidListAlert(generatedListsSummary, dayjs(nextDate).format("DD/MM/YYYY")),
+    [generatedListsSummary, nextDate]
+  );
 
   const handleTaskSettingsChange = (taskKey, field, value) => {
     setSettings((prev) => {
@@ -541,6 +513,18 @@ export default function MaidAssignments() {
           </button>
         </div>
       </section>
+
+      {!loading && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+            maidListAlert.isPending
+              ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+              : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+          }`}
+        >
+          {maidListAlert.message}
+        </div>
+      )}
 
       {tomorrowStays.length > 0 && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">

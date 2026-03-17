@@ -411,6 +411,13 @@ function getGreetingTarget(gender) {
   };
 }
 
+export function getWeekStartMonday(value) {
+  const base = dayjs(value).startOf("day");
+  const weekday = base.day();
+  const diffToMonday = weekday === 0 ? -6 : 1 - weekday;
+  return base.add(diffToMonday, "day");
+}
+
 export function formatDate(value) {
   return dayjs.utc(value).format("DD/MM");
 }
@@ -421,6 +428,18 @@ export function formatFullDate(value) {
 
 export function getGenderKey(reservation) {
   return reservation.guest?.id || reservation.guestId || reservation.id;
+}
+
+export function getPresentationStayKey(reservation) {
+  return reservation.room?.stay?.id || reservation.room?.stay?.name || "sem-stay";
+}
+
+export function getPresentationGuestGroupKey(reservation) {
+  return String(reservation.guest?.name || "").trim() || `sem-nome:${reservation.id}`;
+}
+
+export function isPendingPresentationReservation(reservation) {
+  return String(reservation.status || "").toLowerCase() === "registrada";
 }
 
 export function inferGender(name) {
@@ -523,6 +542,46 @@ function buildReservationPeriodLines(reservations) {
       reservation.checkoutDate
     )}*.`;
   });
+}
+
+export function getWeeklyPresentationSummary(reservations, baseDate = new Date()) {
+  const normalizedStartDate = getWeekStartMonday(baseDate);
+  const start = dayjs.utc(normalizedStartDate).startOf("day");
+  const end = dayjs.utc(normalizedStartDate).add(8, "day").endOf("day");
+  const groups = new Map();
+
+  (reservations || []).forEach((reservation) => {
+    if (reservation.status === "cancelada" || !reservation.checkinDate) return;
+
+    const checkin = dayjs.utc(reservation.checkinDate);
+    if (!checkin.isBetween(start, end, null, "[]")) return;
+
+    const stayKey = getPresentationStayKey(reservation);
+    const guestKey = getPresentationGuestGroupKey(reservation);
+    const groupKey = `${stayKey}::${guestKey}`;
+
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+
+    groups.get(groupKey).push(reservation);
+  });
+
+  const total = groups.size;
+  const pending = [...groups.values()].filter((items) =>
+    items.some((reservation) => isPendingPresentationReservation(reservation))
+  ).length;
+  const completed = total - pending;
+  const reservationCount = [...groups.values()].reduce((sum, items) => sum + items.length, 0);
+
+  return {
+    total,
+    pending,
+    completed,
+    reservations: reservationCount,
+    startDate: normalizedStartDate.format("YYYY-MM-DD"),
+    endDate: normalizedStartDate.add(8, "day").format("YYYY-MM-DD"),
+  };
 }
 
 export function getPresentationMessages(input, settings) {

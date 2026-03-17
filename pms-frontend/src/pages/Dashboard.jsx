@@ -29,6 +29,8 @@ import KpiGaugeOcupacao from "../components/KpiGaugeOcupacao";
 import KpiMaintenanceProgress from "../components/KpiMaintenanceProgress";
 import KpiTotalReservas from "../components/KpiTotalReservas";
 import { useTheme } from "../context/ThemeContext";
+import { buildMaidListAlert, getMaidListDeliverySummary } from "./maidAssignmentsShared";
+import { getWeeklyPresentationSummary } from "./guestPresentationShared";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -112,10 +114,8 @@ export default function Dashboard() {
 
   const [reservations, setReservations] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [stays, setStays] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [tasksMonth, setTasksMonth] = useState([]);
-  const [maids, setMaids] = useState([]);
   const [maintenance, setMaintenance] = useState([]);
   const [tasksMonthPrev, setTasksMonthPrev] = useState([]);
   const [selectedCleaningEvent, setSelectedCleaningEvent] = useState(null);
@@ -144,18 +144,14 @@ export default function Dashboard() {
         const [
           rsv,
           rms,
-          sts,
           checkoutsWeek,
-          maidsRes,
           maint,
           checkoutsMonth,
           checkoutsPrevMonth,
         ] = await Promise.all([
           api("/reservations"),
           api("/rooms"),
-          api("/stays"),
           api(`/tasks/checkouts?start=${startWeek}&end=${endWeek}`),
-          api("/maids"),
           api("/maintenance"),
           api(`/tasks/checkouts?start=${startMonth}&end=${endMonth}`),
           api(`/tasks/checkouts?start=${prevMonthStart}&end=${prevMonthEnd}`),
@@ -192,11 +188,9 @@ export default function Dashboard() {
 
         setReservations(rsv || []);
         setRooms(rms || []);
-        setStays(sts || []);
         setTasks(mappedWeek);
         setTasksMonth(mappedMonth);
         setTasksMonthPrev(mappedPrevMonth);
-        setMaids(maidsRes || []);
         setMaintenance(maint || []);
       } catch (err) {
         console.error("Erro ao carregar dashboard:", err);
@@ -224,7 +218,7 @@ export default function Dashboard() {
         : 0;
 
     return { rows: occRows, avg };
-  }, [rooms, reservations, mStart, mEnd, daysInMonth]);
+  }, [rooms, reservations, mStart, mEnd]);
 
   // === Ocupação geral do mês atual ===
   const ocupacaoGeral = useMemo(() => {
@@ -771,8 +765,22 @@ export default function Dashboard() {
     return acc;
   }, [tasks, tomorrowStr]);
 
+  const weeklyPresentationSummary = useMemo(
+    () => getWeeklyPresentationSummary(reservations, dayjs()),
+    [reservations]
+  );
+  const maidAssignmentsSummary = useMemo(
+    () => getMaidListDeliverySummary(tasks, tomorrowStr),
+    [tasks, tomorrowStr]
+  );
+  const maidAssignmentsAlert = useMemo(
+    () => buildMaidListAlert(maidAssignmentsSummary, "amanhã"),
+    [maidAssignmentsSummary]
+  );
+
   const hasPendingCheckinsToday = kpis.pendingCheckinsToday > 0;
   const hasCheckinsToday = kpis.checkinsToday > 0;
+  const hasPendingPresentations = weeklyPresentationSummary.pending > 0;
 
   return (
     <div className="p-6 space-y-8 min-h-screen bg-base-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
@@ -782,18 +790,42 @@ export default function Dashboard() {
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
-        <div
-          className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-            hasPendingCheckinsToday
-              ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-              : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-          }`}
-        >
-          {hasPendingCheckinsToday
-            ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
-            : hasCheckinsToday
-            ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
-            : "Tudo certo: não há check-ins previstos para hoje."}
+        <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              hasPendingCheckinsToday
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {hasPendingCheckinsToday
+              ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
+              : hasCheckinsToday
+              ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
+              : "Tudo certo: não há check-ins previstos para hoje."}
+          </div>
+
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              hasPendingPresentations
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {hasPendingPresentations
+              ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
+              : "Tudo certo: todas as apresentações da semana foram concluídas."}
+          </div>
+
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              maidAssignmentsAlert.isPending
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {maidAssignmentsAlert.message}
+          </div>
         </div>
         <DashboardKPIGrid kpis={kpis} />
       </div>

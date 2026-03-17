@@ -7,21 +7,18 @@ import {
   formatDate,
   formatFullDate,
   getGenderKey,
+  getPresentationGuestGroupKey,
   getPresentationMessages,
+  getPresentationStayKey,
+  getWeekStartMonday,
   inferGender,
+  isPendingPresentationReservation,
   sortReservations,
 } from "./guestPresentationShared";
 
 dayjs.extend(utc);
 
 const SETTINGS_KEY = "guest-checkins-settings-v2";
-
-function getWeekStartMonday(value) {
-  const base = dayjs(value).startOf("day");
-  const weekday = base.day();
-  const diffToMonday = weekday === 0 ? -6 : 1 - weekday;
-  return base.add(diffToMonday, "day");
-}
 
 function getStoredPresentationSettings() {
   try {
@@ -47,14 +44,6 @@ function savePresentationSettings(patch) {
     ...patch,
   };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-}
-
-function getStayKey(reservation) {
-  return reservation.room?.stay?.id || reservation.room?.stay?.name || "sem-stay";
-}
-
-function getPresentationGuestNameKey(reservation) {
-  return String(reservation.guest?.name || "").trim() || `sem-nome:${reservation.id}`;
 }
 
 function buildPresentationGroupKey(stayKey, guestKey) {
@@ -109,10 +98,6 @@ function getGroupDateSummary(items) {
         `${reservation.room?.title || "Sem acomodacao"}: ${formatReservationPeriod(reservation)}`
     )
     .join(" | ");
-}
-
-function isPendingPresentation(reservation) {
-  return String(reservation.status || "").toLowerCase() === "registrada";
 }
 
 function StatusBadge({ status, compact = false }) {
@@ -245,9 +230,9 @@ export default function ApresentacaoHospedes() {
     const groups = new Map();
 
     weeklyPresentationReservations.forEach((reservation) => {
-      const stayKey = getStayKey(reservation);
+      const stayKey = getPresentationStayKey(reservation);
       const stayName = reservation.room?.stay?.name || "Sem empreendimento";
-      const guestKey = getPresentationGuestNameKey(reservation);
+      const guestKey = getPresentationGuestGroupKey(reservation);
 
       if (!groups.has(stayKey)) {
         groups.set(stayKey, {
@@ -274,8 +259,12 @@ export default function ApresentacaoHospedes() {
         const presentationGroups = [...stayGroup.presentationGroups.values()]
           .map((presentationGroup) => {
             const items = sortReservations(presentationGroup.items, roomMetaById);
-            const pendingItems = items.filter((reservation) => isPendingPresentation(reservation));
-            const sentItems = items.filter((reservation) => !isPendingPresentation(reservation));
+            const pendingItems = items.filter((reservation) =>
+              isPendingPresentationReservation(reservation)
+            );
+            const sentItems = items.filter(
+              (reservation) => !isPendingPresentationReservation(reservation)
+            );
 
             return {
               ...presentationGroup,
