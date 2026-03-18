@@ -94,7 +94,7 @@ function buildStayOccupancy(rows, reservations, start, end) {
     return {
       stayId: group.stayId,
       name: group.stayName,
-      label: abbrevStay(group.stayName),
+      label: compactStayLabel(group.stayName),
       ocupacao: pct,
     };
   });
@@ -112,6 +112,106 @@ function abbrevStay(name) {
   };
   if (map[name]) return map[name];
   return name.split("(")[0].trim();
+}
+
+function compactStayLabel(name) {
+  const baseLabel = abbrevStay(name || "Sem stay");
+  const compactLabel = baseLabel
+    .replace(/\bStay\b/gi, "")
+    .replace(/\bEdif[ií]cio\b/gi, "Ed.")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return compactLabel || baseLabel;
+}
+
+function splitStayTickLabel(label, maxLineLength = 14) {
+  const normalized = String(label || "").replace(/\s+/g, " ").trim();
+  if (!normalized) return [""];
+  if (normalized.length <= maxLineLength) return [normalized];
+
+  const words = normalized.split(" ");
+  if (words.length === 1) return [normalized];
+
+  let bestIndex = 1;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let i = 1; i < words.length; i += 1) {
+    const firstLine = words.slice(0, i).join(" ");
+    const secondLine = words.slice(i).join(" ");
+    const overflowPenalty =
+      Math.max(0, firstLine.length - maxLineLength) +
+      Math.max(0, secondLine.length - maxLineLength);
+    const balancePenalty = Math.abs(firstLine.length - secondLine.length);
+    const score = overflowPenalty * 2 + balancePenalty;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return [
+    words.slice(0, bestIndex).join(" "),
+    words.slice(bestIndex).join(" "),
+  ];
+}
+
+function StayXAxisTick({ x, y, payload, isDark }) {
+  const lines = splitStayTickLabel(payload?.value);
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={16}
+        textAnchor="middle"
+        fill={isDark ? "#e5e7eb" : "#475569"}
+        fontSize={11}
+        fontWeight={600}
+      >
+        {lines.map((line, index) => (
+          <tspan key={`${payload?.value}-${index}`} x={0} dy={index === 0 ? 0 : 12}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
+function getOverallOccupancyPct(reservations, roomCount, referenceDate) {
+  const { start, end, daysInMonth } = monthBounds(referenceDate);
+
+  const totalNoites = reservations.reduce((sum, reservation) => {
+    if (reservation.status === "cancelada") return sum;
+    return (
+      sum +
+      overlapDays(reservation.checkinDate, reservation.checkoutDate, start, end)
+    );
+  }, 0);
+
+  const capacidadeTotal = roomCount * daysInMonth;
+  return capacidadeTotal > 0
+    ? Math.round((totalNoites / capacidadeTotal) * 100)
+    : 0;
+}
+
+function buildMonthlyOccupancyTrend(reservations, rooms, totalMonths = 12) {
+  const roomCount = Array.isArray(rooms) ? rooms.length : 0;
+
+  return Array.from({ length: totalMonths }, (_, index) => {
+    const monthsAgo = totalMonths - 1 - index;
+    const referenceDate = dayjs().subtract(monthsAgo, "month");
+
+    return {
+      label: referenceDate.format("MMM").toUpperCase(),
+      fullLabel: referenceDate.format("MMM/YYYY").toUpperCase(),
+      monthKey: referenceDate.format("YYYY-MM"),
+      value: getOverallOccupancyPct(reservations, roomCount, referenceDate),
+    };
+  });
 }
 
 export default function Dashboard() {
@@ -276,16 +376,33 @@ export default function Dashboard() {
 
   // labels dos meses
   const monthsTrend = useMemo(() => {
-    const m2 = dayjs().subtract(2, "month").format("MMM").toUpperCase();
-    const m1 = dayjs().subtract(1, "month").format("MMM").toUpperCase();
-    const m0 = dayjs().format("MMM").toUpperCase();
+    const olderMonths = buildMonthlyOccupancyTrend(reservations, rooms, 12).slice(
+      0,
+      9
+    );
 
     return [
-      { label: m2, value: ocupacaoGeralPrev2 },
-      { label: m1, value: ocupacaoGeralPrev },
-      { label: m0, value: ocupacaoGeral },
+      ...olderMonths,
+      {
+        label: dayjs().subtract(2, "month").format("MMM").toUpperCase(),
+        fullLabel: dayjs().subtract(2, "month").format("MMM/YYYY").toUpperCase(),
+        monthKey: dayjs().subtract(2, "month").format("YYYY-MM"),
+        value: ocupacaoGeralPrev2,
+      },
+      {
+        label: dayjs().subtract(1, "month").format("MMM").toUpperCase(),
+        fullLabel: dayjs().subtract(1, "month").format("MMM/YYYY").toUpperCase(),
+        monthKey: dayjs().subtract(1, "month").format("YYYY-MM"),
+        value: ocupacaoGeralPrev,
+      },
+      {
+        label: dayjs().format("MMM").toUpperCase(),
+        fullLabel: dayjs().format("MMM/YYYY").toUpperCase(),
+        monthKey: dayjs().format("YYYY-MM"),
+        value: ocupacaoGeral,
+      },
     ];
-  }, [ocupacaoGeralPrev2, ocupacaoGeralPrev, ocupacaoGeral]);
+  }, [reservations, rooms, ocupacaoGeralPrev2, ocupacaoGeralPrev, ocupacaoGeral]);
 
 
 
@@ -1286,7 +1403,7 @@ export default function Dashboard() {
             <BarChart
               data={occupancy.rows}
               barSize={52}
-              margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+              margin={{ top: 10, right: 20, left: 0, bottom: 18 }}
             >
               <defs>
                 {/* Gradiente principal (mesmo do resto do dash) */}
@@ -1310,12 +1427,9 @@ export default function Dashboard() {
               <XAxis
                 dataKey="label"
                 interval={0}
-                tickMargin={10}
-                tick={{
-                  fill: isDark ? "#e5e7eb" : "#475569",
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
+                height={64}
+                tickMargin={14}
+                tick={<StayXAxisTick isDark={isDark} />}
                 axisLine={false}
                 tickLine={false}
               />

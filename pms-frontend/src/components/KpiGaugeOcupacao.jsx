@@ -1,21 +1,27 @@
 import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
+const RANGE_OPTIONS = [3, 6, 12];
+
 /**
  * props:
- *  data: [{label:'OCT', value:51},{label:'NOV',value:69},{label:'DEC',value:37}]
+ *  data: [{label:'OCT', fullLabel:'October 2025', value:51}]
  */
 export default function KpiGaugeOcupacao({ data = [] }) {
-  const points = Array.isArray(data) ? data.slice(-3) : [];
+  const MotionDiv = motion.div;
+  const MotionCircle = motion.circle;
+  const [selectedRange, setSelectedRange] = useState(3);
+  const allPoints = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const activeRange = Math.min(selectedRange, allPoints.length || selectedRange);
+  const points = useMemo(
+    () => allPoints.slice(-activeRange),
+    [activeRange, allPoints]
+  );
   const curIdx = Math.max(0, points.length - 1);
 
   const pct = clampPct(points?.[curIdx]?.value ?? 0);
   const pctPrev = clampPct(points?.[curIdx - 1]?.value ?? pct);
   const diff = pct - pctPrev;
-
-  // ====== Y fixo  ======
-  const MIN_Y = 25;
-  const MAX_Y = 79;
 
   // ====== SVG sizing ======
   const W = 860;
@@ -27,31 +33,49 @@ export default function KpiGaugeOcupacao({ data = [] }) {
   const wrapRef = useRef(null);
   const [hover, setHover] = useState(null); // {idx,x,y,label,value}
 
+  const { minScale, maxScale } = useMemo(() => {
+    const rawValues = points.map((point) => clampPct(point?.value ?? 0));
+
+    if (rawValues.length === 0) {
+      return { minScale: 0, maxScale: 100 };
+    }
+
+    const minValue = Math.min(...rawValues);
+    const maxValue = Math.max(...rawValues);
+    const padding = Math.max(6, Math.ceil((maxValue - minValue || 12) * 0.25));
+
+    let nextMin = Math.max(0, minValue - padding);
+    let nextMax = Math.min(100, maxValue + padding);
+
+    if (nextMax - nextMin < 20) {
+      const midpoint = (nextMin + nextMax) / 2;
+      nextMin = Math.max(0, Math.floor(midpoint - 10));
+      nextMax = Math.min(100, Math.ceil(midpoint + 10));
+    }
+
+    return { minScale: nextMin, maxScale: nextMax };
+  }, [points]);
+
   const values = useMemo(
-    () => points.map((p) => clamp(Number(p.value) || 0, MIN_Y, MAX_Y)),
-    [points]
+    () => points.map((p) => clamp(Number(p.value) || 0, minScale, maxScale)),
+    [maxScale, minScale, points]
   );
 
-  const xAt = (i) => {
-    const usable = W - padX * 2;
-    const step = points.length <= 1 ? 0 : usable / (points.length - 1);
-    return padX + i * step;
-  };
-
-  const yAt = (v) => {
-    const usable = H - padTop - padBottom;
-    const t = (v - MIN_Y) / (MAX_Y - MIN_Y || 1);
-    return padTop + (1 - t) * usable;
-  };
-
   const coords = useMemo(() => {
+    const usableWidth = W - padX * 2;
+    const usableHeight = H - padTop - padBottom;
+    const step = points.length <= 1 ? 0 : usableWidth / (points.length - 1);
+
     return values.map((v, i) => ({
-      x: xAt(i),
-      y: yAt(v),
+      x: padX + i * step,
+      y:
+        padTop +
+        (1 - (v - minScale) / (maxScale - minScale || 1)) * usableHeight,
       v: clampPct(points?.[i]?.value ?? 0),
       label: points?.[i]?.label ?? "",
+      fullLabel: points?.[i]?.fullLabel ?? points?.[i]?.label ?? "",
     }));
-  }, [values, points]);
+  }, [H, W, maxScale, minScale, padBottom, padTop, padX, points, values]);
 
   // ✅ curva suave “segura” (midpoints + Q) — sem “cotovelos”
   const pathD = useMemo(() => {
@@ -104,7 +128,14 @@ export default function KpiGaugeOcupacao({ data = [] }) {
     });
 
     const p = coords[best];
-    setHover({ idx: best, x: p.x, y: p.y, label: p.label, value: p.v });
+    setHover({
+      idx: best,
+      x: p.x,
+      y: p.y,
+      label: p.label,
+      fullLabel: p.fullLabel,
+      value: p.v,
+    });
   };
 
   const onLeave = () => setHover(null);
@@ -122,7 +153,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
           : "#93c5fd";
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -137,7 +168,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
       "
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           {/* Ícone premium (sem “emoji”) */}
           <span
@@ -172,20 +203,43 @@ export default function KpiGaugeOcupacao({ data = [] }) {
               Ocupação Geral do Mês
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              comparação com o mês anterior
+              exibindo os últimos {activeRange} meses
             </p>
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="text-4xl font-extrabold text-slate-800 dark:text-slate-50 leading-none">
-            {pct}%
+        <div className="ml-auto flex flex-col items-end gap-3">
+          <div className="inline-flex rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-700/60 dark:bg-slate-900/80">
+            {RANGE_OPTIONS.map((option) => {
+              const isActive = option === selectedRange;
+
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setSelectedRange(option)}
+                  aria-pressed={isActive}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${isActive
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                    }`}
+                >
+                  {option}M
+                </button>
+              );
+            })}
           </div>
-          <div
-            className={`mt-1 text-sm font-semibold ${diff >= 0 ? "text-emerald-500" : "text-red-500"
-              }`}
-          >
-            {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
+
+          <div className="text-right">
+            <div className="text-4xl font-extrabold text-slate-800 dark:text-slate-50 leading-none">
+              {pct}%
+            </div>
+            <div
+              className={`mt-1 text-sm font-semibold ${diff >= 0 ? "text-emerald-500" : "text-red-500"
+                }`}
+            >
+              {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
+            </div>
           </div>
         </div>
       </div>
@@ -210,7 +264,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
           viewBox={`0 0 ${W} ${H}`}
           className="relative w-full h-[220px] lg:h-[240px]"
           role="img"
-          aria-label="Ocupação (últimos 3 meses)"
+          aria-label={`Ocupação dos últimos ${activeRange} meses`}
         >
           <defs>
             <linearGradient id="kpiLine" x1="0" y1="0" x2="1" y2="0">
@@ -283,7 +337,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
           {activePoint && (
             <>
               {/* halo pulse menor */}
-              <motion.circle
+              <MotionCircle
                 cx={activePoint.x}
                 cy={activePoint.y}
                 r="8"
@@ -337,21 +391,16 @@ export default function KpiGaugeOcupacao({ data = [] }) {
               transform: "translateX(-50%)",
             }}
           >
-            <div className="font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              {hover.label}
+            <div className="font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+              {hover.fullLabel}
             </div>
-            <div className="mt-0.5">
-              <span className="font-semibold">{hover.value}%</span>{" "}
-              <span className="text-slate-500 dark:text-slate-400">
-                (escala {MIN_Y}–{MAX_Y})
-              </span>
-            </div>
+            <div className="mt-0.5 font-semibold">{hover.value}%</div>
           </div>
         )}
       </div>
 
       {/* mini-cards compactos */}
-      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="mt-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         {points.map((p, i) => {
           const isCurrent = i === curIdx;
           return (
@@ -384,7 +433,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
           );
         })}
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 }
 
