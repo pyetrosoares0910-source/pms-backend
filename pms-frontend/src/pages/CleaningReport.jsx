@@ -13,6 +13,8 @@ dayjs.extend(timezone);
 const feriadosSP = [
   "2026-01-01", // Confraternização Universal
   "2026-01-25", // Aniversário da Cidade de São Paulo (municipal)
+  "2026-03-04", // extra cleide
+  "2026-03-18", // extra cleide
   "2026-04-03", // Paixão de Cristo (Sexta-feira Santa)
   "2026-04-21", // Tiradentes
   "2026-05-01", // Dia do Trabalho
