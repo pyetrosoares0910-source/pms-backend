@@ -408,18 +408,16 @@ export default function KpiGaugeOcupacao({ data = [] }) {
               key={`${p.label}-${i}`}
               className={`
                 relative overflow-hidden
-                flex min-h-[88px] flex-col justify-between
-                px-4 py-3.5 rounded-[24px] border
+                flex min-h-[92px] flex-col justify-between
+                rounded-[22px] border px-4 py-3
                 ${isCurrent
-                  ? "border-sky-400/45 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_rgba(255,255,255,0.96)_58%)] shadow-[0_14px_30px_rgba(56,189,248,0.12)] dark:border-sky-400/35 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_rgba(15,23,42,0.96)_60%)]"
+                  ? "border-sky-400/45 bg-[linear-gradient(180deg,_rgba(56,189,248,0.10),_rgba(255,255,255,0.98)_45%)] shadow-[0_10px_24px_rgba(56,189,248,0.10)] dark:border-sky-400/40 dark:bg-[linear-gradient(180deg,_rgba(56,189,248,0.14),_rgba(15,23,42,0.96)_46%)]"
                   : "border-slate-200/90 bg-white/95 dark:bg-slate-900/40 dark:border-slate-700/60"
                 }
                 transition-all duration-200
               `}
             >
-              <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10" />
-
-              <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2">
                 <div className="inline-flex min-w-0 items-center gap-2">
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${isCurrent
@@ -432,19 +430,19 @@ export default function KpiGaugeOcupacao({ data = [] }) {
                   </span>
                 </div>
                 {isCurrent && (
-                  <span className="shrink-0 rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:border-sky-400/25 dark:bg-sky-500/15 dark:text-sky-200">
+                  <span className="inline-flex self-start rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-700 dark:border-sky-400/25 dark:bg-sky-500/15 dark:text-sky-200">
                     atual
                   </span>
                 )}
               </div>
 
-              <div className="mt-5 flex items-end justify-between gap-3">
-                <div className="text-[30px] font-black leading-none tracking-tight text-slate-800 dark:text-slate-50">
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <div className="text-[22px] font-black leading-none tracking-tight text-slate-800 dark:text-slate-50 md:text-[24px]">
                   {clampPct(p.value)}%
                 </div>
                 <div
-                  className={`mb-1 h-2.5 w-2.5 shrink-0 rounded-full ${isCurrent
-                      ? "bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.85)]"
+                  className={`mb-1 h-1.5 w-8 shrink-0 rounded-full ${isCurrent
+                      ? "bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.45)]"
                       : "bg-slate-200 dark:bg-slate-700"
                     }`}
                 />
