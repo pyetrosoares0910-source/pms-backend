@@ -46,10 +46,25 @@ function formatApartmentLabel(roomTitle) {
   return `Apto ${Number(match[1])}`;
 }
 
+function getApartmentNumber(task) {
+  const match = String(task?.roomTitle || task?.rooms || task?.apartmentLabel || "").match(/(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
 function sortTasksByStayAndApartment(tasks) {
   return [...tasks].sort((a, b) => {
     const stayCompare = a.stayAlias.localeCompare(b.stayAlias, "pt-BR");
     if (stayCompare !== 0) return stayCompare;
+
+    const apartmentNumberA = getApartmentNumber(a);
+    const apartmentNumberB = getApartmentNumber(b);
+
+    if (apartmentNumberA !== null && apartmentNumberB !== null && apartmentNumberA !== apartmentNumberB) {
+      return apartmentNumberA - apartmentNumberB;
+    }
+
+    if (apartmentNumberA !== null && apartmentNumberB === null) return -1;
+    if (apartmentNumberA === null && apartmentNumberB !== null) return 1;
 
     const apartmentCompare = a.apartmentLabel.localeCompare(b.apartmentLabel, "pt-BR");
     if (apartmentCompare !== 0) return apartmentCompare;
