@@ -407,27 +407,47 @@ export default function KpiGaugeOcupacao({ data = [] }) {
             <div
               key={`${p.label}-${i}`}
               className={`
-                flex flex-wrap items-center gap-x-2 gap-y-1
-                px-4 py-3 rounded-2xl border
+                relative overflow-hidden
+                flex min-h-[88px] flex-col justify-between
+                px-4 py-3.5 rounded-[24px] border
                 ${isCurrent
-                  ? "border-slate-400/60 bg-slate-50 dark:bg-slate-950"
-                  : "border-slate-200 bg-white dark:bg-slate-900/40 dark:border-slate-700/60"
+                  ? "border-sky-400/45 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_rgba(255,255,255,0.96)_58%)] shadow-[0_14px_30px_rgba(56,189,248,0.12)] dark:border-sky-400/35 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_rgba(15,23,42,0.96)_60%)]"
+                  : "border-slate-200/90 bg-white/95 dark:bg-slate-900/40 dark:border-slate-700/60"
                 }
-                transition-colors
+                transition-all duration-200
               `}
             >
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="uppercase tracking-wider text-xs text-slate-500 dark:text-slate-400">
-                  {p.label}
-                </span>
+              <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10" />
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="inline-flex min-w-0 items-center gap-2">
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${isCurrent
+                        ? "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]"
+                        : "bg-slate-300 dark:bg-slate-600"
+                      }`}
+                  />
+                  <span className="uppercase tracking-[0.22em] text-[11px] text-slate-500 dark:text-slate-400">
+                    {p.label}
+                  </span>
+                </div>
                 {isCurrent && (
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                  <span className="shrink-0 rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:border-sky-400/25 dark:bg-sky-500/15 dark:text-sky-200">
                     atual
                   </span>
                 )}
               </div>
-              <div className="ml-auto shrink-0 text-base font-extrabold text-slate-800 dark:text-slate-50 md:text-lg">
-                {clampPct(p.value)}%
+
+              <div className="mt-5 flex items-end justify-between gap-3">
+                <div className="text-[30px] font-black leading-none tracking-tight text-slate-800 dark:text-slate-50">
+                  {clampPct(p.value)}%
+                </div>
+                <div
+                  className={`mb-1 h-2.5 w-2.5 shrink-0 rounded-full ${isCurrent
+                      ? "bg-sky-400 shadow-[0_0_14px_rgba(56,189,248,0.85)]"
+                      : "bg-slate-200 dark:bg-slate-700"
+                    }`}
+                />
               </div>
             </div>
           );
