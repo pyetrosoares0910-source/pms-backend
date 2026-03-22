@@ -46,6 +46,47 @@ function formatApartmentLabel(roomTitle) {
   return `Apto ${Number(match[1])}`;
 }
 
+function sortTasksByStayAndApartment(tasks) {
+  return [...tasks].sort((a, b) => {
+    const stayCompare = a.stayAlias.localeCompare(b.stayAlias, "pt-BR");
+    if (stayCompare !== 0) return stayCompare;
+
+    const apartmentCompare = a.apartmentLabel.localeCompare(b.apartmentLabel, "pt-BR");
+    if (apartmentCompare !== 0) return apartmentCompare;
+
+    return String(a.roomTitle || "").localeCompare(String(b.roomTitle || ""), "pt-BR");
+  });
+}
+
+function makeStayCoverageTaskKey(task) {
+  return [
+    task.date,
+    task.stayAlias,
+    task.roomId || normalizeText(task.roomTitle || task.rooms || task.apartmentLabel),
+  ].join("|");
+}
+
+function getTasksWithSharedStayCoverage(tasks, allTasksForDate = tasks) {
+  const stayAliases = new Set(tasks.map((task) => task.stayAlias).filter(Boolean));
+
+  if (stayAliases.size === 0) {
+    return [];
+  }
+
+  const coveredTasks = new Map();
+
+  tasks.forEach((task) => {
+    coveredTasks.set(makeStayCoverageTaskKey(task), task);
+  });
+
+  allTasksForDate.forEach((task) => {
+    if (!task.maid || !stayAliases.has(task.stayAlias)) return;
+    coveredTasks.set(makeStayCoverageTaskKey(task), task);
+  });
+
+  return sortTasksByStayAndApartment([...coveredTasks.values()]);
+}
+
 function makeTaskStorageKey(task) {
   return [
     task.date,
@@ -131,18 +172,15 @@ function groupByMaid(tasks) {
     .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
     .map(([maidName, items]) => ({
       maidName,
-      items: items.sort((a, b) => {
-        const stayCompare = a.stayAlias.localeCompare(b.stayAlias, "pt-BR");
-        if (stayCompare !== 0) return stayCompare;
-        return a.apartmentLabel.localeCompare(b.apartmentLabel, "pt-BR");
-      }),
+      items: sortTasksByStayAndApartment(items),
     }));
 }
 
-function buildGeneratedText(maidName, tasks, settings, date) {
+function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = tasks) {
+  const coveredTasks = getTasksWithSharedStayCoverage(tasks, allTasksForDate);
   const stayGroups = {};
 
-  tasks.forEach((task) => {
+  coveredTasks.forEach((task) => {
     if (!stayGroups[task.stayAlias]) {
       stayGroups[task.stayAlias] = [];
     }
@@ -360,10 +398,21 @@ export default function MaidAssignments() {
     return [...aliases].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [tomorrowGroups]);
 
+  const tomorrowAssignedTasks = useMemo(
+    () => detailedTasks.filter((task) => task.date === nextDate && task.maid),
+    [detailedTasks, nextDate]
+  );
+
   const generatedLists = useMemo(
     () =>
       tomorrowGroups.map((group) => {
-        const base = buildGeneratedText(group.maidName, group.items, settings, nextDate);
+        const base = buildGeneratedText(
+          group.maidName,
+          group.items,
+          settings,
+          nextDate,
+          tomorrowAssignedTasks
+        );
         const deliveryKey = makeListDeliveryKey(nextDate, group.maidName);
         return {
           ...base,
@@ -371,7 +420,7 @@ export default function MaidAssignments() {
           isSent: Boolean(settings.listDeliveryStatus[deliveryKey]),
         };
       }),
-    [nextDate, settings, tomorrowGroups]
+    [nextDate, settings, tomorrowAssignedTasks, tomorrowGroups]
   );
 
   const generatedListsSummary = useMemo(() => {
