@@ -52,12 +52,11 @@ const ensureOklchPatch = () => {
 export default function PerformanceReport() {
   const [monthlyData, setMonthlyData] = useState(null);
   const [annualData, setAnnualData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const reportRef = useRef(null);
-  const [activeRoomIds, setActiveRoomIds] = useState(null);
+  const Motion = motion;
 
   // fonte Inter
   useEffect(() => {
@@ -82,7 +81,6 @@ export default function PerformanceReport() {
         ]);
 
         const ids = new Set((roomsRes.data ?? []).map((r) => r.id).filter(Boolean));
-        setActiveRoomIds(ids);
 
         const normalize = (s) =>
           s
@@ -137,10 +135,8 @@ export default function PerformanceReport() {
         console.log("📊 monthlyData preview:", monthlyRes.data.stays?.[0]);
         console.log("📈 annualData preview:", annualRes.data.stays?.[0]);
 
-        setLoading(false);
       } catch (err) {
         console.error("❌ Erro ao carregar relatórios:", err);
-        setLoading(false);
       }
     };
 
@@ -214,12 +210,15 @@ export default function PerformanceReport() {
       const diarias = Number(stay.totalDiarias ?? 0) || 0;
       const reservas = Number(stay.totalReservas ?? 0) || 0;
       const rooms = stay.rooms ?? [];
+      const capacidadeStay =
+        Number(stay.capacidadeTotal ?? 0) ||
+        rooms.reduce((sum, room) => sum + (Number(room.capacidade ?? 0) || 0), 0);
 
       totalDiarias += diarias;
       totalReservas += reservas;
       totalUnidades += rooms.length;
 
-      capacidadeTotal += rooms.length * diasNoMes;
+      capacidadeTotal += capacidadeStay;
 
       rooms.forEach((r, idx) => {
         const occ = Number(r.ocupacao ?? 0);
@@ -696,7 +695,12 @@ ${html}
               const reservas = Number(s.totalReservas ?? 0) || 0;
               const occ = `${s.ocupacaoMedia ?? 0}%`;
 
-              const cap = (s.rooms?.length ?? 0) * summary.diasNoMes;
+              const cap =
+                Number(s.capacidadeTotal ?? 0) ||
+                (s.rooms ?? []).reduce(
+                  (sum, room) => sum + (Number(room.capacidade ?? 0) || 0),
+                  0
+                );
               const eficiencia = cap > 0 ? `${((diarias / cap) * 100).toFixed(1)}%` : "-";
 
               return [s.stayName, diarias, reservas, occ, eficiencia];
@@ -794,10 +798,12 @@ ${html}
             })()
             : "-";
 
-          const diasNoMes = dayjs(
-            `${selectedYear}-${selectedMonth}-01`
-          ).daysInMonth();
-          const capacidadeTotal = (stay.rooms?.length ?? 0) * diasNoMes;
+          const capacidadeTotal =
+            Number(stay.capacidadeTotal ?? 0) ||
+            (stay.rooms ?? []).reduce(
+              (sum, room) => sum + (Number(room.capacidade ?? 0) || 0),
+              0
+            );
           const eficiencia =
             capacidadeTotal > 0
               ? ((totalDiarias / capacidadeTotal) * 100).toFixed(1)
@@ -901,7 +907,7 @@ ${html}
   /* ========== Render ========== */
   return (
     console.log("🧭 Base API:", import.meta.env.VITE_API_URL),
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -1023,7 +1029,7 @@ ${html}
                 return ordem.indexOf(a.stayName) - ordem.indexOf(b.stayName);
               })
               .map((stay) => (
-                <motion.div
+                <Motion.div
                   key={stay.stayName}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1198,7 +1204,7 @@ ${html}
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </Motion.div>
               ))}
         </div>
       </section>
@@ -1212,7 +1218,7 @@ ${html}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {Array.isArray(annualData?.stays) &&
             annualData.stays.map((stay) => (
-              <motion.div
+              <Motion.div
                 key={stay.stayName}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1267,10 +1273,10 @@ ${html}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </motion.div>
+              </Motion.div>
             ))}
         </div>
       </section>
-    </motion.div>
+    </Motion.div>
   );
 }

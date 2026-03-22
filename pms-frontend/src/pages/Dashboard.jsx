@@ -65,8 +65,74 @@ function previousMonthEquivalentDay(d = new Date()) {
   return prevMonth.date(safeDay).startOf("day");
 }
 
+function getRoomAvailabilityDays(room, start, end) {
+  if (!room) return 0;
+
+  const roomCreatedAt = room.createdAt
+    ? dayjs(room.createdAt).startOf("day")
+    : dayjs(start);
+
+  return overlapDays(roomCreatedAt, end, start, end);
+}
+
+function getTotalCapacityDays(rooms, start, end) {
+  return (rooms || []).reduce(
+    (sum, room) => sum + getRoomAvailabilityDays(room, start, end),
+    0
+  );
+}
+
+function getOccupiedNights(reservations, start, end, roomIdSet = null) {
+  return (reservations || []).reduce((sum, reservation) => {
+    if (reservation.status === "cancelada") return sum;
+    if (roomIdSet && !roomIdSet.has(reservation.roomId)) return sum;
+
+    return (
+      sum +
+      overlapDays(reservation.checkinDate, reservation.checkoutDate, start, end)
+    );
+  }, 0);
+}
+
+function buildRoomOccupancyRows(rooms, reservations, start, end) {
+  const roomMap = new Map(
+    (rooms || []).map((room) => [
+      room.id,
+      {
+        room,
+        noites: 0,
+        capacidade: getRoomAvailabilityDays(room, start, end),
+      },
+    ])
+  );
+
+  (reservations || []).forEach((reservation) => {
+    if (reservation.status === "cancelada") return;
+
+    const roomEntry = roomMap.get(reservation.roomId);
+    if (!roomEntry) return;
+
+    roomEntry.noites += overlapDays(
+      reservation.checkinDate,
+      reservation.checkoutDate,
+      start,
+      end
+    );
+  });
+
+  return [...roomMap.values()]
+    .filter(({ capacidade }) => capacidade > 0)
+    .map(({ room, noites, capacidade }) => ({
+      roomId: room.id,
+      label: room?.title || room?.name || `Quarto ${room.id}`,
+      image: room?.imageUrl || room?.image || "/placeholder.jpg",
+      noites,
+      capacidade,
+      ocupacao: Math.min(100, Math.round((noites / capacidade) * 100)),
+    }));
+}
+
 function buildStayOccupancy(rows, reservations, start, end) {
-  const daysInPeriod = Math.max(1, dayjs(end).diff(dayjs(start), "day"));
   const roomsByStay = {};
 
   rows.forEach((room) => {
@@ -74,30 +140,25 @@ function buildStayOccupancy(rows, reservations, start, end) {
     if (!roomsByStay[stayId]) {
       roomsByStay[stayId] = { stayId, stayName: room.stay?.name, rooms: [] };
     }
-    roomsByStay[stayId].rooms.push(room.id);
+    roomsByStay[stayId].rooms.push(room);
   });
 
-  return Object.values(roomsByStay).map((group) => {
-    const roomSet = new Set(group.rooms);
-    let occupiedNights = 0;
+  return Object.values(roomsByStay)
+    .map((group) => {
+      const roomSet = new Set(group.rooms.map((room) => room.id));
+      const occupiedNights = getOccupiedNights(reservations, start, end, roomSet);
+      const capacity = getTotalCapacityDays(group.rooms, start, end);
 
-    reservations
-      .filter((r) => r.status !== "cancelada" && roomSet.has(r.roomId))
-      .forEach((r) => {
-        occupiedNights += overlapDays(r.checkinDate, r.checkoutDate, start, end);
-      });
+      if (capacity <= 0) return null;
 
-    const capacity = group.rooms.length * daysInPeriod;
-    const pct =
-      capacity > 0 ? Math.round((occupiedNights / capacity) * 100) : 0;
-
-    return {
-      stayId: group.stayId,
-      name: group.stayName,
-      label: compactStayLabel(group.stayName),
-      ocupacao: pct,
-    };
-  });
+      return {
+        stayId: group.stayId,
+        name: group.stayName,
+        label: compactStayLabel(group.stayName),
+        ocupacao: Math.round((occupiedNights / capacity) * 100),
+      };
+    })
+    .filter(Boolean);
 }
 
 function abbrevStay(name) {
@@ -181,26 +242,18 @@ function StayXAxisTick({ x, y, payload, isDark }) {
   );
 }
 
-function getOverallOccupancyPct(reservations, roomCount, referenceDate) {
-  const { start, end, daysInMonth } = monthBounds(referenceDate);
+function getOverallOccupancyPct(reservations, rooms, referenceDate) {
+  const { start, end } = monthBounds(referenceDate);
+  const roomIdSet = new Set((rooms || []).map((room) => room.id));
+  const totalNoites = getOccupiedNights(reservations, start, end, roomIdSet);
+  const capacidadeTotal = getTotalCapacityDays(rooms, start, end);
 
-  const totalNoites = reservations.reduce((sum, reservation) => {
-    if (reservation.status === "cancelada") return sum;
-    return (
-      sum +
-      overlapDays(reservation.checkinDate, reservation.checkoutDate, start, end)
-    );
-  }, 0);
-
-  const capacidadeTotal = roomCount * daysInMonth;
   return capacidadeTotal > 0
     ? Math.round((totalNoites / capacidadeTotal) * 100)
     : 0;
 }
 
 function buildMonthlyOccupancyTrend(reservations, rooms, totalMonths = 12) {
-  const roomCount = Array.isArray(rooms) ? rooms.length : 0;
-
   return Array.from({ length: totalMonths }, (_, index) => {
     const monthsAgo = totalMonths - 1 - index;
     const referenceDate = dayjs().subtract(monthsAgo, "month");
@@ -209,7 +262,7 @@ function buildMonthlyOccupancyTrend(reservations, rooms, totalMonths = 12) {
       label: referenceDate.format("MMM").toUpperCase(),
       fullLabel: referenceDate.format("MMM/YYYY").toUpperCase(),
       monthKey: referenceDate.format("YYYY-MM"),
-      value: getOverallOccupancyPct(reservations, roomCount, referenceDate),
+      value: getOverallOccupancyPct(reservations, rooms, referenceDate),
     };
   });
 }
@@ -311,7 +364,7 @@ export default function Dashboard() {
   }, [api]);
 
   const todayLocal = dayjs().startOf("day");
-  const { start: mStart, end: mEnd, daysInMonth } = monthBounds();
+  const { start: mStart, end: mEnd } = monthBounds();
 
   // === Ocupação por empreendimento ===
   const occupancy = useMemo(() => {
@@ -329,49 +382,18 @@ export default function Dashboard() {
 
   // === Ocupação geral do mês atual ===
   const ocupacaoGeral = useMemo(() => {
-    const { start, end, daysInMonth } = monthBounds();
-
-    const totalNoites = reservations.reduce((sum, r) => {
-      if (r.status === "cancelada") return sum;
-      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
-    }, 0);
-
-    const capacidadeTotal = rooms.length * daysInMonth;
-
-    return capacidadeTotal > 0
-      ? Math.round((totalNoites / capacidadeTotal) * 100)
-      : 0;
+    return getOverallOccupancyPct(reservations, rooms, dayjs());
   }, [reservations, rooms]);
 
   // === Ocupação geral do mês anterior ===
   const ocupacaoGeralPrev = useMemo(() => {
-    const { start, end, daysInMonth } = monthBounds(
-      dayjs().subtract(1, "month")
-    );
-
-    const totalNoites = reservations.reduce((sum, r) => {
-      if (r.status === "cancelada") return sum;
-      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
-    }, 0);
-
-    const capacidadeTotal = rooms.length * daysInMonth;
-
-    return capacidadeTotal > 0
-      ? Math.round((totalNoites / capacidadeTotal) * 100)
-      : 0;
+    return getOverallOccupancyPct(reservations, rooms, dayjs().subtract(1, "month"));
   }, [reservations, rooms]);
 
   // === Ocupação geral do mês retrasado (M-2) ===
 
   const ocupacaoGeralPrev2 = useMemo(() => {
-    const { start, end, daysInMonth } = monthBounds(dayjs().subtract(2, "month"));
-    const totalNoites = reservations.reduce((sum, r) => {
-      if (r.status === "cancelada") return sum;
-      return sum + overlapDays(r.checkinDate, r.checkoutDate, start, end);
-    }, 0);
-
-    const capacidadeTotal = rooms.length * daysInMonth;
-    return capacidadeTotal > 0 ? Math.round((totalNoites / capacidadeTotal) * 100) : 0;
+    return getOverallOccupancyPct(reservations, rooms, dayjs().subtract(2, "month"));
   }, [reservations, rooms]);
 
   // labels dos meses
@@ -712,47 +734,7 @@ export default function Dashboard() {
           : null,
     };
 
-    const allEfficiency = (() => {
-      const roomMap = {};
-
-      reservations.forEach((r) => {
-        if (r.status === "cancelada") return;
-
-        const overlap = overlapDays(
-          r.checkinDate,
-          r.checkoutDate,
-          mStart,
-          mEnd
-        );
-        if (overlap <= 0) return;
-
-        if (!roomMap[r.roomId]) {
-          roomMap[r.roomId] = {
-            roomId: r.roomId,
-            noites: 0,
-            capacidade: daysInMonth,
-          };
-        }
-
-        roomMap[r.roomId].noites += overlap;
-      });
-
-      return rooms.map((room) => {
-        const data = roomMap[room.id] || {
-          noites: 0,
-          capacidade: daysInMonth,
-        };
-        return {
-          roomId: room.id,
-          label: room?.title || room?.name || `Quarto ${room.id}`,
-          image: room?.imageUrl || room?.image || "/placeholder.jpg",
-          ocupacao: Math.min(
-            100,
-            Math.round((data.noites / data.capacidade) * 100)
-          ),
-        };
-      });
-    })();
+    const allEfficiency = buildRoomOccupancyRows(rooms, reservations, mStart, mEnd);
 
     const topEfficiency = allEfficiency
       .slice()
@@ -793,7 +775,6 @@ export default function Dashboard() {
     tasksMonthPrev,
     rooms,
     todayLocal,
-    daysInMonth,
   ]);
 
   // === Eventos (Limpeza) ===
