@@ -407,7 +407,7 @@ export default function KpiGaugeOcupacao({ data = [] }) {
             <div
               key={`${p.label}-${i}`}
               className={`
-                flex items-center justify-between
+                flex flex-wrap items-center gap-x-2 gap-y-1
                 px-4 py-3 rounded-2xl border
                 ${isCurrent
                   ? "border-slate-400/60 bg-slate-50 dark:bg-slate-950"
@@ -416,17 +416,17 @@ export default function KpiGaugeOcupacao({ data = [] }) {
                 transition-colors
               `}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="uppercase tracking-wider text-xs text-slate-500 dark:text-slate-400">
                   {p.label}
                 </span>
                 {isCurrent && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200">
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-200">
                     atual
                   </span>
                 )}
               </div>
-              <div className="text-lg font-extrabold text-slate-800 dark:text-slate-50">
+              <div className="ml-auto shrink-0 text-base font-extrabold text-slate-800 dark:text-slate-50 md:text-lg">
                 {clampPct(p.value)}%
               </div>
             </div>
