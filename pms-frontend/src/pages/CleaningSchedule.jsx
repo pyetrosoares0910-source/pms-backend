@@ -85,6 +85,10 @@ const CleaningSchedule = () => {
     };
   });
 
+  const sortedMaidStats = [...maidStats].sort(
+    (a, b) => b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
+  );
+
   // agenda: agrupar eventos por diarista + data
   const groupedEvents = {};
   tasks.forEach((t) => {
@@ -298,7 +302,7 @@ const CleaningSchedule = () => {
             </tr>
           </thead>
           <tbody>
-            {maidStats.map((m, idx) => (
+            {sortedMaidStats.map((m, idx) => (
               <tr
                 key={idx}
                 className="hover:bg-gray-50 dark:hover:bg-slate-800 transition"
