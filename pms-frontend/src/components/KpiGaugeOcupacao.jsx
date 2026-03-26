@@ -21,7 +21,12 @@ export default function KpiGaugeOcupacao({ data = [] }) {
 
   const pct = clampPct(points?.[curIdx]?.value ?? 0);
   const pctPrev = clampPct(points?.[curIdx - 1]?.value ?? pct);
-  const diff = pct - pctPrev;
+  const hasPreviousPoint = points.length > 1;
+  const variationPct = useMemo(() => {
+    if (!hasPreviousPoint) return null;
+    if (pctPrev === 0) return pct === 0 ? 0 : null;
+    return ((pct - pctPrev) / pctPrev) * 100;
+  }, [hasPreviousPoint, pct, pctPrev]);
 
   // ====== SVG sizing ======
   const W = 860;
@@ -235,10 +240,17 @@ export default function KpiGaugeOcupacao({ data = [] }) {
               {pct}%
             </div>
             <div
-              className={`mt-1 text-sm font-semibold ${diff >= 0 ? "text-emerald-500" : "text-red-500"
-                }`}
+              className={`mt-1 text-sm font-semibold ${
+                variationPct === null
+                  ? "text-slate-500 dark:text-slate-400"
+                  : variationPct > 0
+                    ? "text-emerald-500"
+                    : variationPct < 0
+                      ? "text-red-500"
+                      : "text-slate-500 dark:text-slate-400"
+              }`}
             >
-              {diff >= 0 ? "▲" : "▼"} {Math.abs(diff)}%
+              {formatVariationLabel(variationPct)}
             </div>
           </div>
         </div>
@@ -460,6 +472,15 @@ function clampPct(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function formatVariationLabel(value) {
+  if (value === null) return "Sem base anterior";
+  if (value === 0) return "0%";
+
+  const prefix = value > 0 ? "+" : "-";
+  const formatted = Math.abs(value).toFixed(1).replace(/\.0$/, "");
+  return `${prefix}${formatted}%`;
 }
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));

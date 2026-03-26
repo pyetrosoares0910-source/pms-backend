@@ -608,7 +608,7 @@ export function getPresentationMessages(input, settings) {
         "",
         `*Seja ${welcome} ao Condominio Edifício Clariza* 🌎`,
         "",
-        `Confirmada reserva no apartamento *${roomName}*, com inicio em ${formatDate(
+        `Confirmada reserva no apartamento *${roomName}*, com início em ${formatDate(
           reservation.checkinDate
         )} e término em ${formatDate(reservation.checkoutDate)}.`,
         "",
@@ -626,12 +626,12 @@ export function getPresentationMessages(input, settings) {
           `*Seja ${welcome} ao ${stayName}* ðŸŒŽ`,
           `Suas reservas nos studios ${formatRoomNamesForMessage(
             reservations
-          )} estao confirmadas, com check-in no dia ${formatDate(
+          )} estão confirmadas, com check-in no dia ${formatDate(
             reservation.checkinDate
           )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
           "",
-          `Meu nome e ${hostName}, e estarei a disposicao para ajuda-${pronoun} durante sua estadia.`,
-          "No dia do check-in, enviarei as informacoes de acesso e as instrucoes necessarias para entrar nas acomodacoes.",
+          `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+          "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
           "",
           "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
           "Ate breve!",
@@ -647,8 +647,8 @@ export function getPresentationMessages(input, settings) {
         "Confirmamos o recebimento das seguintes reservas:",
         ...buildReservationPeriodLines(reservations),
         "",
-        `Meu nome e ${hostName}, e estarei a disposicao para ajuda-${pronoun} durante sua estadia.`,
-        "No dia do check-in, enviarei as informacoes de acesso e as instrucoes necessarias para entrar nas acomodacoes.",
+        `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+        "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
         "",
         "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
         "Ate breve!",
@@ -658,15 +658,15 @@ export function getPresentationMessages(input, settings) {
 
   return [
     [
-      `Ola, ${greeting}!`,
+      `Olá, ${greeting}!`,
       "",
       `*Seja ${welcome} ao ${stayName}* 🌎`,
-      `Sua reserva no studio *${roomName}* esta confirmada, com check-in no dia ${formatDate(
+      `Sua reserva no studio *${roomName}* está confirmada, com check-in no dia ${formatDate(
         reservation.checkinDate
       )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
       "",
-      `Meu nome e ${hostName}, e estarei a disposicao para ajuda-${pronoun} durante sua estadia.`,
-      "No dia do check-in, enviarei as informacoes de acesso e as instrucoes necessarias para entrar no studio.",
+      `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+      "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar no studio assim que disponível.",
       "",
       "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
       "Ate breve!",
