@@ -35,6 +35,10 @@ import {
   getCheckinAlertSummary,
   getCleaningCoverageSummary,
 } from "../lib/operationalAlerts";
+import {
+  buildGuestCheckoutAlert,
+  getDailyGuestCheckoutSummary,
+} from "./guestCheckoutShared";
 import { buildMaidListAlert, getMaidListDeliverySummary } from "./maidAssignmentsShared";
 import { getWeeklyPresentationSummary } from "./guestPresentationShared";
 import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "./maintenanceShared";
@@ -882,6 +886,14 @@ export default function Dashboard() {
     () => buildCheckinAlert(checkinAlertSummary),
     [checkinAlertSummary]
   );
+  const guestCheckoutSummary = useMemo(
+    () => getDailyGuestCheckoutSummary(reservations, dayjs()),
+    [reservations]
+  );
+  const guestCheckoutAlert = useMemo(
+    () => buildGuestCheckoutAlert(guestCheckoutSummary),
+    [guestCheckoutSummary]
+  );
   const maidAssignmentsSummary = useMemo(
     () => getMaidListDeliverySummary(tasks, tomorrowStr),
     [tasks, tomorrowStr]
@@ -919,7 +931,7 @@ export default function Dashboard() {
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
-        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <div
             className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               checkinAlert.isPending
@@ -944,6 +956,16 @@ export default function Dashboard() {
             {hasPendingPresentations
               ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
               : "Tudo certo: todas as apresentações da semana foram concluídas."}
+          </div>
+
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+              guestCheckoutAlert.isPending
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+            }`}
+          >
+            {guestCheckoutAlert.message}
           </div>
 
           <div

@@ -26,6 +26,7 @@ import Inventory from "../pages/Inventory";
 import Purchases from "../pages/Purchases";
 import ConsumptionProfiles from "../pages/ConsumptionProfiles";
 import GuestCheckins from "../pages/GuestCheckins";
+import GuestCheckouts from "../pages/GuestCheckouts";
 import ApresentacaoHospedes from "../pages/ApresentacaoHospedes";
 
 const router = createBrowserRouter([
@@ -57,6 +58,7 @@ const router = createBrowserRouter([
           { path: "/maid-assignments", element: <MaidAssignments /> },
           { path: "/apresentacao-hospedes", element: <ApresentacaoHospedes /> },
           { path: "/guest-checkins", element: <GuestCheckins /> },
+          { path: "/guest-checkouts", element: <GuestCheckouts /> },
           { path: "/products", element: <Products /> },
           { path: "/inventory", element: <Inventory /> },
           { path: "/purchases", element: <Purchases /> },

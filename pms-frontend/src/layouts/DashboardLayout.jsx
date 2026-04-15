@@ -40,6 +40,10 @@ import {
   mapCheckoutTask,
 } from "../lib/operationalAlerts";
 import {
+  GUEST_CHECKOUT_SETTINGS_EVENT,
+  getDailyGuestCheckoutSummary,
+} from "../pages/guestCheckoutShared";
+import {
   buildMaidListAlert,
   getMaidListDeliverySummary,
   MAID_ASSIGNMENTS_SETTINGS_EVENT,
@@ -268,6 +272,7 @@ export default function DashboardLayout() {
       "/maids",
       "/apresentacao-hospedes",
       "/guest-checkins",
+      "/guest-checkouts",
     ].includes(path);
 
     const inEstoque = [
@@ -323,6 +328,7 @@ export default function DashboardLayout() {
     window.addEventListener("focus", loadSidebarAlerts);
     window.addEventListener("storage", loadSidebarAlerts);
     window.addEventListener(MAID_ASSIGNMENTS_SETTINGS_EVENT, loadSidebarAlerts);
+    window.addEventListener(GUEST_CHECKOUT_SETTINGS_EVENT, loadSidebarAlerts);
 
     return () => {
       isMounted = false;
@@ -330,6 +336,7 @@ export default function DashboardLayout() {
       window.removeEventListener("focus", loadSidebarAlerts);
       window.removeEventListener("storage", loadSidebarAlerts);
       window.removeEventListener(MAID_ASSIGNMENTS_SETTINGS_EVENT, loadSidebarAlerts);
+      window.removeEventListener(GUEST_CHECKOUT_SETTINGS_EVENT, loadSidebarAlerts);
     };
   }, [api, location.pathname]);
 
@@ -340,6 +347,10 @@ export default function DashboardLayout() {
   );
   const presentationSummary = useMemo(
     () => getWeeklyPresentationSummary(alertReservations, dayjs()),
+    [alertReservations]
+  );
+  const guestCheckoutSummary = useMemo(
+    () => getDailyGuestCheckoutSummary(alertReservations, dayjs()),
     [alertReservations]
   );
   const maidAssignmentsAlert = useMemo(
@@ -481,6 +492,16 @@ export default function DashboardLayout() {
               hasNotification={checkinAlert.isPending}
             >
               Check-ins Hóspedes
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item
+              to="/guest-checkouts"
+              icon={MessageSquareText}
+              showText={showText}
+              hasNotification={guestCheckoutSummary.pending > 0}
+            >
+              Check-outs Hóspedes
             </Item>
           )}
 
