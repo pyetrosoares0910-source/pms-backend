@@ -604,9 +604,9 @@ export function getPresentationMessages(input, settings) {
   if (classification === "clariza" && reservations.length === 1) {
     return [
       [
-        `Ola, ${greeting}!`,
+        `Olá, ${greeting}!`,
         "",
-        `*Seja ${welcome} ao Condominio Edifício Clariza* 🌎`,
+        `*Seja ${welcome} ao Condomínio Edifício Clariza* 🌎`,
         "",
         `Confirmada reserva no apartamento *${roomName}*, com início em ${formatDate(
           reservation.checkinDate
@@ -621,37 +621,37 @@ export function getPresentationMessages(input, settings) {
     if (hasSameReservationPeriod(reservations)) {
       return [
         [
-          `Ola, ${greeting}!`,
+          `Olá, ${greeting}!`,
           "",
-          `*Seja ${welcome} ao ${stayName}* ðŸŒŽ`,
+          `*Seja ${welcome} ao ${stayName}* 🌎`,
           `Suas reservas nos studios ${formatRoomNamesForMessage(
             reservations
           )} estão confirmadas, com check-in no dia ${formatDate(
             reservation.checkinDate
           )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
           "",
-          `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+          `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
           "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
           "",
           "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
-          "Ate breve!",
+          "Até breve!",
         ].join("\n"),
       ];
     }
 
     return [
       [
-        `Ola, ${greeting}!`,
+        `Olá, ${greeting}!`,
         "",
-        `*Seja ${welcome} ao ${stayName}* ðŸŒŽ`,
+        `*Seja ${welcome} ao ${stayName}* 🌎`,
         "Confirmamos o recebimento das seguintes reservas:",
         ...buildReservationPeriodLines(reservations),
         "",
-        `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+        `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
         "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
         "",
         "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
-        "Ate breve!",
+        "Até breve!",
       ].join("\n"),
     ];
   }
