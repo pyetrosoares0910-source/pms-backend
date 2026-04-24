@@ -104,19 +104,6 @@ function findBestCheckoutForPeriodicTask({ periodicTask, checkoutTasksByRoomId, 
     };
   }
 
-  const overdueCandidates = availableCheckouts.filter((checkoutTask) => {
-    const checkoutDate = toUtcDay(checkoutTask.date);
-    return checkoutDate > window.latestDate && checkoutDate <= rangeEndDate;
-  });
-
-  if (overdueCandidates.length > 0) {
-    return {
-      checkoutTask: overdueCandidates.sort((a, b) => toUtcDay(a.date) - toUtcDay(b.date))[0],
-      window,
-      urgent: true,
-    };
-  }
-
   return { checkoutTask: null, window, urgent: false };
 }
 
@@ -159,6 +146,25 @@ async function persistScheduledExecutions({ prisma, assignments }) {
   );
 }
 
+async function removeOutOfWindowScheduledExecutions({ prisma, periodicTasks }) {
+  await Promise.all(
+    periodicTasks.map((periodicTask) => {
+      const window = getExecutionWindow(periodicTask);
+      return prisma.periodicTaskExecution.deleteMany({
+        where: {
+          taskId: periodicTask.id,
+          roomId: periodicTask.roomId,
+          status: "SCHEDULED",
+          OR: [
+            { executionDate: { lt: window.earliestDate } },
+            { executionDate: { gt: window.latestDate } },
+          ],
+        },
+      });
+    })
+  );
+}
+
 async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) {
   if (tasks.length === 0) return [];
 
@@ -182,6 +188,8 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
     },
     orderBy: [{ nextExecutionDate: "asc" }, { name: "asc" }],
   });
+
+  await removeOutOfWindowScheduledExecutions({ prisma, periodicTasks });
 
   const executionWindows = periodicTasks.map((periodicTask) => ({
     periodicTask,

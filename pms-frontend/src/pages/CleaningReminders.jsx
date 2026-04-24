@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import {
   Bell,
   CalendarClock,
@@ -11,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { useApi } from "../lib/api";
+
+dayjs.extend(utc);
 
 const emptyPeriodicForm = {
   name: "",
@@ -50,7 +53,7 @@ const frequencyOptions = [
 
 function formatDate(value) {
   if (!value) return "-";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs.utc(value).format("DD/MM/YYYY");
 }
 
 function getActivationWindow(form) {
