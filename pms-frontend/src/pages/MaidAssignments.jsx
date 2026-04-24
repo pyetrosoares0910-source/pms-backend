@@ -85,6 +85,11 @@ function getOperationalReminderKey(reminder) {
   return `${reminder.id || reminder.title}|${reminder.message}`;
 }
 
+function formatPeriodicTaskForMessage(periodicTask) {
+  const label = periodicTask.description || periodicTask.name;
+  return periodicTask.urgent ? `${label} _(urgente)_` : label;
+}
+
 function makeStayCoverageTaskKey(task) {
   return [
     task.date,
@@ -215,10 +220,10 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
     stayGroups[task.stayAlias].push(task);
   });
 
-  const lines = [`Limpeza ${dayjs(date).format("DD/MM")}`, ""];
+  const lines = [`*Limpeza ${dayjs(date).format("DD/MM")}*`, ""];
 
   Object.entries(stayGroups).forEach(([stayAlias, stayTasks]) => {
-    lines.push(stayAlias);
+    lines.push(`*${stayAlias}*`);
 
     const remindersByKey = new Map();
     stayTasks.forEach((task) => {
@@ -235,37 +240,39 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
         detailParts.push(`entra ${task.checkinTime}`);
       }
 
-      const periodicTaskNote = periodicTasks
-        .map((periodicTask) =>
-          periodicTask.urgent ? `${periodicTask.name} - urgente` : periodicTask.name
-        )
-        .join(", ");
       const notes = [
         task.reservationNotes,
         task.extraInfo,
-        periodicTaskNote ? `Tarefa periodica: ${periodicTaskNote}` : "",
       ]
         .filter(Boolean)
         .join(" | ");
 
-      lines.push(notes ? `${detailParts.join(" ")} (${notes})` : detailParts.join(" "));
+      const periodicTaskNote = periodicTasks
+        .map(formatPeriodicTaskForMessage)
+        .join("; ");
+      const taskLine = notes ? `${detailParts.join(" ")} (${notes})` : detailParts.join(" ");
+
+      lines.push(
+        periodicTaskNote ? `${taskLine} -> _Incluir: ${periodicTaskNote}_` : taskLine
+      );
     });
 
     if (remindersByKey.size > 0) {
-      lines.push("Lembretes");
+      lines.push("");
+      lines.push("*Lembretes*");
       [...remindersByKey.values()].forEach((reminder) => {
-        lines.push(`* ${reminder.title}: ${reminder.message}`);
+        lines.push(`-> _${reminder.message}_`);
       });
     }
 
     lines.push("");
   });
 
-  lines.push("Senhas");
+  lines.push("*Senhas*");
 
   Object.keys(stayGroups).forEach((stayAlias) => {
     const staySettings = settings.stays[stayAlias] || {};
-    lines.push(`* ${stayAlias}`);
+    lines.push(`*${stayAlias}*`);
     lines.push(`1ª porta: #*${staySettings.door1 || ""}`);
     lines.push(`2ª porta: ${staySettings.door2 || ""}`);
     lines.push(`Restante: ${staySettings.rest || ""}`);
