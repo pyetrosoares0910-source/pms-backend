@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Bell, CalendarClock, CheckCircle2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import {
+  Bell,
+  CalendarClock,
+  CheckCircle2,
+  Pencil,
+  Plus,
+  Power,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useApi } from "../lib/api";
 
 const emptyPeriodicForm = {
   name: "",
   description: "",
   stayId: "",
-  roomId: "",
+  roomIds: [],
   frequency: "CUSTOM_DAYS",
   customIntervalDays: 30,
   active: true,
@@ -17,9 +26,15 @@ const emptyReminderForm = {
   title: "",
   message: "",
   stayId: "",
-  active: true,
-  activationMode: "continuous",
+  active: false,
+  startsAt: null,
+  endsAt: null,
+};
+
+const emptyActivationForm = {
+  mode: "continuous",
   days: 15,
+  endsAt: dayjs().add(14, "day").format("YYYY-MM-DD"),
 };
 
 const frequencyOptions = [
@@ -38,17 +53,19 @@ function formatDate(value) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
-function getReminderWindow(form) {
-  if (!form.active) {
-    return { startsAt: null, endsAt: null };
-  }
-
+function getActivationWindow(form) {
   const startsAt = dayjs().format("YYYY-MM-DD");
-  if (form.activationMode === "days") {
+  if (form.mode === "days") {
     const days = Number(form.days) || 1;
     return {
       startsAt,
       endsAt: dayjs().add(days - 1, "day").format("YYYY-MM-DD"),
+    };
+  }
+  if (form.mode === "date") {
+    return {
+      startsAt,
+      endsAt: form.endsAt || startsAt,
     };
   }
 
@@ -69,6 +86,9 @@ export default function CleaningReminders() {
   const [reminders, setReminders] = useState([]);
   const [periodicForm, setPeriodicForm] = useState(emptyPeriodicForm);
   const [reminderForm, setReminderForm] = useState(emptyReminderForm);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [activationReminder, setActivationReminder] = useState(null);
+  const [activationForm, setActivationForm] = useState(emptyActivationForm);
   const [editingPeriodicId, setEditingPeriodicId] = useState(null);
   const [editingReminderId, setEditingReminderId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +111,10 @@ export default function CleaningReminders() {
     if (!periodicForm.stayId) return rooms;
     return roomsByStay[periodicForm.stayId] || [];
   }, [periodicForm.stayId, rooms, roomsByStay]);
+
+  const allFilteredRoomsSelected =
+    filteredRooms.length > 0 &&
+    filteredRooms.every((room) => periodicForm.roomIds.includes(room.id));
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -126,16 +150,52 @@ export default function CleaningReminders() {
   const resetReminderForm = () => {
     setEditingReminderId(null);
     setReminderForm(emptyReminderForm);
+    setShowReminderModal(false);
+  };
+
+  const openNewReminderModal = () => {
+    setEditingReminderId(null);
+    setReminderForm(emptyReminderForm);
+    setShowReminderModal(true);
+  };
+
+  const togglePeriodicRoom = (roomId) => {
+    setPeriodicForm((prev) => ({
+      ...prev,
+      roomIds: prev.roomIds.includes(roomId)
+        ? prev.roomIds.filter((id) => id !== roomId)
+        : [...prev.roomIds, roomId],
+    }));
+  };
+
+  const toggleAllFilteredRooms = () => {
+    setPeriodicForm((prev) => {
+      const filteredRoomIds = filteredRooms.map((room) => room.id);
+      if (filteredRoomIds.every((id) => prev.roomIds.includes(id))) {
+        return {
+          ...prev,
+          roomIds: prev.roomIds.filter((id) => !filteredRoomIds.includes(id)),
+        };
+      }
+      return {
+        ...prev,
+        roomIds: [...new Set([...prev.roomIds, ...filteredRoomIds])],
+      };
+    });
   };
 
   const handlePeriodicSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
-    const payload = {
+    if (periodicForm.roomIds.length === 0) {
+      setError("Selecione pelo menos uma acomodacao.");
+      return;
+    }
+
+    const basePayload = {
       name: periodicForm.name,
       description: periodicForm.description || null,
-      roomId: periodicForm.roomId,
       frequency: periodicForm.frequency,
       customIntervalDays:
         periodicForm.frequency === "CUSTOM_DAYS"
@@ -148,13 +208,20 @@ export default function CleaningReminders() {
       if (editingPeriodicId) {
         await api(`/periodic-tasks/${editingPeriodicId}`, {
           method: "PUT",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...basePayload,
+            roomId: periodicForm.roomIds[0],
+          }),
         });
       } else {
-        await api("/periodic-tasks", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+        await Promise.all(
+          periodicForm.roomIds.map((roomId) =>
+            api("/periodic-tasks", {
+              method: "POST",
+              body: JSON.stringify({ ...basePayload, roomId }),
+            })
+          )
+        );
       }
       resetPeriodicForm();
       loadData();
@@ -168,14 +235,13 @@ export default function CleaningReminders() {
     event.preventDefault();
     setError("");
 
-    const activationWindow = getReminderWindow(reminderForm);
     const payload = {
       title: reminderForm.title,
       message: reminderForm.message,
       stayId: reminderForm.stayId,
-      active: reminderForm.active,
-      startsAt: activationWindow.startsAt,
-      endsAt: activationWindow.endsAt,
+      active: editingReminderId ? reminderForm.active : false,
+      startsAt: editingReminderId ? reminderForm.startsAt : null,
+      endsAt: editingReminderId ? reminderForm.endsAt : null,
     };
 
     try {
@@ -204,7 +270,7 @@ export default function CleaningReminders() {
       name: task.name || "",
       description: task.description || "",
       stayId: task.room?.stayId || task.room?.stay?.id || "",
-      roomId: task.roomId || "",
+      roomIds: task.roomId ? [task.roomId] : [],
       frequency: task.frequency || "CUSTOM_DAYS",
       customIntervalDays: task.customIntervalDays || 30,
       active: Boolean(task.active),
@@ -212,18 +278,16 @@ export default function CleaningReminders() {
   };
 
   const handleEditReminder = (reminder) => {
-    const hasLimitedWindow = Boolean(reminder.endsAt);
     setEditingReminderId(reminder.id);
     setReminderForm({
       title: reminder.title || "",
       message: reminder.message || "",
       stayId: reminder.stayId || "",
       active: Boolean(reminder.active),
-      activationMode: hasLimitedWindow ? "days" : "continuous",
-      days: hasLimitedWindow
-        ? Math.max(1, dayjs(reminder.endsAt).diff(dayjs(reminder.startsAt || new Date()), "day") + 1)
-        : 15,
+      startsAt: reminder.startsAt || null,
+      endsAt: reminder.endsAt || null,
     });
+    setShowReminderModal(true);
   };
 
   const togglePeriodicTask = async (task) => {
@@ -239,24 +303,48 @@ export default function CleaningReminders() {
     }
   };
 
-  const toggleReminder = async (reminder, mode = "continuous") => {
-    try {
-      const activationWindow = reminder.active
-        ? { startsAt: reminder.startsAt, endsAt: reminder.endsAt }
-        : getReminderWindow({ ...emptyReminderForm, active: true, activationMode: mode });
+  const openActivationModal = (reminder) => {
+    setActivationReminder(reminder);
+    setActivationForm(emptyActivationForm);
+  };
 
+  const deactivateReminder = async (reminder) => {
+    try {
       await api(`/operational-reminders/${reminder.id}`, {
         method: "PUT",
         body: JSON.stringify({
-          active: !reminder.active,
-          startsAt: activationWindow.startsAt,
-          endsAt: activationWindow.endsAt,
+          active: false,
+          startsAt: null,
+          endsAt: null,
         }),
       });
       loadData();
     } catch (err) {
       console.error("Erro ao alternar lembrete:", err);
       setError(err.message || "Erro ao alternar lembrete.");
+    }
+  };
+
+  const activateReminder = async (event) => {
+    event.preventDefault();
+    if (!activationReminder) return;
+
+    try {
+      const activationWindow = getActivationWindow(activationForm);
+      await api(`/operational-reminders/${activationReminder.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          active: true,
+          startsAt: activationWindow.startsAt,
+          endsAt: activationWindow.endsAt,
+        }),
+      });
+      setActivationReminder(null);
+      setActivationForm(emptyActivationForm);
+      loadData();
+    } catch (err) {
+      console.error("Erro ao ativar lembrete:", err);
+      setError(err.message || "Erro ao ativar lembrete.");
     }
   };
 
@@ -322,7 +410,7 @@ export default function CleaningReminders() {
               <select
                 value={periodicForm.stayId}
                 onChange={(e) =>
-                  setPeriodicForm({ ...periodicForm, stayId: e.target.value, roomId: "" })
+                  setPeriodicForm({ ...periodicForm, stayId: e.target.value, roomIds: [] })
                 }
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                 required
@@ -331,19 +419,6 @@ export default function CleaningReminders() {
                 {stays.map((stay) => (
                   <option key={stay.id} value={stay.id}>
                     {stay.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={periodicForm.roomId}
-                onChange={(e) => setPeriodicForm({ ...periodicForm, roomId: e.target.value })}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                required
-              >
-                <option value="">Acomodacao</option>
-                {filteredRooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.title}
                   </option>
                 ))}
               </select>
@@ -378,6 +453,45 @@ export default function CleaningReminders() {
                 Ativa
               </label>
             </div>
+            <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold">Acomodacoes</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {periodicForm.roomIds.length} selecionada(s)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAllFilteredRooms}
+                  disabled={filteredRooms.length === 0}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
+                >
+                  {allFilteredRoomsSelected ? "Limpar selecao" : "Selecionar todas"}
+                </button>
+              </div>
+              {filteredRooms.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700">
+                  Selecione um empreendimento para listar as acomodacoes.
+                </div>
+              ) : (
+                <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+                  {filteredRooms.map((room) => (
+                    <label
+                      key={room.id}
+                      className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={periodicForm.roomIds.includes(room.id)}
+                        onChange={() => togglePeriodicRoom(room.id)}
+                      />
+                      <span>{room.title}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <textarea
               value={periodicForm.description}
               onChange={(e) =>
@@ -392,7 +506,9 @@ export default function CleaningReminders() {
                 className="inline-flex items-center gap-2 rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
               >
                 {editingPeriodicId ? <CheckCircle2 size={16} /> : <Plus size={16} />}
-                {editingPeriodicId ? "Atualizar tarefa" : "Cadastrar tarefa"}
+                {editingPeriodicId
+                  ? "Atualizar tarefa"
+                  : `Cadastrar em ${periodicForm.roomIds.length || 0} acomodacao(oes)`}
               </button>
               {editingPeriodicId && (
                 <button
@@ -408,87 +524,23 @@ export default function CleaningReminders() {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
             <Bell size={20} className="text-emerald-700 dark:text-emerald-300" />
             <h2 className="text-xl font-semibold">Lembretes estaticos</h2>
+            </div>
+            <button
+              type="button"
+              onClick={openNewReminderModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+            >
+              <Plus size={16} />
+              Novo lembrete
+            </button>
           </div>
-
-          <form onSubmit={handleReminderSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={reminderForm.title}
-                onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })}
-                placeholder="Titulo do lembrete"
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                required
-              />
-              <select
-                value={reminderForm.stayId}
-                onChange={(e) => setReminderForm({ ...reminderForm, stayId: e.target.value })}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                required
-              >
-                <option value="">Empreendimento</option>
-                {stays.map((stay) => (
-                  <option key={stay.id} value={stay.id}>
-                    {stay.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={reminderForm.activationMode}
-                onChange={(e) =>
-                  setReminderForm({ ...reminderForm, activationMode: e.target.value })
-                }
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-              >
-                <option value="continuous">Continuo ate desativar</option>
-                <option value="days">Por quantidade de dias</option>
-              </select>
-              {reminderForm.activationMode === "days" && (
-                <input
-                  type="number"
-                  min="1"
-                  value={reminderForm.days}
-                  onChange={(e) => setReminderForm({ ...reminderForm, days: e.target.value })}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                />
-              )}
-              <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
-                <input
-                  type="checkbox"
-                  checked={reminderForm.active}
-                  onChange={(e) => setReminderForm({ ...reminderForm, active: e.target.checked })}
-                />
-                Ativo ao salvar
-              </label>
-            </div>
-            <textarea
-              value={reminderForm.message}
-              onChange={(e) => setReminderForm({ ...reminderForm, message: e.target.value })}
-              placeholder="Mensagem enviada na listagem das diaristas"
-              className="min-h-24 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-              required
-            />
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-              >
-                {editingReminderId ? <CheckCircle2 size={16} /> : <Plus size={16} />}
-                {editingReminderId ? "Atualizar lembrete" : "Cadastrar lembrete"}
-              </button>
-              {editingReminderId && (
-                <button
-                  type="button"
-                  onClick={resetReminderForm}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700"
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
+          <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500 dark:border-slate-700">
+            Os lembretes ficam salvos como modelos inativos. A ativacao continua ou temporaria e feita na lista abaixo.
+          </div>
         </section>
       </div>
 
@@ -613,20 +665,25 @@ export default function CleaningReminders() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => toggleReminder(reminder)}
+                    onClick={() =>
+                      reminder.active ? deactivateReminder(reminder) : openActivationModal(reminder)
+                    }
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
                   >
                     <Power size={14} />
-                    {reminder.active ? "Desativar" : "Ativar continuo"}
+                    {reminder.active ? "Desativar" : "Ativar"}
                   </button>
                   {!reminder.active && (
                     <button
                       type="button"
-                      onClick={() => toggleReminder(reminder, "days")}
+                      onClick={() => {
+                        setActivationReminder(reminder);
+                        setActivationForm({ ...emptyActivationForm, mode: "days" });
+                      }}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
                     >
                       <CalendarClock size={14} />
-                      Ativar 15 dias
+                      Ativar por periodo
                     </button>
                   )}
                   <button
@@ -643,6 +700,176 @@ export default function CleaningReminders() {
           </div>
         )}
       </section>
+
+      {showReminderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4">
+          <form
+            onSubmit={handleReminderSubmit}
+            className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  {editingReminderId ? "Editar lembrete" : "Novo lembrete estatico"}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  O lembrete sera salvo no banco e ficara inativo ate ser ativado na lista.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={resetReminderForm}
+                className="rounded-lg border border-slate-300 p-2 dark:border-slate-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                value={reminderForm.title}
+                onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })}
+                placeholder="Titulo do lembrete"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                required
+              />
+              <select
+                value={reminderForm.stayId}
+                onChange={(e) => setReminderForm({ ...reminderForm, stayId: e.target.value })}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                required
+              >
+                <option value="">Empreendimento</option>
+                {stays.map((stay) => (
+                  <option key={stay.id} value={stay.id}>
+                    {stay.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <textarea
+              value={reminderForm.message}
+              onChange={(e) => setReminderForm({ ...reminderForm, message: e.target.value })}
+              placeholder="Mensagem enviada na listagem das diaristas"
+              className="mt-3 min-h-28 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+              required
+            />
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={resetReminderForm}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+              >
+                {editingReminderId ? <CheckCircle2 size={16} /> : <Plus size={16} />}
+                {editingReminderId ? "Atualizar lembrete" : "Cadastrar lembrete"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {activationReminder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4">
+          <form
+            onSubmit={activateReminder}
+            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">Ativar lembrete</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {activationReminder.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivationReminder(null)}
+                className="rounded-lg border border-slate-300 p-2 dark:border-slate-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <input
+                  type="radio"
+                  name="activationMode"
+                  checked={activationForm.mode === "continuous"}
+                  onChange={() =>
+                    setActivationForm({ ...activationForm, mode: "continuous" })
+                  }
+                />
+                Ativar por tempo indeterminado
+              </label>
+              <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <input
+                  type="radio"
+                  name="activationMode"
+                  checked={activationForm.mode === "days"}
+                  onChange={() => setActivationForm({ ...activationForm, mode: "days" })}
+                />
+                Ativar por quantidade de dias
+              </label>
+              {activationForm.mode === "days" && (
+                <input
+                  type="number"
+                  min="1"
+                  value={activationForm.days}
+                  onChange={(e) =>
+                    setActivationForm({ ...activationForm, days: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                />
+              )}
+              <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
+                <input
+                  type="radio"
+                  name="activationMode"
+                  checked={activationForm.mode === "date"}
+                  onChange={() => setActivationForm({ ...activationForm, mode: "date" })}
+                />
+                Ativar ate uma data
+              </label>
+              {activationForm.mode === "date" && (
+                <input
+                  type="date"
+                  value={activationForm.endsAt}
+                  onChange={(e) =>
+                    setActivationForm({ ...activationForm, endsAt: e.target.value })
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                />
+              )}
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setActivationReminder(null)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+              >
+                <Power size={16} />
+                Ativar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
