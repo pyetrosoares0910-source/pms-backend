@@ -1,5 +1,7 @@
 const { evaluatePeriodicTaskAssignment } = require("./periodicTaskRules");
-const { toUtcDay } = require("./periodicTaskSchedule");
+const { getExecutionWindow, toUtcDay } = require("./periodicTaskSchedule");
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function normalizeText(value) {
   return String(value || "")
@@ -53,6 +55,13 @@ function buildMaidLoadByDay(tasks) {
   return load;
 }
 
+function getDaysBetween(dateA, dateB) {
+  const start = toUtcDay(dateA);
+  const end = toUtcDay(dateB);
+  if (!start || !end) return null;
+  return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
+}
+
 function isReminderActiveForDate(reminder, date) {
   const day = toUtcDay(date);
   const startsAt = reminder.startsAt ? toUtcDay(reminder.startsAt) : null;
@@ -64,6 +73,92 @@ function isReminderActiveForDate(reminder, date) {
   return true;
 }
 
+function findBestCheckoutForPeriodicTask({ periodicTask, checkoutTasksByRoomId, rangeEndDate }) {
+  const window = getExecutionWindow(periodicTask);
+  const checkoutTasks = checkoutTasksByRoomId.get(periodicTask.roomId) || [];
+  const completedExecutions = new Set(
+    (periodicTask.executions || [])
+      .filter((execution) => execution.status === "COMPLETED")
+      .map((execution) => toDateKey(execution.executionDate))
+  );
+
+  const availableCheckouts = checkoutTasks.filter(
+    (checkoutTask) => !completedExecutions.has(toDateKey(checkoutTask.date))
+  );
+
+  const windowCandidates = availableCheckouts.filter((checkoutTask) => {
+    const checkoutDate = toUtcDay(checkoutTask.date);
+    return checkoutDate >= window.earliestDate && checkoutDate <= window.latestDate;
+  });
+
+  if (windowCandidates.length > 0) {
+    return {
+      checkoutTask: windowCandidates.sort((a, b) => {
+        const diffA = Math.abs(toUtcDay(a.date).getTime() - window.targetDate.getTime());
+        const diffB = Math.abs(toUtcDay(b.date).getTime() - window.targetDate.getTime());
+        if (diffA !== diffB) return diffA - diffB;
+        return toUtcDay(a.date) - toUtcDay(b.date);
+      })[0],
+      window,
+      urgent: false,
+    };
+  }
+
+  const overdueCandidates = availableCheckouts.filter((checkoutTask) => {
+    const checkoutDate = toUtcDay(checkoutTask.date);
+    return checkoutDate > window.latestDate && checkoutDate <= rangeEndDate;
+  });
+
+  if (overdueCandidates.length > 0) {
+    return {
+      checkoutTask: overdueCandidates.sort((a, b) => toUtcDay(a.date) - toUtcDay(b.date))[0],
+      window,
+      urgent: true,
+    };
+  }
+
+  return { checkoutTask: null, window, urgent: false };
+}
+
+async function persistScheduledExecutions({ prisma, assignments }) {
+  await Promise.all(
+    assignments.map(({ periodicTask, checkoutTask }) =>
+      prisma.periodicTaskExecution.deleteMany({
+        where: {
+          taskId: periodicTask.id,
+          roomId: periodicTask.roomId,
+          status: "SCHEDULED",
+          executionDate: { not: toUtcDay(checkoutTask.date) },
+        },
+      })
+    )
+  );
+
+  await Promise.all(
+    assignments.map(({ periodicTask, checkoutTask }) =>
+      prisma.periodicTaskExecution.upsert({
+        where: {
+          taskId_roomId_executionDate: {
+            taskId: periodicTask.id,
+            roomId: periodicTask.roomId,
+            executionDate: toUtcDay(checkoutTask.date),
+          },
+        },
+        create: {
+          taskId: periodicTask.id,
+          roomId: periodicTask.roomId,
+          assignedToId: checkoutTask.maidId || null,
+          executionDate: toUtcDay(checkoutTask.date),
+          status: "SCHEDULED",
+        },
+        update: {
+          assignedToId: checkoutTask.maidId || null,
+        },
+      })
+    )
+  );
+}
+
 async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) {
   if (tasks.length === 0) return [];
 
@@ -72,25 +167,54 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
   });
   const roomLookup = makeRoomLookup(rooms);
   const loadByDay = buildMaidLoadByDay(tasks);
+  const startDay = toUtcDay(startDate);
   const endDay = toUtcDay(endDate);
 
   const periodicTasks = await prisma.periodicTask.findMany({
     where: {
       active: true,
-      nextExecutionDate: { lte: endDay },
     },
     include: {
       room: { include: { stay: true } },
       executions: {
-        where: {
-          executionDate: {
-            gte: toUtcDay(startDate),
-            lte: endDay,
-          },
-        },
+        where: { status: { in: ["SCHEDULED", "COMPLETED"] } },
       },
     },
     orderBy: [{ nextExecutionDate: "asc" }, { name: "asc" }],
+  });
+
+  const executionWindows = periodicTasks.map((periodicTask) => ({
+    periodicTask,
+    window: getExecutionWindow(periodicTask),
+  }));
+
+  const planningStart = executionWindows.reduce(
+    (minDate, item) => (item.window.earliestDate < minDate ? item.window.earliestDate : minDate),
+    startDay
+  );
+  const planningEnd = executionWindows.reduce(
+    (maxDate, item) => (item.window.latestDate > maxDate ? item.window.latestDate : maxDate),
+    endDay
+  );
+
+  const planningTasks = await prisma.task.findMany({
+    where: {
+      date: {
+        gte: planningStart,
+        lte: planningEnd > endDay ? planningEnd : endDay,
+      },
+    },
+    include: { maid: true },
+    orderBy: { date: "asc" },
+  });
+
+  const checkoutTasksByRoomId = new Map();
+  planningTasks.forEach((checkoutTask) => {
+    const room = findRoomForCheckoutTask(checkoutTask, roomLookup);
+    if (!room) return;
+    const enrichedTask = { ...checkoutTask, roomId: room.id, stayId: room.stayId };
+    if (!checkoutTasksByRoomId.has(room.id)) checkoutTasksByRoomId.set(room.id, []);
+    checkoutTasksByRoomId.get(room.id).push(enrichedTask);
   });
 
   const reminders = await prisma.operationalReminder.findMany({
@@ -103,11 +227,52 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
     orderBy: [{ stayId: "asc" }, { title: "asc" }],
   });
 
-  const periodicByRoomId = new Map();
-  periodicTasks.forEach((task) => {
-    if (!periodicByRoomId.has(task.roomId)) periodicByRoomId.set(task.roomId, []);
-    periodicByRoomId.get(task.roomId).push(task);
+  const selectedAssignmentsByCheckoutId = new Map();
+  const selectedAssignments = [];
+  periodicTasks.forEach((periodicTask) => {
+    const existingScheduledExecution = (periodicTask.executions || []).find(
+      (execution) => execution.status === "SCHEDULED"
+    );
+    const existingCheckoutTask = existingScheduledExecution
+      ? (checkoutTasksByRoomId.get(periodicTask.roomId) || []).find(
+          (checkoutTask) =>
+            toDateKey(checkoutTask.date) === toDateKey(existingScheduledExecution.executionDate)
+        )
+      : null;
+
+    if (existingCheckoutTask) {
+      const window = getExecutionWindow(periodicTask);
+      const checkoutDate = toUtcDay(existingCheckoutTask.date);
+      const assignment = {
+        periodicTask,
+        checkoutTask: existingCheckoutTask,
+        window,
+        urgent: checkoutDate > window.latestDate,
+      };
+      selectedAssignments.push(assignment);
+      if (!selectedAssignmentsByCheckoutId.has(existingCheckoutTask.id)) {
+        selectedAssignmentsByCheckoutId.set(existingCheckoutTask.id, []);
+      }
+      selectedAssignmentsByCheckoutId.get(existingCheckoutTask.id).push(assignment);
+      return;
+    }
+
+    const selection = findBestCheckoutForPeriodicTask({
+      periodicTask,
+      checkoutTasksByRoomId,
+      rangeEndDate: planningEnd > endDay ? planningEnd : endDay,
+    });
+
+    if (!selection.checkoutTask) return;
+    const assignment = { periodicTask, ...selection };
+    selectedAssignments.push(assignment);
+    if (!selectedAssignmentsByCheckoutId.has(selection.checkoutTask.id)) {
+      selectedAssignmentsByCheckoutId.set(selection.checkoutTask.id, []);
+    }
+    selectedAssignmentsByCheckoutId.get(selection.checkoutTask.id).push(assignment);
   });
+
+  await persistScheduledExecutions({ prisma, assignments: selectedAssignments });
 
   const remindersByStayId = new Map();
   reminders.forEach((reminder) => {
@@ -120,18 +285,9 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
     const taskDateKey = toDateKey(task.date);
     const maidDailyLoad = task.maidId ? loadByDay.get(`${taskDateKey}|${task.maidId}`) || 0 : 0;
 
-    const periodicTaskCandidates = room ? periodicByRoomId.get(room.id) || [] : [];
+    const periodicTaskCandidates = selectedAssignmentsByCheckoutId.get(task.id) || [];
     const periodicTaskAssignments = periodicTaskCandidates
-      .filter((periodicTask) => {
-        const nextDate = toUtcDay(periodicTask.nextExecutionDate);
-        const checkoutDate = toUtcDay(task.date);
-        const executionForDay = periodicTask.executions.find(
-          (execution) => toDateKey(execution.executionDate) === taskDateKey
-        );
-
-        return nextDate <= checkoutDate && executionForDay?.status !== "COMPLETED";
-      })
-      .map((periodicTask) => {
+      .map(({ periodicTask, window, urgent }) => {
         const evaluation = evaluatePeriodicTaskAssignment({
           checkoutTask: task,
           periodicTask,
@@ -148,6 +304,13 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
           lastExecutionDate: periodicTask.lastExecutionDate,
           nextExecutionDate: periodicTask.nextExecutionDate,
           roomId: periodicTask.roomId,
+          scheduledDate: task.date,
+          earliestExecutionDate: window.earliestDate,
+          latestExecutionDate: window.latestDate,
+          daysSinceLastExecution: periodicTask.lastExecutionDate
+            ? getDaysBetween(periodicTask.lastExecutionDate, task.date)
+            : null,
+          urgent,
           allowed: evaluation.allowed,
           blockedBy: evaluation.blockedBy,
         };
@@ -177,6 +340,8 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
 
 module.exports = {
   composeCleaningOperations,
+  findRoomForCheckoutTask,
+  makeRoomLookup,
   normalizeText,
   toDateKey,
 };

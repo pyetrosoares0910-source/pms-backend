@@ -1,5 +1,10 @@
 const { prisma } = require("../prisma");
-const { composeCleaningOperations } = require("../services/cleaningOperationsService");
+const {
+  composeCleaningOperations,
+  findRoomForCheckoutTask,
+  makeRoomLookup,
+} = require("../services/cleaningOperationsService");
+const { toUtcDay } = require("../services/periodicTaskSchedule");
 
 /**
  * GET /tasks/checkouts?start=YYYY-MM-DD&end=YYYY-MM-DD
@@ -75,6 +80,22 @@ exports.assignMaid = async (req, res) => {
       },
       include: { maid: true },
     });
+
+    const rooms = await prisma.room.findMany({ include: { stay: true } });
+    const roomLookup = makeRoomLookup(rooms);
+    const room = findRoomForCheckoutTask(updated, roomLookup);
+    if (room) {
+      await prisma.periodicTaskExecution.updateMany({
+        where: {
+          roomId: room.id,
+          executionDate: toUtcDay(updated.date),
+          status: "SCHEDULED",
+        },
+        data: {
+          assignedToId: updated.maidId || null,
+        },
+      });
+    }
 
     res.json(updated);
   } catch (err) {

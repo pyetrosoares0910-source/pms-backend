@@ -10,6 +10,16 @@ const frequencyIntervals = {
   YEARLY: { years: 1 },
 };
 
+const frequencyDurationDays = {
+  DAILY: 1,
+  WEEKLY: 7,
+  BIWEEKLY: 14,
+  MONTHLY: 30,
+  QUARTERLY: 90,
+  SEMIANNUAL: 180,
+  YEARLY: 365,
+};
+
 function toUtcDay(value) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
@@ -58,7 +68,43 @@ function calculateNextExecutionDate({
   return addCalendarInterval(baseDate, interval);
 }
 
+function getFrequencyDurationDays({ frequency, customIntervalDays }) {
+  if (frequency === "CUSTOM_DAYS") {
+    const days = Number(customIntervalDays);
+    if (!Number.isInteger(days) || days <= 0) {
+      throw new Error("customIntervalDays deve ser um inteiro maior que zero.");
+    }
+    return days;
+  }
+
+  const days = frequencyDurationDays[frequency];
+  if (!days) {
+    throw new Error("Frequencia de tarefa periodica invalida.");
+  }
+  return days;
+}
+
+function getExecutionWindow(periodicTask) {
+  const targetDate = toUtcDay(periodicTask.nextExecutionDate);
+  if (!targetDate) {
+    throw new Error("Proxima execucao invalida.");
+  }
+
+  const durationDays = getFrequencyDurationDays(periodicTask);
+  const toleranceDays = Math.floor(durationDays * 0.5);
+
+  return {
+    targetDate,
+    earliestDate: new Date(targetDate.getTime() - toleranceDays * MS_PER_DAY),
+    latestDate: new Date(targetDate.getTime() + toleranceDays * MS_PER_DAY),
+    durationDays,
+    toleranceDays,
+  };
+}
+
 module.exports = {
   calculateNextExecutionDate,
+  getExecutionWindow,
+  getFrequencyDurationDays,
   toUtcDay,
 };

@@ -236,7 +236,9 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
       }
 
       const periodicTaskNote = periodicTasks
-        .map((periodicTask) => periodicTask.name)
+        .map((periodicTask) =>
+          periodicTask.urgent ? `${periodicTask.name} - urgente` : periodicTask.name
+        )
         .join(", ");
       const notes = [
         task.reservationNotes,
@@ -360,6 +362,16 @@ function DetailSection({
                             <span className="font-semibold">Tarefa periodica:</span>{" "}
                             {periodicTask.name}
                             {periodicTask.description ? ` - ${periodicTask.description}` : ""}
+                            {periodicTask.urgent ? (
+                              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                                Urgente
+                              </span>
+                            ) : null}
+                            {periodicTask.daysSinceLastExecution !== null ? (
+                              <div className="mt-1 text-xs text-sky-800 dark:text-sky-200">
+                                {periodicTask.daysSinceLastExecution} dias desde a ultima execucao
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                         {blockedTasks.map((periodicTask) => (

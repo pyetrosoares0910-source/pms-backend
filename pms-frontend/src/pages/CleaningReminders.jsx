@@ -413,9 +413,8 @@ export default function CleaningReminders() {
                   setPeriodicForm({ ...periodicForm, stayId: e.target.value, roomIds: [] })
                 }
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-                required
               >
-                <option value="">Empreendimento</option>
+                <option value="">Todos os empreendimentos</option>
                 {stays.map((stay) => (
                   <option key={stay.id} value={stay.id}>
                     {stay.name}
@@ -472,7 +471,7 @@ export default function CleaningReminders() {
               </div>
               {filteredRooms.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700">
-                  Selecione um empreendimento para listar as acomodacoes.
+                  Nenhuma acomodacao encontrada.
                 </div>
               ) : (
                 <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
@@ -486,7 +485,10 @@ export default function CleaningReminders() {
                         checked={periodicForm.roomIds.includes(room.id)}
                         onChange={() => togglePeriodicRoom(room.id)}
                       />
-                      <span>{room.title}</span>
+                      <span>
+                        {room.stay?.name ? `${room.stay.name} | ` : ""}
+                        {room.title}
+                      </span>
                     </label>
                   ))}
                 </div>
