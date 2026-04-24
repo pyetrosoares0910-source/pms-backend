@@ -19,6 +19,7 @@ model Stay {
   createdAt        DateTime                    @default(now())
   position         Int?
   maintenanceTasks MaintenanceTask[]
+  operationalReminders OperationalReminder[]
   rooms            Room[]
   inventories      Inventory[]
   purchases        Purchase[]
@@ -42,6 +43,8 @@ model Room {
   category         String?
   position         Int?
   maintenanceTasks MaintenanceTask[]
+  periodicTasks    PeriodicTask[]
+  periodicTaskExecutions PeriodicTaskExecution[]
   reservations     Reservation[]
   stay             Stay?                @relation(fields: [stayId], references: [id])
   profiles         ConsumptionProfile[]
@@ -109,6 +112,7 @@ model Maid {
   id        Int      @id @default(autoincrement())
   available String[]
   tasks     Task[]
+  periodicTaskExecutions PeriodicTaskExecution[]
 }
 
 model Task {
@@ -118,6 +122,60 @@ model Task {
   rooms  String
   maidId Int?
   maid   Maid?    @relation(fields: [maidId], references: [id])
+}
+
+model PeriodicTask {
+  id                  String                  @id @default(uuid())
+  name                String
+  description         String?
+  frequency           PeriodicTaskFrequency
+  customIntervalDays  Int?
+  lastExecutionDate   DateTime?
+  nextExecutionDate   DateTime
+  active              Boolean                 @default(true)
+  roomId              String
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  room                Room                    @relation(fields: [roomId], references: [id])
+  executions          PeriodicTaskExecution[]
+
+  @@index([active, nextExecutionDate])
+  @@index([roomId])
+}
+
+model PeriodicTaskExecution {
+  id              String                      @id @default(uuid())
+  taskId          String
+  roomId          String
+  assignedToId    Int?
+  executionDate   DateTime
+  status          PeriodicTaskExecutionStatus @default(SCHEDULED)
+  notes           String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  task            PeriodicTask                @relation(fields: [taskId], references: [id])
+  room            Room                        @relation(fields: [roomId], references: [id])
+  assignedTo      Maid?                       @relation(fields: [assignedToId], references: [id])
+
+  @@unique([taskId, roomId, executionDate])
+  @@index([executionDate])
+  @@index([assignedToId])
+}
+
+model OperationalReminder {
+  id          String   @id @default(uuid())
+  stayId      String
+  title       String
+  message     String
+  active      Boolean  @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  stay        Stay     @relation(fields: [stayId], references: [id])
+
+  @@index([stayId, active])
+  @@index([startsAt, endsAt])
 }
 
 model PaymentStatus {
@@ -258,4 +316,22 @@ model DailyCommonConsumptionLog {
 enum PaymentState {
   PENDENTE
   PAGO
+}
+
+enum PeriodicTaskFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
+  CUSTOM_DAYS
+}
+
+enum PeriodicTaskExecutionStatus {
+  SCHEDULED
+  COMPLETED
+  SKIPPED
+  CANCELLED
 }

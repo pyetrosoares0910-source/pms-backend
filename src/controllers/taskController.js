@@ -1,5 +1,5 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { prisma } = require("../prisma");
+const { composeCleaningOperations } = require("../services/cleaningOperationsService");
 
 /**
  * GET /tasks/checkouts?start=YYYY-MM-DD&end=YYYY-MM-DD
@@ -29,13 +29,24 @@ exports.getCheckouts = async (req, res) => {
     });
 
     // ✅ Normaliza resposta para o front (Dashboard e Cleaning Schedule)
-    const mapped = tasks.map((t) => ({
+    const operations = await composeCleaningOperations({
+      prisma,
+      tasks,
+      startDate,
+      endDate,
+    });
+
+    const mapped = operations.map((t) => ({
       id: t.id,
       date: t.date ? t.date.toISOString().split("T")[0] : null, // formato YYYY-MM-DD
       stay: t.stay || "Sem Stay", // string no schema
       rooms: t.rooms || "-", // string ou lista de quartos
       maid: t.maid ? t.maid.name : null,
       maidId: t.maid ? t.maid.id : null,
+      stayId: t.stayId || null,
+      roomId: t.roomId || null,
+      periodicTasks: t.periodicTasks || [],
+      operationalReminders: t.operationalReminders || [],
     }));
 
     res.json(mapped);

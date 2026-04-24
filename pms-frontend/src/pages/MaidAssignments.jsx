@@ -73,6 +73,18 @@ function sortTasksByStayAndApartment(tasks) {
   });
 }
 
+function getAllowedPeriodicTasks(task) {
+  return (task.periodicTasks || []).filter((periodicTask) => periodicTask.allowed !== false);
+}
+
+function getBlockedPeriodicTasks(task) {
+  return (task.periodicTasks || []).filter((periodicTask) => periodicTask.allowed === false);
+}
+
+function getOperationalReminderKey(reminder) {
+  return `${reminder.id || reminder.title}|${reminder.message}`;
+}
+
 function makeStayCoverageTaskKey(task) {
   return [
     task.date,
@@ -157,6 +169,7 @@ function buildTaskDetails(tasks, rooms, reservations, settings) {
     return {
       ...task,
       roomId: room?.id || null,
+      stayId: task.stayId || room?.stayId || null,
       roomTitle: room?.title || task.rooms,
       apartmentLabel: formatApartmentLabel(room?.title || task.rooms),
       stayAlias,
@@ -207,19 +220,41 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
   Object.entries(stayGroups).forEach(([stayAlias, stayTasks]) => {
     lines.push(stayAlias);
 
+    const remindersByKey = new Map();
+    stayTasks.forEach((task) => {
+      (task.operationalReminders || []).forEach((reminder) => {
+        remindersByKey.set(getOperationalReminderKey(reminder), reminder);
+      });
+    });
+
     stayTasks.forEach((task) => {
       const detailParts = [`${task.apartmentLabel} - sai ${task.checkoutTime}`];
+      const periodicTasks = getAllowedPeriodicTasks(task);
 
       if (task.hasNextCheckin) {
         detailParts.push(`entra ${task.checkinTime}`);
       }
 
-      const notes = [task.reservationNotes, task.extraInfo]
+      const periodicTaskNote = periodicTasks
+        .map((periodicTask) => periodicTask.name)
+        .join(", ");
+      const notes = [
+        task.reservationNotes,
+        task.extraInfo,
+        periodicTaskNote ? `Tarefa periodica: ${periodicTaskNote}` : "",
+      ]
         .filter(Boolean)
         .join(" | ");
 
       lines.push(notes ? `${detailParts.join(" ")} (${notes})` : detailParts.join(" "));
     });
+
+    if (remindersByKey.size > 0) {
+      lines.push("Lembretes");
+      [...remindersByKey.values()].forEach((reminder) => {
+        lines.push(`* ${reminder.title}: ${reminder.message}`);
+      });
+    }
 
     lines.push("");
   });
@@ -280,6 +315,11 @@ function DetailSection({
                     key={task.id}
                     className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
                   >
+                    {(() => {
+                      const periodicTasks = getAllowedPeriodicTasks(task);
+                      const blockedTasks = getBlockedPeriodicTasks(task);
+                      return (
+                        <>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
@@ -313,6 +353,38 @@ function DetailSection({
                       </div>
                     )}
 
+                    {(periodicTasks.length > 0 || blockedTasks.length > 0) && (
+                      <div className="mt-3 space-y-2 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:bg-sky-900/20 dark:text-sky-100">
+                        {periodicTasks.map((periodicTask) => (
+                          <div key={periodicTask.id}>
+                            <span className="font-semibold">Tarefa periodica:</span>{" "}
+                            {periodicTask.name}
+                            {periodicTask.description ? ` - ${periodicTask.description}` : ""}
+                          </div>
+                        ))}
+                        {blockedTasks.map((periodicTask) => (
+                          <div key={periodicTask.id} className="text-amber-800 dark:text-amber-200">
+                            <span className="font-semibold">Tarefa nao adicionada:</span>{" "}
+                            {periodicTask.name}
+                            {periodicTask.blockedBy?.[0]?.message
+                              ? ` (${periodicTask.blockedBy[0].message})`
+                              : ""}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {task.operationalReminders?.length > 0 && (
+                      <div className="mt-3 space-y-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:bg-emerald-900/20 dark:text-emerald-100">
+                        {task.operationalReminders.map((reminder) => (
+                          <div key={reminder.id}>
+                            <span className="font-semibold">{reminder.title}:</span>{" "}
+                            {reminder.message}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {editable && (
                       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                         <input
@@ -341,6 +413,9 @@ function DetailSection({
                         />
                       </div>
                     )}
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
