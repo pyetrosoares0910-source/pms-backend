@@ -114,6 +114,7 @@ export default function CleaningReminders() {
   const [activationForm, setActivationForm] = useState(emptyActivationForm);
   const [editingPeriodicId, setEditingPeriodicId] = useState(null);
   const [editingReminderId, setEditingReminderId] = useState(null);
+  const [selectedPeriodicIds, setSelectedPeriodicIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -143,6 +144,9 @@ export default function CleaningReminders() {
     () => sortPeriodicTasksByPosition(periodicTasks),
     [periodicTasks]
   );
+  const allPeriodicTasksSelected =
+    sortedPeriodicTasks.length > 0 &&
+    sortedPeriodicTasks.every((task) => selectedPeriodicIds.includes(task.id));
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -173,6 +177,19 @@ export default function CleaningReminders() {
   const resetPeriodicForm = () => {
     setEditingPeriodicId(null);
     setPeriodicForm(emptyPeriodicForm);
+  };
+
+  const togglePeriodicSelection = (taskId) => {
+    setSelectedPeriodicIds((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+    );
+  };
+
+  const toggleAllPeriodicSelection = () => {
+    setSelectedPeriodicIds((prev) => {
+      const allIds = sortedPeriodicTasks.map((task) => task.id);
+      return allIds.every((id) => prev.includes(id)) ? [] : allIds;
+    });
   };
 
   const resetReminderForm = () => {
@@ -252,6 +269,7 @@ export default function CleaningReminders() {
         );
       }
       resetPeriodicForm();
+      setSelectedPeriodicIds([]);
       loadData();
     } catch (err) {
       console.error("Erro ao salvar tarefa periodica:", err);
@@ -303,6 +321,7 @@ export default function CleaningReminders() {
       customIntervalDays: task.customIntervalDays || 30,
       active: Boolean(task.active),
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleEditReminder = (reminder) => {
@@ -380,10 +399,29 @@ export default function CleaningReminders() {
     if (!confirm(`Remover tarefa periodica "${task.name}"?`)) return;
     try {
       await api(`/periodic-tasks/${task.id}`, { method: "DELETE" });
+      setSelectedPeriodicIds((prev) => prev.filter((id) => id !== task.id));
       loadData();
     } catch (err) {
       console.error("Erro ao remover tarefa periodica:", err);
       setError(err.message || "Erro ao remover tarefa periodica.");
+    }
+  };
+
+  const removeSelectedPeriodicTasks = async () => {
+    if (selectedPeriodicIds.length === 0) return;
+    if (!confirm(`Remover ${selectedPeriodicIds.length} tarefa(s) periodica(s)?`)) return;
+
+    try {
+      await api("/periodic-tasks/bulk", {
+        method: "DELETE",
+        body: JSON.stringify({ ids: selectedPeriodicIds }),
+      });
+      setSelectedPeriodicIds([]);
+      resetPeriodicForm();
+      loadData();
+    } catch (err) {
+      console.error("Erro ao remover tarefas periodicas em massa:", err);
+      setError(err.message || "Erro ao remover tarefas periodicas em massa.");
     }
   };
 
@@ -425,6 +463,12 @@ export default function CleaningReminders() {
             <CalendarClock size={20} className="text-sky-700 dark:text-sky-300" />
             <h2 className="text-xl font-semibold">Tarefas periodicas</h2>
           </div>
+
+          {editingPeriodicId && (
+            <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-100">
+              Editando tarefa periodica. Altere os campos e clique em Atualizar tarefa.
+            </div>
+          )}
 
           <form onSubmit={handlePeriodicSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -575,7 +619,34 @@ export default function CleaningReminders() {
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-4 text-xl font-semibold">Tarefas periodicas cadastradas</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Tarefas periodicas cadastradas</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {selectedPeriodicIds.length} selecionada(s)
+            </p>
+          </div>
+          {sortedPeriodicTasks.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={toggleAllPeriodicSelection}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
+              >
+                {allPeriodicTasksSelected ? "Limpar selecao" : "Selecionar todas"}
+              </button>
+              <button
+                type="button"
+                onClick={removeSelectedPeriodicTasks}
+                disabled={selectedPeriodicIds.length === 0}
+                className="inline-flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                Remover selecionadas
+              </button>
+            </div>
+          )}
+        </div>
         {loading ? (
           <div className="py-8 text-center text-sm text-slate-500">Carregando...</div>
         ) : sortedPeriodicTasks.length === 0 ? (
@@ -590,12 +661,21 @@ export default function CleaningReminders() {
                 className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/40"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
+                  <div className="flex min-w-0 gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedPeriodicIds.includes(task.id)}
+                      onChange={() => togglePeriodicSelection(task.id)}
+                      className="mt-1"
+                      aria-label={`Selecionar ${task.name}`}
+                    />
+                    <div className="min-w-0">
                     <h3 className="font-semibold">{task.name}</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {task.room?.stay?.name || "Sem empreendimento"} |{" "}
                       {task.room?.title || "Sem acomodacao"}
                     </p>
+                    </div>
                   </div>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${

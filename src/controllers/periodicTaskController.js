@@ -184,6 +184,25 @@ exports.remove = async (req, res) => {
   }
 };
 
+exports.removeMany = async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter(Boolean) : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ error: "Informe pelo menos uma tarefa periodica." });
+    }
+
+    await prisma.$transaction([
+      prisma.periodicTaskExecution.deleteMany({ where: { taskId: { in: ids } } }),
+      prisma.periodicTask.deleteMany({ where: { id: { in: ids } } }),
+    ]);
+
+    res.json({ deleted: ids.length });
+  } catch (err) {
+    console.error("Erro ao remover tarefas periodicas em massa:", err);
+    res.status(500).json({ error: "Erro ao remover tarefas periodicas em massa." });
+  }
+};
+
 exports.createExecution = async (req, res) => {
   try {
     const task = await prisma.periodicTask.findUnique({ where: { id: req.params.id } });
