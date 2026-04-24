@@ -28,6 +28,7 @@ import ConsumptionProfiles from "../pages/ConsumptionProfiles";
 import GuestCheckins from "../pages/GuestCheckins";
 import GuestCheckouts from "../pages/GuestCheckouts";
 import ApresentacaoHospedes from "../pages/ApresentacaoHospedes";
+import CleaningReminders from "../pages/CleaningReminders";
 
 const router = createBrowserRouter([
   {
@@ -59,6 +60,7 @@ const router = createBrowserRouter([
           { path: "/apresentacao-hospedes", element: <ApresentacaoHospedes /> },
           { path: "/guest-checkins", element: <GuestCheckins /> },
           { path: "/guest-checkouts", element: <GuestCheckouts /> },
+          { path: "/cleaning-reminders", element: <CleaningReminders /> },
           { path: "/products", element: <Products /> },
           { path: "/inventory", element: <Inventory /> },
           { path: "/purchases", element: <Purchases /> },

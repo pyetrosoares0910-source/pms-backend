@@ -23,6 +23,7 @@ import {
   LogOut,
   BarChart3,
   ClipboardList,
+  Bell,
   Package,
   ShoppingCart,
   Settings2,
@@ -270,6 +271,7 @@ export default function DashboardLayout() {
       "/rooms",
       "/staff",
       "/maids",
+      "/cleaning-reminders",
       "/apresentacao-hospedes",
       "/guest-checkins",
       "/guest-checkouts",
@@ -542,6 +544,9 @@ export default function DashboardLayout() {
               </Item>
               <Item to="/maids" icon={UsersRound} showText={showText}>
                 Diaristas
+              </Item>
+              <Item to="/cleaning-reminders" icon={Bell} showText={showText}>
+                Lembretes de Limpeza
               </Item>
             </NavGroup>
             )}
