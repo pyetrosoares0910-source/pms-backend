@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { useApi } from "../lib/api";
@@ -448,34 +448,35 @@ export default function MaidAssignments() {
   const [rooms, setRooms] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [settings, setSettings] = useState(() => getStoredSettings());
+  const [updatingDeliveryKey, setUpdatingDeliveryKey] = useState(null);
 
   const nextDate = useMemo(
     () => dayjs(baseDate).add(1, "day").format("YYYY-MM-DD"),
     [baseDate]
   );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [tasksRes, roomsRes, reservationsRes] = await Promise.all([
-          api(`/tasks/checkouts?start=${baseDate}&end=${nextDate}`),
-          api("/rooms"),
-          api("/reservations"),
-        ]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tasksRes, roomsRes, reservationsRes] = await Promise.all([
+        api(`/tasks/checkouts?start=${baseDate}&end=${nextDate}`),
+        api("/rooms"),
+        api("/reservations"),
+      ]);
 
-        setTasks(tasksRes || []);
-        setRooms(roomsRes || []);
-        setReservations(reservationsRes || []);
-      } catch (err) {
-        console.error("Erro ao carregar listagem de diaristas:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      setTasks(tasksRes || []);
+      setRooms(roomsRes || []);
+      setReservations(reservationsRes || []);
+    } catch (err) {
+      console.error("Erro ao carregar listagem de diaristas:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [api, baseDate, nextDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const detailedTasks = useMemo(
     () => buildTaskDetails(tasks, rooms, reservations, settings),
@@ -519,6 +520,7 @@ export default function MaidAssignments() {
         return {
           ...base,
           deliveryKey,
+          tasks: group.items,
           isSent: Boolean(settings.listDeliveryStatus[deliveryKey]),
         };
       }),
@@ -582,18 +584,65 @@ export default function MaidAssignments() {
     });
   };
 
-  const handleListDeliveryStatusChange = (deliveryKey, isSent) => {
-    setSettings((prev) => {
-      const next = {
-        ...prev,
-        listDeliveryStatus: {
-          ...prev.listDeliveryStatus,
-          [deliveryKey]: isSent,
-        },
-      };
-      saveSettings(next);
-      return next;
+  const completePeriodicTasksForList = async (list) => {
+    const executions = [];
+    const seen = new Set();
+
+    list.tasks.forEach((task) => {
+      getAllowedPeriodicTasks(task).forEach((periodicTask) => {
+        const key = `${periodicTask.id}|${task.roomId}|${task.date}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        executions.push({
+          periodicTask,
+          task,
+        });
+      });
     });
+
+    await Promise.all(
+      executions.map(({ periodicTask, task }) =>
+        api(`/periodic-tasks/${periodicTask.id}/executions`, {
+          method: "POST",
+          body: JSON.stringify({
+            roomId: task.roomId || periodicTask.roomId,
+            assignedToId: task.maidId || null,
+            executionDate: task.date,
+            status: "COMPLETED",
+          }),
+        })
+      )
+    );
+  };
+
+  const handleListDeliveryStatusChange = async (list, isSent) => {
+    setUpdatingDeliveryKey(list.deliveryKey);
+    try {
+      if (isSent) {
+        await completePeriodicTasksForList(list);
+      }
+
+      setSettings((prev) => {
+        const next = {
+          ...prev,
+          listDeliveryStatus: {
+            ...prev.listDeliveryStatus,
+            [list.deliveryKey]: isSent,
+          },
+        };
+        saveSettings(next);
+        return next;
+      });
+
+      if (isSent) {
+        await fetchData();
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar envio da listagem:", err);
+      alert(err.message || "Erro ao confirmar envio da listagem.");
+    } finally {
+      setUpdatingDeliveryKey(null);
+    }
   };
 
   return (
@@ -809,15 +858,20 @@ export default function MaidAssignments() {
                       <button
                         type="button"
                         onClick={() =>
-                          handleListDeliveryStatusChange(list.deliveryKey, !list.isSent)
+                          handleListDeliveryStatusChange(list, !list.isSent)
                         }
+                        disabled={updatingDeliveryKey === list.deliveryKey}
                         className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white ${
                           list.isSent
                             ? "bg-slate-600 hover:bg-slate-700"
                             : "bg-emerald-700 hover:bg-emerald-800"
-                        }`}
+                        } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
-                        {list.isSent ? "Marcar pendente" : "Confirmar envio"}
+                        {updatingDeliveryKey === list.deliveryKey
+                          ? "Salvando..."
+                          : list.isSent
+                          ? "Marcar pendente"
+                          : "Confirmar envio"}
                       </button>
                       <button
                         type="button"

@@ -1,5 +1,6 @@
 const { prisma } = require("../prisma");
 const { calculateNextExecutionDate, toUtcDay } = require("../services/periodicTaskSchedule");
+const { composeCleaningOperations } = require("../services/cleaningOperationsService");
 
 function parseOptionalDate(value) {
   if (!value) return null;
@@ -60,13 +61,68 @@ exports.list = async (req, res) => {
     if (roomId) where.roomId = roomId;
     if (stayId) where.room = { stayId };
 
-    const tasks = await prisma.periodicTask.findMany({
-      where,
-      include: { room: { include: { stay: true } } },
-      orderBy: [{ active: "desc" }, { nextExecutionDate: "asc" }, { name: "asc" }],
+    const planningStart = toUtcDay(new Date());
+    const planningEnd = new Date(planningStart);
+    planningEnd.setUTCDate(planningEnd.getUTCDate() + Number(req.query.horizonDays || 365));
+
+    const checkoutTasks = await prisma.task.findMany({
+      where: {
+        date: {
+          gte: planningStart,
+          lte: planningEnd,
+        },
+      },
+      include: { maid: true },
+      orderBy: { date: "asc" },
     });
 
-    res.json(tasks);
+    if (checkoutTasks.length > 0) {
+      await composeCleaningOperations({
+        prisma,
+        tasks: checkoutTasks,
+        startDate: planningStart,
+        endDate: planningEnd,
+      });
+    }
+
+    const tasks = await prisma.periodicTask.findMany({
+      where,
+      include: {
+        room: { include: { stay: true } },
+        executions: {
+          where: { status: "SCHEDULED" },
+          include: { assignedTo: true },
+          orderBy: { executionDate: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+    });
+
+    const sortedTasks = tasks
+      .map((task) => ({
+        ...task,
+        scheduledExecution: task.executions?.[0] || null,
+      }))
+      .sort((a, b) => {
+        const stayPositionA = a.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
+        const stayPositionB = b.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
+        if (stayPositionA !== stayPositionB) return stayPositionA - stayPositionB;
+
+        const stayNameCompare = String(a.room?.stay?.name || "").localeCompare(
+          String(b.room?.stay?.name || ""),
+          "pt-BR"
+        );
+        if (stayNameCompare !== 0) return stayNameCompare;
+
+        const roomPositionA = a.room?.position ?? Number.MAX_SAFE_INTEGER;
+        const roomPositionB = b.room?.position ?? Number.MAX_SAFE_INTEGER;
+        if (roomPositionA !== roomPositionB) return roomPositionA - roomPositionB;
+
+        return String(a.room?.title || "").localeCompare(String(b.room?.title || ""), "pt-BR");
+      });
+
+    res.json(sortedTasks);
   } catch (err) {
     console.error("Erro ao listar tarefas periodicas:", err);
     res.status(500).json({ error: "Erro ao listar tarefas periodicas." });

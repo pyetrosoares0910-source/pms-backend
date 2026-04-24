@@ -78,6 +78,26 @@ function getStatusLabel(active, endsAt) {
   return "Ativo continuo";
 }
 
+function sortPeriodicTasksByPosition(tasks) {
+  return [...tasks].sort((a, b) => {
+    const stayPositionA = a.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
+    const stayPositionB = b.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
+    if (stayPositionA !== stayPositionB) return stayPositionA - stayPositionB;
+
+    const stayNameCompare = String(a.room?.stay?.name || "").localeCompare(
+      String(b.room?.stay?.name || ""),
+      "pt-BR"
+    );
+    if (stayNameCompare !== 0) return stayNameCompare;
+
+    const roomPositionA = a.room?.position ?? Number.MAX_SAFE_INTEGER;
+    const roomPositionB = b.room?.position ?? Number.MAX_SAFE_INTEGER;
+    if (roomPositionA !== roomPositionB) return roomPositionA - roomPositionB;
+
+    return String(a.room?.title || "").localeCompare(String(b.room?.title || ""), "pt-BR");
+  });
+}
+
 export default function CleaningReminders() {
   const api = useApi();
   const [stays, setStays] = useState([]);
@@ -115,6 +135,11 @@ export default function CleaningReminders() {
   const allFilteredRoomsSelected =
     filteredRooms.length > 0 &&
     filteredRooms.every((room) => periodicForm.roomIds.includes(room.id));
+
+  const sortedPeriodicTasks = useMemo(
+    () => sortPeriodicTasksByPosition(periodicTasks),
+    [periodicTasks]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -550,13 +575,13 @@ export default function CleaningReminders() {
         <h2 className="mb-4 text-xl font-semibold">Tarefas periodicas cadastradas</h2>
         {loading ? (
           <div className="py-8 text-center text-sm text-slate-500">Carregando...</div>
-        ) : periodicTasks.length === 0 ? (
+        ) : sortedPeriodicTasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-slate-700">
             Nenhuma tarefa periodica cadastrada.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {periodicTasks.map((task) => (
+            {sortedPeriodicTasks.map((task) => (
               <article
                 key={task.id}
                 className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/40"
@@ -579,6 +604,20 @@ export default function CleaningReminders() {
                     {task.active ? "Ativa" : "Inativa"}
                   </span>
                 </div>
+                {task.scheduledExecution ? (
+                  <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-100">
+                    <div className="font-semibold">
+                      Agendada para {formatDate(task.scheduledExecution.executionDate)}
+                    </div>
+                    <div className="mt-1 text-xs">
+                      Diarista: {task.scheduledExecution.assignedTo?.name || "aguardando designacao"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+                    Nenhum check-out encontrado dentro da janela planejada.
+                  </div>
+                )}
                 {task.description && (
                   <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                     {task.description}
