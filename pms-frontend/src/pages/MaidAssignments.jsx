@@ -258,8 +258,7 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
     });
 
     if (remindersByKey.size > 0) {
-      lines.push("");
-      lines.push("*Lembretes*");
+      lines.push("* Lembretes");
       [...remindersByKey.values()].forEach((reminder) => {
         lines.push(`-> _${reminder.message}_`);
       });
@@ -329,109 +328,109 @@ function DetailSection({
                       const blockedTasks = getBlockedPeriodicTasks(task);
                       return (
                         <>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                          {task.stayAlias}
-                        </div>
-                        <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                          {task.apartmentLabel}
-                        </div>
-                        <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          {task.roomTitle}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                          sai {task.checkoutTime}
-                        </span>
-                        {task.hasNextCheckin && (
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                            entra {task.checkinTime}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {(task.reservationNotes || task.extraInfo) && (
-                      <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-                        {[task.reservationNotes, task.extraInfo]
-                          .filter(Boolean)
-                          .join(" | ")}
-                      </div>
-                    )}
-
-                    {(periodicTasks.length > 0 || blockedTasks.length > 0) && (
-                      <div className="mt-3 space-y-2 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:bg-sky-900/20 dark:text-sky-100">
-                        {periodicTasks.map((periodicTask) => (
-                          <div key={periodicTask.id}>
-                            <span className="font-semibold">Tarefa periodica:</span>{" "}
-                            {periodicTask.name}
-                            {periodicTask.description ? ` - ${periodicTask.description}` : ""}
-                            {periodicTask.urgent ? (
-                              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                                Urgente
-                              </span>
-                            ) : null}
-                            {periodicTask.daysSinceLastExecution !== null ? (
-                              <div className="mt-1 text-xs text-sky-800 dark:text-sky-200">
-                                {periodicTask.daysSinceLastExecution} dias desde a ultima execucao
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                                {task.stayAlias}
                               </div>
-                            ) : null}
-                          </div>
-                        ))}
-                        {blockedTasks.map((periodicTask) => (
-                          <div key={periodicTask.id} className="text-amber-800 dark:text-amber-200">
-                            <span className="font-semibold">Tarefa nao adicionada:</span>{" "}
-                            {periodicTask.name}
-                            {periodicTask.blockedBy?.[0]?.message
-                              ? ` (${periodicTask.blockedBy[0].message})`
-                              : ""}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                              <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                {task.apartmentLabel}
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                {task.roomTitle}
+                              </div>
+                            </div>
 
-                    {task.operationalReminders?.length > 0 && (
-                      <div className="mt-3 space-y-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:bg-emerald-900/20 dark:text-emerald-100">
-                        {task.operationalReminders.map((reminder) => (
-                          <div key={reminder.id}>
-                            <span className="font-semibold">{reminder.title}:</span>{" "}
-                            {reminder.message}
+                            <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                                sai {task.checkoutTime}
+                              </span>
+                              {task.hasNextCheckin && (
+                                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  entra {task.checkinTime}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
 
-                    {editable && (
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                        <input
-                          value={task.checkoutTime}
-                          onChange={(e) =>
-                            onTaskSettingsChange(task.taskStorageKey, "checkoutTime", e.target.value)
-                          }
-                          placeholder="Saída"
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                        />
-                        <input
-                          value={task.checkinTime}
-                          onChange={(e) =>
-                            onTaskSettingsChange(task.taskStorageKey, "checkinTime", e.target.value)
-                          }
-                          placeholder="Entrada"
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                        />
-                        <input
-                          value={task.extraInfo}
-                          onChange={(e) =>
-                            onTaskSettingsChange(task.taskStorageKey, "extraInfo", e.target.value)
-                          }
-                          placeholder="Observação complementar"
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                        />
-                      </div>
-                    )}
+                          {(task.reservationNotes || task.extraInfo) && (
+                            <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+                              {[task.reservationNotes, task.extraInfo]
+                                .filter(Boolean)
+                                .join(" | ")}
+                            </div>
+                          )}
+
+                          {(periodicTasks.length > 0 || blockedTasks.length > 0) && (
+                            <div className="mt-3 space-y-2 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:bg-sky-900/20 dark:text-sky-100">
+                              {periodicTasks.map((periodicTask) => (
+                                <div key={periodicTask.id}>
+                                  <span className="font-semibold">Tarefa periodica:</span>{" "}
+                                  {periodicTask.name}
+                                  {periodicTask.description ? ` - ${periodicTask.description}` : ""}
+                                  {periodicTask.urgent ? (
+                                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                                      Urgente
+                                    </span>
+                                  ) : null}
+                                  {periodicTask.daysSinceLastExecution !== null ? (
+                                    <div className="mt-1 text-xs text-sky-800 dark:text-sky-200">
+                                      {periodicTask.daysSinceLastExecution} dias desde a ultima execucao
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ))}
+                              {blockedTasks.map((periodicTask) => (
+                                <div key={periodicTask.id} className="text-amber-800 dark:text-amber-200">
+                                  <span className="font-semibold">Tarefa nao adicionada:</span>{" "}
+                                  {periodicTask.name}
+                                  {periodicTask.blockedBy?.[0]?.message
+                                    ? ` (${periodicTask.blockedBy[0].message})`
+                                    : ""}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {task.operationalReminders?.length > 0 && (
+                            <div className="mt-3 space-y-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:bg-emerald-900/20 dark:text-emerald-100">
+                              {task.operationalReminders.map((reminder) => (
+                                <div key={reminder.id}>
+                                  <span className="font-semibold">{reminder.title}:</span>{" "}
+                                  {reminder.message}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {editable && (
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                              <input
+                                value={task.checkoutTime}
+                                onChange={(e) =>
+                                  onTaskSettingsChange(task.taskStorageKey, "checkoutTime", e.target.value)
+                                }
+                                placeholder="Saída"
+                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                              />
+                              <input
+                                value={task.checkinTime}
+                                onChange={(e) =>
+                                  onTaskSettingsChange(task.taskStorageKey, "checkinTime", e.target.value)
+                                }
+                                placeholder="Entrada"
+                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                              />
+                              <input
+                                value={task.extraInfo}
+                                onChange={(e) =>
+                                  onTaskSettingsChange(task.taskStorageKey, "extraInfo", e.target.value)
+                                }
+                                placeholder="Observação complementar"
+                                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                              />
+                            </div>
+                          )}
                         </>
                       );
                     })()}
@@ -723,11 +722,10 @@ export default function MaidAssignments() {
 
       {!loading && (
         <div
-          className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-            maidListAlert.isPending
+          className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${maidListAlert.isPending
               ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
               : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-          }`}
+            }`}
         >
           {maidListAlert.message}
         </div>
@@ -852,11 +850,10 @@ export default function MaidAssignments() {
                         {list.maidName}
                       </h3>
                       <div
-                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-                          list.isSent
+                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${list.isSent
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                             : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                        }`}
+                          }`}
                       >
                         {list.isSent ? "Lista enviada" : "Pendente de envio"}
                       </div>
@@ -868,17 +865,16 @@ export default function MaidAssignments() {
                           handleListDeliveryStatusChange(list, !list.isSent)
                         }
                         disabled={updatingDeliveryKey === list.deliveryKey}
-                        className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white ${
-                          list.isSent
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white ${list.isSent
                             ? "bg-slate-600 hover:bg-slate-700"
                             : "bg-emerald-700 hover:bg-emerald-800"
-                        } disabled:cursor-not-allowed disabled:opacity-60`}
+                          } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
                         {updatingDeliveryKey === list.deliveryKey
                           ? "Salvando..."
                           : list.isSent
-                          ? "Marcar pendente"
-                          : "Confirmar envio"}
+                            ? "Marcar pendente"
+                            : "Confirmar envio"}
                       </button>
                       <button
                         type="button"
