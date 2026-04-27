@@ -4,34 +4,18 @@ import "dayjs/locale/pt-br";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { useApi } from "../lib/api";
+import { isHolidaySP } from "../lib/holidays";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const feriadosSP = [
-  "2026-01-01", // Confraternização Universal
-  "2026-01-25", // Aniversário da Cidade de São Paulo (municipal)
-  "2026-03-04", // extra cleide
-  "2026-03-18", // extra cleide
-  "2026-04-03", // Paixão de Cristo (Sexta-feira Santa)
-  "2026-04-21", // Tiradentes
-  "2026-05-01", // Dia do Trabalho
-  "2026-06-04", // Corpus Christi (municipal em SP)
-  "2026-07-09", // Data Magna do Estado de São Paulo (estadual)
-  "2026-09-07", // Independência do Brasil
-  "2026-10-12", // Nossa Senhora Aparecida
-  "2026-11-02", // Finados
-  "2026-11-15", // Proclamação da República
-  "2026-11-20", // Dia Nacional de Zumbi e da Consciência Negra
-  "2026-12-25", // Natal
-];
 
 function isWeekendOrHoliday(date) {
   const d = dayjs(date);
   return (
-    d.day() === 0 || d.day() === 6 || feriadosSP.includes(d.format("YYYY-MM-DD"))
+    d.day() === 0 || d.day() === 6 || isHolidaySP(d.format("YYYY-MM-DD"))
   );
 }
 

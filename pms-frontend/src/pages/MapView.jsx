@@ -3,6 +3,7 @@ import { useApi } from "../lib/api";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { isViewer } from "../lib/permissions";
+import { isHolidaySP } from "../lib/holidays";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -883,23 +884,45 @@ export default function MapView() {
                 {/* Cabeçalhos dos dias */}
                 {headerDays.map((d, i) => {
                   const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                  const isHoliday = isHolidaySP(fmtISO(d));
                   const baseBg = isDark
-                    ? isWeekend
+                    ? isHoliday
+                      ? "bg-amber-900/40"
+                      : isWeekend
                       ? "bg-slate-800"
                       : "bg-slate-900"
-                    : isWeekend
+                    : isHoliday
+                      ? "bg-amber-100"
+                      : isWeekend
                       ? "bg-sky-100"
                       : "bg-sky-50";
 
                   return (
                     <div
                       key={i}
-                      className={`h-10 flex flex-col justify-center items-center border-l border-b border-slate-200 dark:border-slate-700 ${baseBg}`}
+                      className={`h-10 relative flex flex-col justify-center items-center border-l border-b ${isHoliday
+                        ? "border-amber-300 dark:border-amber-700"
+                        : "border-slate-200 dark:border-slate-700"
+                        } ${baseBg}`}
+                      title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
                     >
-                      <div className="text-[18px] font-semibold leading-tight text-slate-900 dark:text-slate-100">
+                      {isHoliday && (
+                        <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-300" />
+                      )}
+                      <div
+                        className={`text-[18px] font-semibold leading-tight ${isHoliday
+                          ? "text-amber-900 dark:text-amber-100"
+                          : "text-slate-900 dark:text-slate-100"
+                          }`}
+                      >
                         {pad2(d.getDate())}
                       </div>
-                      <div className="text-[10px] uppercase leading-tight text-slate-600 dark:text-slate-300">
+                      <div
+                        className={`text-[10px] uppercase leading-tight ${isHoliday
+                          ? "text-amber-800 dark:text-amber-200"
+                          : "text-slate-600 dark:text-slate-300"
+                          }`}
+                      >
                         {["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][d.getDay()]}
                       </div>
                     </div>
@@ -926,19 +949,32 @@ export default function MapView() {
                     {Array.from({ length: days }).map((_, i) => {
                       const d = headerDays[i];
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      const isHoliday = isHolidaySP(fmtISO(d));
                       const bgClass = isDark
-                        ? isWeekend
+                        ? isHoliday
+                          ? "bg-amber-950/30"
+                          : isWeekend
                           ? "bg-slate-800/60"
                           : "bg-slate-900"
-                        : isWeekend
+                        : isHoliday
+                          ? "bg-amber-50"
+                          : isWeekend
                           ? "bg-slate-50"
                           : "bg-white";
 
                       return (
                         <div
                           key={i}
-                          className={`relative h-10 border-l border-b border-slate-200 dark:border-slate-800 ${bgClass}`}
-                        />
+                          className={`relative h-10 border-l border-b ${isHoliday
+                            ? "border-l-amber-300 border-b-slate-200 dark:border-l-amber-800 dark:border-b-slate-800"
+                            : "border-slate-200 dark:border-slate-800"
+                            } ${bgClass}`}
+                          title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
+                        >
+                          {isHoliday && (
+                            <div className="absolute inset-y-0 left-0 w-1 bg-amber-400/70 dark:bg-amber-500/60" />
+                          )}
+                        </div>
                       );
                     })}
 
