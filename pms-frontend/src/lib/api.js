@@ -24,9 +24,10 @@ export function useApi() {
       if (!res.ok) {
         const ct = res.headers.get("content-type") || "";
         let message = res.statusText || "Erro na requisicao";
+        let payload = null;
 
         if (ct.includes("application/json")) {
-          const payload = await res.json().catch(() => null);
+          payload = await res.json().catch(() => null);
           if (payload && typeof payload === "object") {
             message = payload.error || payload.message || message;
           }
@@ -35,7 +36,10 @@ export function useApi() {
           if (txt) message = txt;
         }
 
-        throw new Error(message);
+        const error = new Error(message);
+        error.status = res.status;
+        error.payload = payload;
+        throw error;
       }
 
       const ct = res.headers.get("content-type") || "";

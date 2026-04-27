@@ -5,9 +5,10 @@ const prisma = new PrismaClient();
 const STATUS_CANCELADA = "cancelada";
 const DEFAULT_STATUS = "registrada";
 
-function makeHttpError(status, message) {
+function makeHttpError(status, message, details = null) {
   const error = new Error(message);
   error.status = status;
+  error.details = details;
   return error;
 }
 
@@ -130,6 +131,77 @@ async function hasAssignedMaidInScope(tx, scope) {
   return Boolean(assignedTask);
 }
 
+async function getAssignedMaidConflictDetails(tx, scope, reservation) {
+  const assignedTask = await tx.task.findFirst({
+    where: {
+      ...getTaskWhereByRoomScope(scope),
+      maidId: { not: null },
+    },
+    include: { maid: true },
+  });
+
+  if (!assignedTask?.maidId) return null;
+
+  const sameDayTasks = await tx.task.findMany({
+    where: {
+      date: { gte: scope.start, lte: scope.end },
+      maidId: assignedTask.maidId,
+    },
+    include: { maid: true },
+    orderBy: [{ stay: "asc" }, { rooms: "asc" }],
+  });
+
+  const rooms = await tx.room.findMany({
+    include: { stay: true },
+  });
+  const roomsByTitle = new Map(rooms.map((room) => [room.title, room]));
+
+  const reservations = await tx.reservation.findMany({
+    where: {
+      status: { not: STATUS_CANCELADA },
+      checkoutDate: { gte: scope.start, lte: scope.end },
+    },
+    include: {
+      guest: true,
+      room: { include: { stay: true } },
+    },
+  });
+  const reservationsByRoomId = new Map(reservations.map((item) => [item.roomId, item]));
+
+  return {
+    code: "ASSIGNED_MAID_CONFLICT",
+    reservationId: reservation.id,
+    date: scope.date?.toISOString?.().slice(0, 10) || null,
+    maid: assignedTask.maid
+      ? {
+          id: assignedTask.maid.id,
+          name: assignedTask.maid.name,
+          bank: assignedTask.maid.bank,
+          pixKey: assignedTask.maid.pixKey,
+        }
+      : null,
+    task: {
+      id: assignedTask.id,
+      stay: assignedTask.stay,
+      rooms: assignedTask.rooms,
+      maidId: assignedTask.maidId,
+    },
+    sameDayAssignments: sameDayTasks.map((task) => {
+      const room = roomsByTitle.get(task.rooms);
+      const matchedReservation = room ? reservationsByRoomId.get(room.id) : null;
+      return {
+        taskId: task.id,
+        stay: task.stay,
+        rooms: task.rooms,
+        reservationId: matchedReservation?.id || null,
+        guestName: matchedReservation?.guest?.name || null,
+        isCurrentReservation: task.id === assignedTask.id,
+      };
+    }),
+    isOnlyAssignmentForMaidThatDay: sameDayTasks.length <= 1,
+  };
+}
+
 async function syncOldScopeAfterReservationChange(
   tx,
   { reservationIdToIgnore, roomId, checkoutDate, oldScope }
@@ -179,7 +251,10 @@ function isPrismaError(error, code) {
 
 function handleReservationError(res, error, fallbackMessage) {
   if (error?.status) {
-    return res.status(error.status).json({ error: error.message });
+    return res.status(error.status).json({
+      error: error.message,
+      ...(error.details ? { details: error.details } : {}),
+    });
   }
 
   if (isPrismaError(error, "P2003")) {
@@ -357,11 +432,12 @@ async function updateReservation(req, res) {
         !isSameUtcDay(nextCheckout, current.checkoutDate);
 
       if (scheduleAffected) {
-        const hasAssignedMaid = await hasAssignedMaidInScope(tx, oldScope);
-        if (hasAssignedMaid) {
+        const assignmentConflict = await getAssignedMaidConflictDetails(tx, oldScope, current);
+        if (assignmentConflict) {
           throw makeHttpError(
             409,
-            "Nao e permitido alterar ou cancelar a reserva: existe diarista designada para esse check-out."
+            "Nao e permitido alterar ou cancelar a reserva: existe diarista designada para esse check-out.",
+            assignmentConflict
           );
         }
       }

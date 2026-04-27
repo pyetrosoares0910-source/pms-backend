@@ -344,11 +344,15 @@ function ReservationActionsModal({
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [assignmentConflict, setAssignmentConflict] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null);
+  const [removingAssignment, setRemovingAssignment] = useState(false);
 
   if (!open || !reservation) return null;
 
   async function updateStatus(newStatus) {
     setLoading(true);
+    setAssignmentConflict(null);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
         method: "PUT",
@@ -359,14 +363,42 @@ function ReservationActionsModal({
       onClose();
     } catch (err) {
       console.error(err);
+      if (err?.status === 409 && err?.payload?.details?.code === "ASSIGNED_MAID_CONFLICT") {
+        setPendingStatus(newStatus);
+        setAssignmentConflict(err.payload.details);
+        return;
+      }
       alert(err?.message || "Erro ao atualizar reserva");
     } finally {
       setLoading(false);
     }
   }
 
+  async function removeAssignmentAndRetryStatus() {
+    const taskId = assignmentConflict?.task?.id;
+    if (!taskId || !pendingStatus) return;
+
+    setRemovingAssignment(true);
+    try {
+      await api(`/tasks/${taskId}/assign`, {
+        method: "PUT",
+        body: JSON.stringify({ maidId: null }),
+      });
+      setAssignmentConflict(null);
+      await updateStatus(pendingStatus);
+    } catch (err) {
+      console.error("Erro ao remover designacao:", err);
+      alert(err?.message || "Erro ao remover designacao da diarista.");
+    } finally {
+      setRemovingAssignment(false);
+    }
+  }
+
   const ci = parseDateOnly(reservation.checkinDate);
   const co = parseDateOnly(reservation.checkoutDate);
+  const otherAssignments = (assignmentConflict?.sameDayAssignments || []).filter(
+    (item) => !item.isCurrentReservation
+  );
 
   return (
     <>
@@ -378,6 +410,66 @@ function ReservationActionsModal({
           {fmtBR(ci)} → {fmtBR(co)}
         </p>
         <div className="space-y-2">
+          {assignmentConflict && (
+            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+              <div className="font-semibold">
+                Existe diarista designada neste check-out
+              </div>
+              <div className="mt-1">
+                {assignmentConflict.maid?.name || "Diarista"} esta marcada em{" "}
+                {assignmentConflict.date
+                  ? fmtBR(parseDateOnly(assignmentConflict.date))
+                  : "data nao informada"}{" "}
+                para {assignmentConflict.task?.stay} - {assignmentConflict.task?.rooms}.
+              </div>
+              {assignmentConflict.isOnlyAssignmentForMaidThatDay ? (
+                <div className="mt-3 rounded-lg border border-amber-300 bg-white/70 px-3 py-2 font-medium dark:border-amber-800 dark:bg-slate-950/40">
+                  Desmarcar com {assignmentConflict.maid?.name || "a diarista"}.
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <div className="font-medium">
+                    Outras reservas designadas para ela neste dia:
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {otherAssignments.length > 0 ? (
+                      otherAssignments.map((item) => (
+                        <div
+                          key={item.taskId}
+                          className="rounded-lg bg-white/70 px-3 py-2 dark:bg-slate-950/40"
+                        >
+                          <span className="font-medium">
+                            {item.stay} - {item.rooms}
+                          </span>
+                          {item.guestName ? (
+                            <span className="text-amber-800 dark:text-amber-200">
+                              {" "}
+                              / {item.guestName}
+                            </span>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg bg-white/70 px-3 py-2 dark:bg-slate-950/40">
+                        Nenhuma outra reserva encontrada para esta diarista no dia.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={removeAssignmentAndRetryStatus}
+                disabled={removingAssignment || loading}
+                className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+              >
+                {removingAssignment
+                  ? "Removendo designacao..."
+                  : "Remover designacao desta reserva e continuar"}
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => updateStatus("ativa")}
             disabled={loading}
@@ -436,6 +528,8 @@ function ReservationActionsModal({
 function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
+  const [assignmentConflict, setAssignmentConflict] = useState(null);
+  const [removingAssignment, setRemovingAssignment] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -447,6 +541,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
   useEffect(() => {
     if (reservation) {
+      setAssignmentConflict(null);
       setForm({
         checkinDate: reservation.checkinDate?.split("T")[0] || "",
         checkoutDate: reservation.checkoutDate?.split("T")[0] || "",
@@ -458,29 +553,63 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setAssignmentConflict(null);
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const saveReservation = async (values) => {
     setLoading(true);
+    setAssignmentConflict(null);
     try {
       const updated = await api(`/reservations/${reservation.id}`, {
         method: "PUT",
-        body: JSON.stringify(form),
+        body: JSON.stringify(values),
       });
 
       onUpdated(updated);
       onClose();
     } catch (err) {
       console.error("Erro ao editar reserva:", err);
+      if (err?.status === 409 && err?.payload?.details?.code === "ASSIGNED_MAID_CONFLICT") {
+        setAssignmentConflict(err.payload.details);
+        return;
+      }
       alert(err?.message || "Erro ao salvar alteracoes");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSave = async (e) => {
+    e.preventDefault();
+    await saveReservation(form);
+  };
+
+  const handleRemoveAssignmentAndSave = async () => {
+    const taskId = assignmentConflict?.task?.id;
+    if (!taskId) return;
+
+    setRemovingAssignment(true);
+    try {
+      await api(`/tasks/${taskId}/assign`, {
+        method: "PUT",
+        body: JSON.stringify({ maidId: null }),
+      });
+      setAssignmentConflict(null);
+      await saveReservation(form);
+    } catch (err) {
+      console.error("Erro ao remover designacao:", err);
+      alert(err?.message || "Erro ao remover designacao da diarista.");
+    } finally {
+      setRemovingAssignment(false);
+    }
+  };
+
   if (!open || !reservation) return null;
+
+  const otherAssignments = (assignmentConflict?.sameDayAssignments || []).filter(
+    (item) => !item.isCurrentReservation
+  );
 
   return (
     <Modal open={open} onClose={onClose} title="Editar reserva">
@@ -504,9 +633,10 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
             onClose={() => setRangeOpen(false)}
             initialStartISO={form.checkinDate}
             initialEndISO={form.checkoutDate}
-            onApply={(ci, co) =>
-              setForm((prev) => ({ ...prev, checkinDate: ci, checkoutDate: co }))
-            }
+            onApply={(ci, co) => {
+              setAssignmentConflict(null);
+              setForm((prev) => ({ ...prev, checkinDate: ci, checkoutDate: co }));
+            }}
           />
         </div>
 
@@ -538,6 +668,68 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
             rows={3}
           />
         </div>
+
+        {assignmentConflict && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="font-semibold">
+              Existe diarista designada neste check-out
+            </div>
+            <div className="mt-1">
+              {assignmentConflict.maid?.name || "Diarista"} esta marcada em{" "}
+              {assignmentConflict.date
+                ? fmtBR(parseDateOnly(assignmentConflict.date))
+                : "data nao informada"}{" "}
+              para {assignmentConflict.task?.stay} - {assignmentConflict.task?.rooms}.
+            </div>
+
+            {assignmentConflict.isOnlyAssignmentForMaidThatDay ? (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-white/70 px-3 py-2 font-medium dark:border-amber-800 dark:bg-slate-950/40">
+                Desmarcar com {assignmentConflict.maid?.name || "a diarista"}.
+              </div>
+            ) : (
+              <div className="mt-3">
+                <div className="font-medium">
+                  Outras reservas designadas para ela neste dia:
+                </div>
+                <div className="mt-2 space-y-1">
+                  {otherAssignments.length > 0 ? (
+                    otherAssignments.map((item) => (
+                      <div
+                        key={item.taskId}
+                        className="rounded-lg bg-white/70 px-3 py-2 dark:bg-slate-950/40"
+                      >
+                        <span className="font-medium">
+                          {item.stay} - {item.rooms}
+                        </span>
+                        {item.guestName ? (
+                          <span className="text-amber-800 dark:text-amber-200">
+                            {" "}
+                            / {item.guestName}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg bg-white/70 px-3 py-2 dark:bg-slate-950/40">
+                      Nenhuma outra reserva encontrada para esta diarista no dia.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRemoveAssignmentAndSave}
+              disabled={removingAssignment || loading}
+              className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+            >
+              {removingAssignment
+                ? "Removendo designacao..."
+                : "Remover designacao desta reserva e salvar"}
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-end gap-2">
           <button
@@ -900,10 +1092,7 @@ export default function MapView() {
                   return (
                     <div
                       key={i}
-                      className={`h-10 relative flex flex-col justify-center items-center border-l border-b ${isHoliday
-                        ? "border-amber-300 dark:border-amber-700"
-                        : "border-slate-200 dark:border-slate-700"
-                        } ${baseBg}`}
+                      className={`h-10 relative flex flex-col justify-center items-center border-l border-b border-slate-200 dark:border-slate-700 ${baseBg}`}
                       title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
                     >
                       {isHoliday && (
@@ -965,16 +1154,9 @@ export default function MapView() {
                       return (
                         <div
                           key={i}
-                          className={`relative h-10 border-l border-b ${isHoliday
-                            ? "border-l-amber-300 border-b-slate-200 dark:border-l-amber-800 dark:border-b-slate-800"
-                            : "border-slate-200 dark:border-slate-800"
-                            } ${bgClass}`}
+                          className={`relative h-10 border-l border-b border-slate-200 dark:border-slate-800 ${bgClass}`}
                           title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
-                        >
-                          {isHoliday && (
-                            <div className="absolute inset-y-0 left-0 w-1 bg-amber-400/70 dark:bg-amber-500/60" />
-                          )}
-                        </div>
+                        />
                       );
                     })}
 
