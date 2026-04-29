@@ -69,21 +69,45 @@ function previousMonthEquivalentDay(d = new Date()) {
   return prevMonth.date(safeDay).startOf("day");
 }
 
-function getRoomAvailabilityDays(room, start, end) {
+function getRoomAvailabilityDays(room, start, end, historicalStartByRoom = null) {
   if (!room) return 0;
 
+  const historicalStart = historicalStartByRoom?.get(room.id);
   const roomCreatedAt = room.createdAt
     ? dayjs(room.createdAt).startOf("day")
     : dayjs(start);
+  const availabilityStart = historicalStart
+    ? dayjs.min(dayjs(historicalStart).startOf("day"), roomCreatedAt)
+    : roomCreatedAt;
 
-  return overlapDays(roomCreatedAt, end, start, end);
+  return overlapDays(availabilityStart, end, start, end);
 }
 
-function getTotalCapacityDays(rooms, start, end) {
+function getTotalCapacityDays(rooms, start, end, historicalStartByRoom = null) {
   return (rooms || []).reduce(
-    (sum, room) => sum + getRoomAvailabilityDays(room, start, end),
+    (sum, room) => sum + getRoomAvailabilityDays(room, start, end, historicalStartByRoom),
     0
   );
+}
+
+function buildHistoricalRoomStartMap(reservations, roomIdSet) {
+  const starts = new Map();
+
+  (reservations || []).forEach((reservation) => {
+    if (reservation.status === "cancelada") return;
+    if (!reservation.roomId || !reservation.checkinDate) return;
+    if (roomIdSet && !roomIdSet.has(reservation.roomId)) return;
+
+    const checkin = dayjs(reservation.checkinDate).startOf("day");
+    if (!checkin.isValid()) return;
+
+    const currentStart = starts.get(reservation.roomId);
+    if (!currentStart || checkin.isBefore(currentStart)) {
+      starts.set(reservation.roomId, checkin);
+    }
+  });
+
+  return starts;
 }
 
 function getOccupiedNights(reservations, start, end, roomIdSet = null) {
@@ -249,8 +273,9 @@ function StayXAxisTick({ x, y, payload, isDark }) {
 function getOverallOccupancyPct(reservations, rooms, referenceDate) {
   const { start, end } = monthBounds(referenceDate);
   const roomIdSet = new Set((rooms || []).map((room) => room.id));
+  const historicalStartByRoom = buildHistoricalRoomStartMap(reservations, roomIdSet);
   const totalNoites = getOccupiedNights(reservations, start, end, roomIdSet);
-  const capacidadeTotal = getTotalCapacityDays(rooms, start, end);
+  const capacidadeTotal = getTotalCapacityDays(rooms, start, end, historicalStartByRoom);
 
   return capacidadeTotal > 0
     ? Math.round((totalNoites / capacidadeTotal) * 100)
