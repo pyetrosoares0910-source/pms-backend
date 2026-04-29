@@ -427,9 +427,10 @@ export default function Dashboard() {
 
   // labels dos meses
   const monthsTrend = useMemo(() => {
-    const olderMonths = buildMonthlyOccupancyTrend(reservations, rooms, 12).slice(
+    const totalTrendMonths = 36;
+    const olderMonths = buildMonthlyOccupancyTrend(reservations, rooms, totalTrendMonths).slice(
       0,
-      9
+      totalTrendMonths - 3
     );
 
     return [

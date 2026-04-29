@@ -1,7 +1,13 @@
 import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
-const RANGE_OPTIONS = [3, 6, 12];
+const RANGE_OPTIONS = [
+  { months: 3, label: "3M" },
+  { months: 6, label: "6M" },
+  { months: 12, label: "12M" },
+  { months: 24, label: "2A" },
+  { months: 36, label: "3A" },
+];
 
 /**
  * props:
@@ -216,20 +222,20 @@ export default function KpiGaugeOcupacao({ data = [] }) {
         <div className="ml-auto flex flex-col items-end gap-3">
           <div className="inline-flex rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1 dark:border-slate-700/60 dark:bg-slate-900/80">
             {RANGE_OPTIONS.map((option) => {
-              const isActive = option === selectedRange;
+              const isActive = option.months === selectedRange;
 
               return (
                 <button
-                  key={option}
+                  key={option.months}
                   type="button"
-                  onClick={() => setSelectedRange(option)}
+                  onClick={() => setSelectedRange(option.months)}
                   aria-pressed={isActive}
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${isActive
                     ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950"
                     : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                     }`}
                 >
-                  {option}M
+                  {option.label}
                 </button>
               );
             })}
