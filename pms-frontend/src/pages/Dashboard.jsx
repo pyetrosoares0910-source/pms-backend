@@ -49,6 +49,9 @@ dayjs.extend(minMax);
 dayjs.extend(utc);
 dayjs.extend(isBetween);
 
+const HISTORICAL_STAY_CAPACITY_START = dayjs("2025-01-01");
+const HISTORICAL_STAY_CAPACITY_END = dayjs("2025-09-01");
+
 function overlapDays(a0, a1, b0, b1) {
   const start = dayjs.max(dayjs(a0), dayjs(b0));
   const end = dayjs.min(dayjs(a1), dayjs(b1));
@@ -69,8 +72,26 @@ function previousMonthEquivalentDay(d = new Date()) {
   return prevMonth.date(safeDay).startOf("day");
 }
 
-function getRoomAvailabilityDays(room, start, end, historicalStartByRoom = null) {
+function isHistoricalStayCapacityMonth(start) {
+  return (
+    dayjs(start).isSameOrAfter(HISTORICAL_STAY_CAPACITY_START, "month") &&
+    dayjs(start).isBefore(HISTORICAL_STAY_CAPACITY_END, "month")
+  );
+}
+
+function getRoomAvailabilityDays(
+  room,
+  start,
+  end,
+  historicalStartByRoom = null,
+  fullMonthOpenStayIds = null
+) {
   if (!room) return 0;
+
+  const stayId = room.stay?.id || room.stayId;
+  if (stayId && fullMonthOpenStayIds?.has(stayId)) {
+    return overlapDays(start, end, start, end);
+  }
 
   const historicalStart = historicalStartByRoom?.get(room.id);
   const roomCreatedAt = room.createdAt
@@ -83,9 +104,23 @@ function getRoomAvailabilityDays(room, start, end, historicalStartByRoom = null)
   return overlapDays(availabilityStart, end, start, end);
 }
 
-function getTotalCapacityDays(rooms, start, end, historicalStartByRoom = null) {
+function getTotalCapacityDays(
+  rooms,
+  start,
+  end,
+  historicalStartByRoom = null,
+  fullMonthOpenStayIds = null
+) {
   return (rooms || []).reduce(
-    (sum, room) => sum + getRoomAvailabilityDays(room, start, end, historicalStartByRoom),
+    (sum, room) =>
+      sum +
+      getRoomAvailabilityDays(
+        room,
+        start,
+        end,
+        historicalStartByRoom,
+        fullMonthOpenStayIds
+      ),
     0
   );
 }
@@ -108,6 +143,28 @@ function buildHistoricalRoomStartMap(reservations, roomIdSet) {
   });
 
   return starts;
+}
+
+function buildHistoricalOpenStaySet(reservations, rooms, start, end) {
+  if (!isHistoricalStayCapacityMonth(start)) return null;
+
+  const roomToStay = new Map(
+    (rooms || []).map((room) => [room.id, room.stay?.id || room.stayId])
+  );
+  const openStayIds = new Set();
+
+  (reservations || []).forEach((reservation) => {
+    if (reservation.status === "cancelada") return;
+    if (!reservation.roomId || !reservation.checkinDate || !reservation.checkoutDate) return;
+    if (overlapDays(reservation.checkinDate, reservation.checkoutDate, start, end) <= 0) {
+      return;
+    }
+
+    const stayId = roomToStay.get(reservation.roomId);
+    if (stayId) openStayIds.add(stayId);
+  });
+
+  return openStayIds;
 }
 
 function getOccupiedNights(reservations, start, end, roomIdSet = null) {
@@ -274,8 +331,20 @@ function getOverallOccupancyPct(reservations, rooms, referenceDate) {
   const { start, end } = monthBounds(referenceDate);
   const roomIdSet = new Set((rooms || []).map((room) => room.id));
   const historicalStartByRoom = buildHistoricalRoomStartMap(reservations, roomIdSet);
+  const fullMonthOpenStayIds = buildHistoricalOpenStaySet(
+    reservations,
+    rooms,
+    start,
+    end
+  );
   const totalNoites = getOccupiedNights(reservations, start, end, roomIdSet);
-  const capacidadeTotal = getTotalCapacityDays(rooms, start, end, historicalStartByRoom);
+  const capacidadeTotal = getTotalCapacityDays(
+    rooms,
+    start,
+    end,
+    historicalStartByRoom,
+    fullMonthOpenStayIds
+  );
 
   return capacidadeTotal > 0
     ? Math.round((totalNoites / capacidadeTotal) * 100)
