@@ -228,7 +228,46 @@ async function syncOldScopeAfterReservationChange(
   });
 }
 
-async function findOverlappingReservation(tx, { roomId, checkinDate, checkoutDate, excludeId }) {
+function buildReservationConflictDetails({ roomId, checkinDate, checkoutDate, reservations }) {
+  return {
+    code: "RESERVATION_DATE_CONFLICT",
+    roomId: String(roomId),
+    requestedPeriod: {
+      checkinDate: checkinDate.toISOString(),
+      checkoutDate: checkoutDate.toISOString(),
+    },
+    conflictingReservations: reservations.map((reservation) => ({
+      id: reservation.id,
+      roomId: reservation.roomId,
+      guestId: reservation.guestId,
+      checkinDate: reservation.checkinDate,
+      checkoutDate: reservation.checkoutDate,
+      status: reservation.status,
+      notes: reservation.notes,
+      guest: reservation.guest
+        ? {
+            id: reservation.guest.id,
+            name: reservation.guest.name,
+            phone: reservation.guest.phone,
+          }
+        : null,
+      room: reservation.room
+        ? {
+            id: reservation.room.id,
+            title: reservation.room.title,
+            stay: reservation.room.stay
+              ? {
+                  id: reservation.room.stay.id,
+                  name: reservation.room.stay.name,
+                }
+              : null,
+          }
+        : null,
+    })),
+  };
+}
+
+async function findOverlappingReservations(tx, { roomId, checkinDate, checkoutDate, excludeId }) {
   const where = {
     roomId: String(roomId),
     status: { not: STATUS_CANCELADA },
@@ -239,9 +278,13 @@ async function findOverlappingReservation(tx, { roomId, checkinDate, checkoutDat
     where.id = { not: String(excludeId) };
   }
 
-  return tx.reservation.findFirst({
+  return tx.reservation.findMany({
     where,
-    select: { id: true },
+    include: {
+      guest: true,
+      room: { include: { stay: true } },
+    },
+    orderBy: [{ checkinDate: "asc" }, { checkoutDate: "asc" }],
   });
 }
 
@@ -331,16 +374,22 @@ async function createReservation(req, res) {
         throw makeHttpError(400, "Data de check-out deve ser posterior ao check-in.");
       }
 
-      const overlapping = await findOverlappingReservation(tx, {
+      const overlappingReservations = await findOverlappingReservations(tx, {
         roomId,
         checkinDate: checkin,
         checkoutDate: checkout,
       });
 
-      if (overlapping) {
+      if (overlappingReservations.length > 0) {
         throw makeHttpError(
-          400,
-          "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao."
+          409,
+          "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao.",
+          buildReservationConflictDetails({
+            roomId,
+            checkinDate: checkin,
+            checkoutDate: checkout,
+            reservations: overlappingReservations,
+          })
         );
       }
 
@@ -409,17 +458,23 @@ async function updateReservation(req, res) {
       }
 
       if (nextStatus !== STATUS_CANCELADA) {
-        const overlapping = await findOverlappingReservation(tx, {
+        const overlappingReservations = await findOverlappingReservations(tx, {
           roomId: nextRoomId,
           checkinDate: nextCheckin,
           checkoutDate: nextCheckout,
           excludeId: id,
         });
 
-        if (overlapping) {
+        if (overlappingReservations.length > 0) {
           throw makeHttpError(
-            400,
-            "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao."
+            409,
+            "Ja existe uma reserva ativa, agendada ou registrada neste periodo para esta acomodacao.",
+            buildReservationConflictDetails({
+              roomId: nextRoomId,
+              checkinDate: nextCheckin,
+              checkoutDate: nextCheckout,
+              reservations: overlappingReservations,
+            })
           );
         }
       }

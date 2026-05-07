@@ -28,6 +28,11 @@ function parseDateOnly(isoString) {
   return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
+function datesOverlap(aStart, aEnd, bStart, bEnd) {
+  if (!aStart || !aEnd || !bStart || !bEnd) return false;
+  return parseDateOnly(aStart) < parseDateOnly(bEnd) && parseDateOnly(aEnd) > parseDateOnly(bStart);
+}
+
 // util local só pro picker (mantém YYYY-MM-DD)
 function toISODateOnlyLocal(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -62,12 +67,12 @@ function colorByStatus(status) {
 const ROOM_COL_WIDTH = 200;
 
 // ===== Modal base =====
-function Modal({ open, onClose, title, children }) {
+function Modal({ open, onClose, title, children, maxWidth = "max-w-lg" }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-slate-200/70 dark:border-slate-700">
+      <div className={`relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full ${maxWidth} mx-4 border border-slate-200/70 dark:border-slate-700`}>
         <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h2 className="font-semibold">{title}</h2>
           <button
@@ -752,7 +757,145 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
   );
 }
 
-function AddReservationModal({ open, onClose, rooms, onCreated }) {
+function ReservationConflictModal({
+  open,
+  onClose,
+  conflict,
+  rooms,
+  onCancelExisting,
+  onEditExisting,
+  onUpdatedExisting,
+}) {
+  const api = useApi();
+  const [loadingId, setLoadingId] = useState(null);
+  const [editingReservation, setEditingReservation] = useState(null);
+
+  if (!open || !conflict) return null;
+
+  const requested = conflict.requestedPeriod || {};
+  const conflicts = conflict.conflictingReservations || [];
+  const roomTitle =
+    conflicts[0]?.room?.title ||
+    rooms.find((room) => room.id === conflict.roomId)?.title ||
+    "acomodacao";
+
+  async function cancelReservation(reservation) {
+    setLoadingId(reservation.id);
+    try {
+      const updated = await api(`/reservations/${reservation.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: ReservationStatus.CANCELADA }),
+      });
+      onCancelExisting(updated);
+    } catch (err) {
+      console.error("Erro ao cancelar reserva existente:", err);
+      alert(err?.message || "Erro ao cancelar reserva existente.");
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  function handleUpdatedExisting(updated) {
+    onUpdatedExisting(updated);
+    setEditingReservation(null);
+  }
+
+  return (
+    <>
+      <Modal
+        open={open}
+        onClose={onClose}
+        title="Reserva existente no periodo"
+        maxWidth="max-w-3xl"
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="font-semibold">
+              A nova reserva nao foi inserida porque {roomTitle} ja esta ocupada.
+            </div>
+            <div className="mt-1">
+              Periodo solicitado:{" "}
+              {requested.checkinDate ? fmtBR(parseDateOnly(requested.checkinDate)) : "__/__/__"}{" "}
+              ate{" "}
+              {requested.checkoutDate ? fmtBR(parseDateOnly(requested.checkoutDate)) : "__/__/__"}.
+            </div>
+          </div>
+
+          <div className="max-h-[45vh] space-y-3 overflow-y-auto pr-1">
+            {conflicts.map((reservation) => (
+              <div
+                key={reservation.id}
+                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="font-semibold text-slate-900 dark:text-slate-50">
+                      {reservation.guest?.name || "Hospede sem nome"}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {reservation.room?.stay?.name ? `${reservation.room.stay.name} - ` : ""}
+                      {reservation.room?.title || roomTitle}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {fmtBR(parseDateOnly(reservation.checkinDate))} ate{" "}
+                      {fmtBR(parseDateOnly(reservation.checkoutDate))} / {reservation.status}
+                    </div>
+                    {reservation.notes ? (
+                      <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        {reservation.notes}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
+                    <button
+                      type="button"
+                      onClick={() => setEditingReservation(reservation)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Alterar datas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => cancelReservation(reservation)}
+                      disabled={loadingId === reservation.id}
+                      className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-60"
+                    >
+                      {loadingId === reservation.id ? "Cancelando..." : "Cancelar reserva"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-slate-700 dark:border-slate-600 dark:text-slate-200"
+            >
+              Nao inserir nova reserva
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <EditReservationModal
+        open={!!editingReservation}
+        onClose={() => setEditingReservation(null)}
+        reservation={editingReservation}
+        rooms={rooms}
+        onUpdated={(updated) => {
+          onEditExisting?.(updated);
+          handleUpdatedExisting(updated);
+        }}
+      />
+    </>
+  );
+}
+
+function AddReservationModal({ open, onClose, rooms, onCreated, onUpdated }) {
   const api = useApi();
   const [guestName, setGuestName] = useState("");
   const [roomId, setRoomId] = useState("");
@@ -762,13 +905,43 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rangeOpen, setRangeOpen] = useState(false);
+  const [conflict, setConflict] = useState(null);
+
+  function removeResolvedConflict(updated) {
+    setConflict((prev) => {
+      if (!prev) return prev;
+      const remaining = (prev.conflictingReservations || []).filter((reservation) => {
+        if (reservation.id !== updated.id) return true;
+        if (updated.status === ReservationStatus.CANCELADA) return false;
+        if (updated.roomId !== prev.roomId) return false;
+        return datesOverlap(
+          updated.checkinDate,
+          updated.checkoutDate,
+          prev.requestedPeriod?.checkinDate,
+          prev.requestedPeriod?.checkoutDate
+        );
+      });
+
+      return remaining.length > 0
+        ? { ...prev, conflictingReservations: remaining }
+        : null;
+    });
+  }
+
+  function closeAndReset() {
+    setConflict(null);
+    setError("");
+    onClose();
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setConflict(null);
+    let createdGuest = null;
     try {
-      const guest = await api("/guests", {
+      createdGuest = await api("/guests", {
         method: "POST",
         body: JSON.stringify({ name: guestName }),
       });
@@ -776,7 +949,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
       const created = await api("/reservations", {
         method: "POST",
         body: JSON.stringify({
-          guestId: guest.id,
+          guestId: createdGuest.id,
           roomId,
           checkinDate: checkin,
           checkoutDate: checkout,
@@ -791,14 +964,43 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
       setNotes("");
     } catch (err) {
       console.error(err);
+      if (
+        err?.status === 409 &&
+        err?.payload?.details?.code === "RESERVATION_DATE_CONFLICT"
+      ) {
+        if (createdGuest?.id) {
+          await api(`/guests/${createdGuest.id}`, { method: "DELETE" }).catch((deleteErr) => {
+            console.error("Erro ao remover hospede sem reserva:", deleteErr);
+          });
+        }
+        setConflict(err.payload.details);
+        return;
+      }
       setError(err?.message || "Erro ao salvar reserva");
     } finally {
       setLoading(false);
     }
   }
 
+  if (conflict) {
+    return (
+      <ReservationConflictModal
+        open={open}
+        onClose={closeAndReset}
+        conflict={conflict}
+        rooms={rooms}
+        onCancelExisting={(updated) => {
+          onUpdated(updated);
+          removeResolvedConflict(updated);
+        }}
+        onEditExisting={onUpdated}
+        onUpdatedExisting={removeResolvedConflict}
+      />
+    );
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Nova reserva">
+    <Modal open={open} onClose={closeAndReset} title="Nova reserva">
       <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <label className="text-sm">Hóspede</label>
@@ -870,7 +1072,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated }) {
         <div className="col-span-2 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeAndReset}
             className="px-4 py-2 border rounded-lg border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200"
           >
             Cancelar
@@ -934,7 +1136,7 @@ export default function MapView() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [api]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -1204,6 +1406,11 @@ export default function MapView() {
           onClose={() => setAddOpen(false)}
           rooms={rooms}
           onCreated={(res) => setReservations((prev) => [...prev, res])}
+          onUpdated={(updated) =>
+            setReservations((prev) =>
+              prev.map((r) => (r.id === updated.id ? updated : r))
+            )
+          }
         />
       )}
 
