@@ -28,6 +28,34 @@ function parseDateOnly(isoString) {
   return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
+function formatReservationTimestamp(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const hasTime =
+    date.getHours() !== 0 ||
+    date.getMinutes() !== 0 ||
+    date.getSeconds() !== 0 ||
+    date.getMilliseconds() !== 0;
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    ...(hasTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  }).format(date);
+}
+
+function hasMeaningfulReservationUpdate(reservation) {
+  if (!reservation?.createdAt || !reservation?.updatedAt) return false;
+  const createdAt = new Date(reservation.createdAt).getTime();
+  const updatedAt = new Date(reservation.updatedAt).getTime();
+
+  if (Number.isNaN(createdAt) || Number.isNaN(updatedAt)) return false;
+  return Math.abs(updatedAt - createdAt) > 1000;
+}
+
 function datesOverlap(aStart, aEnd, bStart, bEnd) {
   if (!aStart || !aEnd || !bStart || !bEnd) return false;
   return parseDateOnly(aStart) < parseDateOnly(bEnd) && parseDateOnly(aEnd) > parseDateOnly(bStart);
@@ -401,6 +429,10 @@ function ReservationActionsModal({
 
   const ci = parseDateOnly(reservation.checkinDate);
   const co = parseDateOnly(reservation.checkoutDate);
+  const createdAtLabel = formatReservationTimestamp(reservation.createdAt);
+  const updatedAtLabel = hasMeaningfulReservationUpdate(reservation)
+    ? formatReservationTimestamp(reservation.updatedAt)
+    : "";
   const otherAssignments = (assignmentConflict?.sameDayAssignments || []).filter(
     (item) => !item.isCurrentReservation
   );
@@ -414,6 +446,26 @@ function ReservationActionsModal({
         <p className="text-sm mb-4 text-slate-600 dark:text-slate-300">
           {fmtBR(ci)} → {fmtBR(co)}
         </p>
+        {(createdAtLabel || updatedAtLabel) && (
+          <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+            {createdAtLabel && (
+              <div>
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  Criada em:
+                </span>{" "}
+                {createdAtLabel}
+              </div>
+            )}
+            {updatedAtLabel && (
+              <div className="mt-1">
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  Ultima alteracao:
+                </span>{" "}
+                {updatedAtLabel}
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-2">
           {assignmentConflict && (
             <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
