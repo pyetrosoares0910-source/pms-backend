@@ -41,6 +41,29 @@ exports.getCheckouts = async (req, res) => {
       endDate,
     });
 
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        status: { not: "cancelada" },
+        OR: [
+          { cleaningDateOverride: { gte: startDate, lte: endDate } },
+          {
+            cleaningDateOverride: null,
+            checkoutDate: { gte: startDate, lte: endDate },
+          },
+        ],
+      },
+      include: {
+        guest: true,
+        room: { include: { stay: true } },
+      },
+    });
+    const reservationsByCleaningScope = new Map(
+      reservations.map((reservation) => {
+        const effectiveDate = reservation.cleaningDateOverride || reservation.checkoutDate;
+        return [`${reservation.roomId}|${toUtcDay(effectiveDate).toISOString().slice(0, 10)}`, reservation];
+      })
+    );
+
     const mapped = operations.map((t) => ({
       id: t.id,
       date: t.date ? t.date.toISOString().split("T")[0] : null, // formato YYYY-MM-DD
@@ -50,6 +73,12 @@ exports.getCheckouts = async (req, res) => {
       maidId: t.maid ? t.maid.id : null,
       stayId: t.stayId || null,
       roomId: t.roomId || null,
+      reservation:
+        t.roomId && t.date
+          ? reservationsByCleaningScope.get(
+              `${t.roomId}|${toUtcDay(t.date).toISOString().slice(0, 10)}`
+            ) || null
+          : null,
       periodicTasks: t.periodicTasks || [],
       operationalReminders: t.operationalReminders || [],
     }));

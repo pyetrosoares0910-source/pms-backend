@@ -51,7 +51,8 @@ function isSameUtcDay(a, b) {
 }
 
 function getTaskScopeFromReservation(reservation) {
-  const { start, end } = getUtcDayRange(reservation.checkoutDate);
+  const cleaningDate = reservation.cleaningDateOverride || reservation.checkoutDate;
+  const { start, end } = getUtcDayRange(cleaningDate);
   return {
     start,
     end,
@@ -159,7 +160,13 @@ async function getAssignedMaidConflictDetails(tx, scope, reservation) {
   const reservations = await tx.reservation.findMany({
     where: {
       status: { not: STATUS_CANCELADA },
-      checkoutDate: { gte: scope.start, lte: scope.end },
+      OR: [
+        { cleaningDateOverride: { gte: scope.start, lte: scope.end } },
+        {
+          cleaningDateOverride: null,
+          checkoutDate: { gte: scope.start, lte: scope.end },
+        },
+      ],
     },
     include: {
       guest: true,
@@ -204,16 +211,22 @@ async function getAssignedMaidConflictDetails(tx, scope, reservation) {
 
 async function syncOldScopeAfterReservationChange(
   tx,
-  { reservationIdToIgnore, roomId, checkoutDate, oldScope }
+  { reservationIdToIgnore, roomId, effectiveCleaningDate, oldScope }
 ) {
-  const { start, end } = getUtcDayRange(checkoutDate);
+  const { start, end } = getUtcDayRange(effectiveCleaningDate);
 
   const anotherReservationOnSameDay = await tx.reservation.findFirst({
     where: {
       id: { not: reservationIdToIgnore },
       roomId: String(roomId),
       status: { not: STATUS_CANCELADA },
-      checkoutDate: { gte: start, lte: end },
+      OR: [
+        { cleaningDateOverride: { gte: start, lte: end } },
+        {
+          cleaningDateOverride: null,
+          checkoutDate: { gte: start, lte: end },
+        },
+      ],
     },
     select: { id: true },
   });
@@ -517,7 +530,7 @@ async function updateReservation(req, res) {
         await syncOldScopeAfterReservationChange(tx, {
           reservationIdToIgnore: current.id,
           roomId: current.roomId,
-          checkoutDate: current.checkoutDate,
+          effectiveCleaningDate: current.cleaningDateOverride || current.checkoutDate,
           oldScope,
         });
         return reservation;
@@ -530,7 +543,7 @@ async function updateReservation(req, res) {
         await syncOldScopeAfterReservationChange(tx, {
           reservationIdToIgnore: current.id,
           roomId: current.roomId,
-          checkoutDate: current.checkoutDate,
+          effectiveCleaningDate: current.cleaningDateOverride || current.checkoutDate,
           oldScope,
         });
       }
@@ -577,7 +590,7 @@ async function deleteReservation(req, res) {
       await syncOldScopeAfterReservationChange(tx, {
         reservationIdToIgnore: current.id,
         roomId: current.roomId,
-        checkoutDate: current.checkoutDate,
+        effectiveCleaningDate: current.cleaningDateOverride || current.checkoutDate,
         oldScope,
       });
     });
@@ -590,10 +603,91 @@ async function deleteReservation(req, res) {
   }
 }
 
+// PUT /reservations/:id/cleaning-date
+async function updateReservationCleaningDate(req, res) {
+  const { id } = req.params;
+  const { cleaningDate, reason } = req.body;
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const current = await tx.reservation.findUnique({
+        where: { id: String(id) },
+        include: {
+          room: { include: { stay: true } },
+          guest: true,
+        },
+      });
+
+      if (!current) {
+        throw makeHttpError(404, "Reserva nao encontrada.");
+      }
+
+      if (current.status === STATUS_CANCELADA) {
+        throw makeHttpError(400, "Nao e possivel alterar limpeza de reserva cancelada.");
+      }
+
+      const nextCleaningDate = cleaningDate ? toValidDate(cleaningDate) : null;
+      const nextReason = typeof reason === "string" ? reason.trim() : "";
+
+      if (cleaningDate && !nextCleaningDate) {
+        throw makeHttpError(400, "Data de limpeza invalida.");
+      }
+
+      if (nextCleaningDate && !nextReason) {
+        throw makeHttpError(400, "Informe o motivo da alteracao da limpeza.");
+      }
+
+      const oldScope = getTaskScopeFromReservation(current);
+      const taskToMove = await tx.task.findFirst({
+        where: getTaskWhereByRoomScope(oldScope),
+        orderBy: { id: "asc" },
+      });
+
+      const reservation = await tx.reservation.update({
+        where: { id: String(id) },
+        data: {
+          cleaningDateOverride: nextCleaningDate,
+          cleaningChangeReason: nextCleaningDate ? nextReason : null,
+        },
+        include: {
+          room: { include: { stay: true } },
+          guest: true,
+        },
+      });
+
+      const newScope = getTaskScopeFromReservation(reservation);
+      const scopeChanged = getTaskScopeKey(oldScope) !== getTaskScopeKey(newScope);
+
+      if (scopeChanged) {
+        await syncOldScopeAfterReservationChange(tx, {
+          reservationIdToIgnore: current.id,
+          roomId: current.roomId,
+          effectiveCleaningDate: current.cleaningDateOverride || current.checkoutDate,
+          oldScope,
+        });
+      }
+
+      const checkoutTask = await ensureSingleCheckoutTask(tx, newScope);
+      if (scopeChanged && taskToMove?.maidId && !checkoutTask.maidId) {
+        await tx.task.update({
+          where: { id: checkoutTask.id },
+          data: { maidId: taskToMove.maidId },
+        });
+      }
+      return reservation;
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    return handleReservationError(res, error, "Erro interno ao alterar data de limpeza.");
+  }
+}
+
 module.exports = {
   getAllReservations,
   getReservationById,
   createReservation,
   updateReservation,
+  updateReservationCleaningDate,
   deleteReservation,
 };

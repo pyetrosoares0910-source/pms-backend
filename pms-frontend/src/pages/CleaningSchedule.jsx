@@ -6,6 +6,7 @@ import { useApi } from "../lib/api";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import CleaningDateModal from "../components/CleaningDateModal";
 
 // ativar plugins
 dayjs.extend(utc);
@@ -16,6 +17,7 @@ const CleaningSchedule = () => {
   const [tasks, setTasks] = useState([]);
   const [maids, setMaids] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedCleaningTask, setSelectedCleaningTask] = useState(null);
 
   // novos estados para filtro
   const [startDate, setStartDate] = useState(
@@ -38,6 +40,7 @@ const CleaningSchedule = () => {
       rooms: t.rooms || "Sem identificação",
       maid: t.maid || null,
       maidId: t.maidId || null,
+      reservation: t.reservation || null,
     }));
 
     setTasks(mapped);
@@ -189,6 +192,9 @@ const CleaningSchedule = () => {
                     <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
                       Diarista
                     </th>
+                    <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                      Acao
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,12 +260,27 @@ const CleaningSchedule = () => {
                                 ))}
                             </select>
                           </td>
+                          <td className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCleaningTask(t)}
+                              disabled={!t.reservation}
+                              className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Alterar dia de limpeza
+                            </button>
+                            {t.reservation?.cleaningDateOverride ? (
+                              <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
+                                Motivo: {t.reservation.cleaningChangeReason || "Nao informado"}
+                              </div>
+                            ) : null}
+                          </td>
                         </tr>
                       ))
                   ) : (
                     <tr>
                       <td
-                        colSpan="3"
+                        colSpan="4"
                         className="px-4 py-5 text-center text-gray-400 dark:text-slate-500"
                       >
                         Nenhuma tarefa para este dia
@@ -406,6 +427,15 @@ const CleaningSchedule = () => {
           </div>
         </div>
       )}
+      <CleaningDateModal
+        open={!!selectedCleaningTask}
+        onClose={() => setSelectedCleaningTask(null)}
+        reservation={selectedCleaningTask?.reservation}
+        onUpdated={async () => {
+          setSelectedCleaningTask(null);
+          await fetchData();
+        }}
+      />
     </div>
   );
 };

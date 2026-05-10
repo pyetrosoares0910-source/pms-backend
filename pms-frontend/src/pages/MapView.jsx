@@ -4,6 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { isViewer } from "../lib/permissions";
 import { isHolidaySP } from "../lib/holidays";
+import CleaningDateModal from "../components/CleaningDateModal";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -377,6 +378,7 @@ function ReservationActionsModal({
   const api = useApi();
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [cleaningOpen, setCleaningOpen] = useState(false);
   const [assignmentConflict, setAssignmentConflict] = useState(null);
   const [pendingStatus, setPendingStatus] = useState(null);
   const [removingAssignment, setRemovingAssignment] = useState(false);
@@ -429,6 +431,7 @@ function ReservationActionsModal({
 
   const ci = parseDateOnly(reservation.checkinDate);
   const co = parseDateOnly(reservation.checkoutDate);
+  const cleaningDate = parseDateOnly(reservation.cleaningDateOverride || reservation.checkoutDate);
   const createdAtLabel = formatReservationTimestamp(reservation.createdAt);
   const updatedAtLabel = hasMeaningfulReservationUpdate(reservation)
     ? formatReservationTimestamp(reservation.updatedAt)
@@ -446,6 +449,20 @@ function ReservationActionsModal({
         <p className="text-sm mb-4 text-slate-600 dark:text-slate-300">
           {fmtBR(ci)} → {fmtBR(co)}
         </p>
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+          <span className="font-medium text-slate-700 dark:text-slate-200">
+            Limpeza:
+          </span>{" "}
+          {fmtBR(cleaningDate)}
+          {reservation.cleaningDateOverride ? (
+            <div className="mt-1">
+              <span className="font-medium text-slate-700 dark:text-slate-200">
+                Motivo:
+              </span>{" "}
+              {reservation.cleaningChangeReason || "Nao informado"}
+            </div>
+          ) : null}
+        </div>
         {(createdAtLabel || updatedAtLabel) && (
           <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
             {createdAtLabel && (
@@ -556,8 +573,15 @@ function ReservationActionsModal({
             Expedia - cobrar limpeza
           </button>
           <button
+            onClick={() => setCleaningOpen(true)}
+            disabled={loading || reservation.status === "cancelada"}
+            className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 text-white rounded-lg mt-4"
+          >
+            Alterar dia de limpeza
+          </button>
+          <button
             onClick={() => setEditOpen(true)}
-            className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg mt-4"
+            className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg"
           >
             Editar reserva
           </button>
@@ -576,6 +600,12 @@ function ReservationActionsModal({
         onClose={() => setEditOpen(false)}
         reservation={reservation}
         rooms={rooms}
+        onUpdated={onUpdated}
+      />
+      <CleaningDateModal
+        open={cleaningOpen}
+        onClose={() => setCleaningOpen(false)}
+        reservation={reservation}
         onUpdated={onUpdated}
       />
     </>
@@ -1444,11 +1474,12 @@ export default function MapView() {
           onClose={() => setSelected(null)}
           reservation={selected}
           rooms={rooms}
-          onUpdated={(updated) =>
+          onUpdated={(updated) => {
+            setSelected(updated);
             setReservations((prev) =>
               prev.map((r) => (r.id === updated.id ? updated : r))
-            )
-          }
+            );
+          }}
         />
       )}
 
