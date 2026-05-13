@@ -81,6 +81,14 @@ function getBlockedPeriodicTasks(task) {
   return (task.periodicTasks || []).filter((periodicTask) => periodicTask.allowed === false);
 }
 
+function hasDifferentCleaningDate(reservation) {
+  return Boolean(
+    reservation?.cleaningDateOverride &&
+      reservation?.checkoutDate &&
+      !sameDay(reservation.cleaningDateOverride, reservation.checkoutDate)
+  );
+}
+
 function getOperationalReminderKey(reminder) {
   return `${reminder.id || reminder.title}|${reminder.message}`;
 }
@@ -170,6 +178,7 @@ function buildTaskDetails(tasks, rooms, reservations, settings) {
     const taskStorageKey = makeTaskStorageKey(task);
     const persistedTaskData = settings.tasks[taskStorageKey] || {};
     const stayAlias = getStayAlias(task.stay);
+    const taskReservation = task.reservation || checkoutReservation;
 
     return {
       ...task,
@@ -178,7 +187,8 @@ function buildTaskDetails(tasks, rooms, reservations, settings) {
       roomTitle: room?.title || task.rooms,
       apartmentLabel: formatApartmentLabel(room?.title || task.rooms),
       stayAlias,
-      reservationNotes: checkoutReservation?.notes?.trim() || "",
+      reservationNotes: taskReservation?.notes?.trim() || "",
+      isFreeAfterCheckoutDateChange: hasDifferentCleaningDate(taskReservation),
       hasNextCheckin: Boolean(nextCheckin),
       taskStorageKey,
       checkoutTime:
@@ -233,7 +243,11 @@ function buildGeneratedText(maidName, tasks, settings, date, allTasksForDate = t
     });
 
     stayTasks.forEach((task) => {
-      const detailParts = [`${task.apartmentLabel} - sai ${task.checkoutTime}`];
+      const detailParts = [
+        task.isFreeAfterCheckoutDateChange
+          ? `${task.apartmentLabel} - Livre`
+          : `${task.apartmentLabel} - sai ${task.checkoutTime}`,
+      ];
       const periodicTasks = getAllowedPeriodicTasks(task);
 
       if (task.hasNextCheckin) {
@@ -342,9 +356,15 @@ function DetailSection({
                             </div>
 
                             <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                                sai {task.checkoutTime}
-                              </span>
+                              {task.isFreeAfterCheckoutDateChange ? (
+                                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                  Livre
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                                  sai {task.checkoutTime}
+                                </span>
+                              )}
                               {task.hasNextCheckin && (
                                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                                   entra {task.checkinTime}
