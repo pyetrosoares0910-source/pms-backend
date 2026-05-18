@@ -52,6 +52,107 @@ dayjs.extend(isBetween);
 const HISTORICAL_STAY_CAPACITY_START = dayjs("2025-01-01");
 const HISTORICAL_STAY_CAPACITY_END = dayjs("2025-09-01");
 
+function formatPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "0%";
+  return `${numeric}%`;
+}
+
+function formatMaintenanceDate(value) {
+  if (!value) return "Sem prazo definido";
+  return dayjs(value).isValid() ? dayjs(value).format("DD/MM/YYYY") : "Sem prazo definido";
+}
+
+function formatMaintenanceStatus(status) {
+  const normalized = String(status || "").toLowerCase();
+  const labels = {
+    pendente: "Pendente",
+    andamento: "Em andamento",
+    concluido: "Concluido",
+    cancelado: "Cancelado",
+  };
+  return labels[normalized] || "Status nao informado";
+}
+
+function EfficiencyBarLabel({ x, y, width, height, value, payload, isDark, tone = "best" }) {
+  const label = payload?.label || "";
+  const percent = formatPercent(value);
+  const hasRoomInside = width >= 132;
+  const baseline = y + height / 2 + 4;
+
+  if (hasRoomInside) {
+    return (
+      <g>
+        <text
+          x={x + 10}
+          y={baseline}
+          fill="rgba(255,255,255,0.96)"
+          fontSize={12}
+          fontWeight={700}
+        >
+          {label}
+        </text>
+        <text
+          x={x + width + 8}
+          y={baseline}
+          fill={tone === "worst" ? (isDark ? "#fecaca" : "#7f1d1d") : isDark ? "#e5e7eb" : "#0f172a"}
+          fontSize={12}
+          fontWeight={800}
+        >
+          {percent}
+        </text>
+      </g>
+    );
+  }
+
+  const badgeX = x + Math.max(width + 8, 8);
+  const badgeWidth = Math.min(Math.max(label.length * 6.4 + percent.length * 7 + 24, 88), 210);
+  const badgeFill =
+    tone === "worst"
+      ? isDark
+        ? "rgba(127,29,29,0.68)"
+        : "rgba(255,241,242,0.96)"
+      : isDark
+        ? "rgba(15,23,42,0.78)"
+        : "rgba(248,250,252,0.96)";
+  const badgeStroke =
+    tone === "worst"
+      ? isDark
+        ? "rgba(248,113,113,0.34)"
+        : "rgba(251,113,133,0.38)"
+      : isDark
+        ? "rgba(148,163,184,0.24)"
+        : "rgba(203,213,225,0.9)";
+  const labelFill =
+    tone === "worst"
+      ? isDark
+        ? "#fee2e2"
+        : "#7f1d1d"
+      : isDark
+        ? "#e2e8f0"
+        : "#0f172a";
+
+  return (
+    <g>
+      <rect
+        x={badgeX}
+        y={y + 1}
+        width={badgeWidth}
+        height={height - 2}
+        rx={7}
+        fill={badgeFill}
+        stroke={badgeStroke}
+      />
+      <text x={badgeX + 8} y={baseline} fill={labelFill} fontSize={12} fontWeight={700}>
+        <tspan>{label}</tspan>
+        <tspan dx={6} fontWeight={900}>
+          {percent}
+        </tspan>
+      </text>
+    </g>
+  );
+}
+
 function overlapDays(a0, a1, b0, b1) {
   const start = dayjs.max(dayjs(a0), dayjs(b0));
   const end = dayjs.min(dayjs(a1), dayjs(b1));
@@ -377,6 +478,7 @@ export default function Dashboard() {
   const [maintenance, setMaintenance] = useState([]);
   const [tasksMonthPrev, setTasksMonthPrev] = useState([]);
   const [selectedCleaningEvent, setSelectedCleaningEvent] = useState(null);
+  const [selectedMaintenanceEvent, setSelectedMaintenanceEvent] = useState(null);
 
 
   useEffect(() => {
@@ -913,6 +1015,7 @@ export default function Dashboard() {
           title: `${t.title}${t.responsible ? " – " + t.responsible : ""}`,
           start: date,
           allDay: true,
+          task: t,
         };
       }),
     [maintenance]
@@ -1135,7 +1238,7 @@ export default function Dashboard() {
             <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-400/12" />
           </div>
 
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100 relative">
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 px-6 text-center text-slate-900 dark:text-slate-100 relative">
             📊 Acomodações com Melhor Eficiência
           </h2>
 
@@ -1162,9 +1265,9 @@ export default function Dashboard() {
                 return (
                   <div key={i} className="relative flex flex-col items-center">
                     <div
-                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                      className={`relative bg-gradient-to-br ${colors[i]} p-[2px] shadow-[0_16px_35px_rgba(15,23,42,0.16)] ${radius} overflow-hidden ring-1 ring-white/45 dark:ring-white/10`}
                     >
-                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                       <div
                         className={`
                     bg-white ${height} ${width} ${radius}
@@ -1179,7 +1282,7 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <p className="mt-2 text-sm font-semibold text-center text-slate-900 dark:text-slate-100">
                       {item.label}
                     </p>
                     <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
@@ -1197,8 +1300,8 @@ export default function Dashboard() {
                     posicao: `${index + 1}º`,
                   }))}
                   layout="vertical"
-                  barCategoryGap={4}
-                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                  barCategoryGap={6}
+                  margin={{ top: 8, right: 96, left: 8, bottom: 0 }}
                 >
                   {/* ✅ defs p/ gradiente premium */}
                   <defs>
@@ -1255,8 +1358,8 @@ export default function Dashboard() {
 
                   <Bar
                     dataKey="ocupacao"
-                    radius={[0, 6, 6, 0]}
-                    barSize={22}
+                    radius={[0, 7, 7, 0]}
+                    barSize={23}
                     isAnimationActive={false}
                   >
                     {topEfficiency.map((_, index) => (
@@ -1268,23 +1371,10 @@ export default function Dashboard() {
                     ))}
 
                     <LabelList
-                      dataKey="label"
-                      position="insideLeft"
-                      style={{
-                        fill: "rgba(255,255,255,0.92)",
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
-                    />
-                    <LabelList
                       dataKey="ocupacao"
-                      position="right"
-                      formatter={(v) => `${v}%`}
-                      style={{
-                        fill: isDark ? "#e5e7eb" : "#0f172a",
-                        fontWeight: 700,
-                        fontSize: 12,
-                      }}
+                      content={(props) => (
+                        <EfficiencyBarLabel {...props} isDark={isDark} tone="best" />
+                      )}
                     />
                   </Bar>
                 </BarChart>
@@ -1313,7 +1403,7 @@ export default function Dashboard() {
             <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-red-500/10 blur-3xl dark:bg-red-400/12" />
           </div>
 
-          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 ml-[30%] text-slate-900 dark:text-slate-100 relative">
+          <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 px-6 text-center text-slate-900 dark:text-slate-100 relative">
             📉 Acomodações com Pior Eficiência
           </h2>
 
@@ -1340,9 +1430,9 @@ export default function Dashboard() {
                 return (
                   <div key={i} className="relative flex flex-col items-center">
                     <div
-                      className={`relative bg-gradient-to-br ${colors[i]} p-[3px] shadow-md ${radius} overflow-hidden`}
+                      className={`relative bg-gradient-to-br ${colors[i]} p-[2px] shadow-[0_16px_35px_rgba(15,23,42,0.16)] ${radius} overflow-hidden ring-1 ring-white/45 dark:ring-white/10`}
                     >
-                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                      <div className="absolute inset-0 animate-shine bg-gradient-to-r from-transparent via-white/18 to-transparent" />
                       <div
                         className={`
                     ${height} ${width} ${radius} overflow-hidden
@@ -1357,7 +1447,7 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <p className="mt-2 text-sm font-semibold text-center text-slate-900 dark:text-slate-100">
                       {item.label}
                     </p>
                     <span className={`text-xs font-bold ${numColor}`}>{i + 1}º</span>
@@ -1375,8 +1465,8 @@ export default function Dashboard() {
                     posicao: `${index + 1}º`,
                   }))}
                   layout="vertical"
-                  barCategoryGap={4}
-                  margin={{ top: 5, right: 25, left: 10, bottom: 0 }}
+                  barCategoryGap={6}
+                  margin={{ top: 8, right: 96, left: 8, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="worstGrad" x1="0" y1="0" x2="1" y2="0">
@@ -1432,8 +1522,8 @@ export default function Dashboard() {
 
                   <Bar
                     dataKey="ocupacao"
-                    radius={[0, 6, 6, 0]}
-                    barSize={22}
+                    radius={[0, 7, 7, 0]}
+                    barSize={23}
                     isAnimationActive={false}
                   >
                     {worstEfficiency.map((_, index) => (
@@ -1444,23 +1534,10 @@ export default function Dashboard() {
                       />
                     ))}
                     <LabelList
-                      dataKey="label"
-                      position="insideLeft"
-                      style={{
-                        fill: "rgba(255,255,255,0.92)",
-                        fontWeight: 600,
-                        fontSize: 12,
-                      }}
-                    />
-                    <LabelList
                       dataKey="ocupacao"
-                      position="right"
-                      formatter={(v) => `${v}%`}
-                      style={{
-                        fill: isDark ? "#fecaca" : "#7f1d1d",
-                        fontWeight: 700,
-                        fontSize: 12,
-                      }}
+                      content={(props) => (
+                        <EfficiencyBarLabel {...props} isDark={isDark} tone="worst" />
+                      )}
                     />
                   </Bar>
                 </BarChart>
@@ -1624,6 +1701,7 @@ export default function Dashboard() {
           title="Cronograma de Atividades"
           icon={ClipboardList}
           events={maintenanceEvents}
+          onSelectEvent={setSelectedMaintenanceEvent}
           emptyText="Sem tarefas de manutenção"
         />
       </div>
@@ -1645,6 +1723,56 @@ export default function Dashboard() {
             <div className="mt-6 text-right">
               <button
                 onClick={() => setSelectedCleaningEvent(null)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-400"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedMaintenanceEvent && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4">
+          <div className="bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl max-w-xl w-full p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                  Atividade
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-slate-950 dark:text-slate-50">
+                  {selectedMaintenanceEvent.extendedProps?.task?.title || selectedMaintenanceEvent.title}
+                </h2>
+              </div>
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+                {formatMaintenanceStatus(selectedMaintenanceEvent.extendedProps?.task?.status)}
+              </span>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Responsavel</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {selectedMaintenanceEvent.extendedProps?.task?.responsible || "Nao definido"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Prazo</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {formatMaintenanceDate(selectedMaintenanceEvent.extendedProps?.task?.dueDate)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/70">
+              <p className="text-xs text-slate-500 dark:text-slate-400">Descricao</p>
+              <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                {selectedMaintenanceEvent.extendedProps?.task?.description || "Sem descricao informada."}
+              </p>
+            </div>
+
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setSelectedMaintenanceEvent(null)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-400"
               >
                 Fechar
