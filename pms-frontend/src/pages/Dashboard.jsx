@@ -74,11 +74,12 @@ function formatMaintenanceStatus(status) {
   return labels[normalized] || "Status nao informado";
 }
 
-function EfficiencyBarLabel({ x, y, width, height, value, payload, isDark, tone = "best" }) {
-  const label = payload?.label || "";
+function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, tone = "best" }) {
+  const label = data?.[index]?.label || "";
   const percent = formatPercent(value);
-  const hasRoomInside = width >= 132;
+  const hasRoomInside = width >= 150;
   const baseline = y + height / 2 + 4;
+  const displayLabel = label.length > 18 ? `${label.slice(0, 16)}...` : label;
 
   if (hasRoomInside) {
     return (
@@ -90,7 +91,7 @@ function EfficiencyBarLabel({ x, y, width, height, value, payload, isDark, tone 
           fontSize={12}
           fontWeight={700}
         >
-          {label}
+          {displayLabel}
         </text>
         <text
           x={x + width + 8}
@@ -105,8 +106,8 @@ function EfficiencyBarLabel({ x, y, width, height, value, payload, isDark, tone 
     );
   }
 
-  const badgeX = x + Math.max(width + 8, 8);
-  const badgeWidth = Math.min(Math.max(label.length * 6.4 + percent.length * 7 + 24, 88), 210);
+  const badgeX = x + Math.max(width + 8, 10);
+  const badgeWidth = Math.min(Math.max(displayLabel.length * 6.4 + percent.length * 7 + 28, 106), 198);
   const badgeFill =
     tone === "worst"
       ? isDark
@@ -144,7 +145,7 @@ function EfficiencyBarLabel({ x, y, width, height, value, payload, isDark, tone 
         stroke={badgeStroke}
       />
       <text x={badgeX + 8} y={baseline} fill={labelFill} fontSize={12} fontWeight={700}>
-        <tspan>{label}</tspan>
+        <tspan>{displayLabel}</tspan>
         <tspan dx={6} fontWeight={900}>
           {percent}
         </tspan>
@@ -1373,7 +1374,12 @@ export default function Dashboard() {
                     <LabelList
                       dataKey="ocupacao"
                       content={(props) => (
-                        <EfficiencyBarLabel {...props} isDark={isDark} tone="best" />
+                        <EfficiencyBarLabel
+                          {...props}
+                          data={topEfficiency}
+                          isDark={isDark}
+                          tone="best"
+                        />
                       )}
                     />
                   </Bar>
@@ -1536,7 +1542,12 @@ export default function Dashboard() {
                     <LabelList
                       dataKey="ocupacao"
                       content={(props) => (
-                        <EfficiencyBarLabel {...props} isDark={isDark} tone="worst" />
+                        <EfficiencyBarLabel
+                          {...props}
+                          data={worstEfficiency}
+                          isDark={isDark}
+                          tone="worst"
+                        />
                       )}
                     />
                   </Bar>
