@@ -138,6 +138,8 @@ const NavGroup = ({
   children,
   hasNotification = false,
 }) => {
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
+
   const renderedChildren = !showText
     ? React.Children.map(children, (child) =>
       React.isValidElement(child) ? React.cloneElement(child, { showText: true }) : child
@@ -148,7 +150,17 @@ const NavGroup = ({
   if (!showText) {
     return (
       <div className="mt-3">
-        <div className="relative group flex justify-center">
+        <div
+          className="relative flex justify-center"
+          onMouseEnter={() => setFlyoutOpen(true)}
+          onMouseLeave={() => setFlyoutOpen(false)}
+          onFocus={() => setFlyoutOpen(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              setFlyoutOpen(false);
+            }
+          }}
+        >
           <button
             type="button"
             onClick={onToggle}
@@ -173,19 +185,18 @@ const NavGroup = ({
           </button>
 
           <div
-            className="
-              invisible pointer-events-none
+            onClickCapture={() => setFlyoutOpen(false)}
+            className={`
               absolute left-full top-0 min-w-56
               rounded-xl border border-white/10 bg-slate-950/95 p-2 text-white
-              opacity-0 shadow-2xl shadow-slate-950/40 backdrop-blur
-              translate-x-1
+              shadow-2xl shadow-slate-950/40 backdrop-blur
               transition-all duration-150
-              group-hover:visible group-hover:pointer-events-auto
-              group-hover:opacity-100 group-hover:translate-x-0
-              group-focus-within:visible group-focus-within:pointer-events-auto
-              group-focus-within:opacity-100 group-focus-within:translate-x-0
-              z-50
-            "
+              z-[100]
+              ${flyoutOpen
+                ? "visible pointer-events-auto translate-x-0 opacity-100"
+                : "invisible pointer-events-none translate-x-1 opacity-0"
+              }
+            `}
           >
             <div className="mb-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
               {label}
@@ -422,7 +433,7 @@ export default function DashboardLayout() {
           dark:from-slate-950 dark:to-slate-900
           text-white flex flex-col shadow-xl
           transition-[width] duration-300 ease-out
-          sticky top-0
+          sticky top-0 z-50
           ${collapsed ? "w-[72px] overflow-visible" : "w-[260px] overflow-hidden"}
         `}
       >
