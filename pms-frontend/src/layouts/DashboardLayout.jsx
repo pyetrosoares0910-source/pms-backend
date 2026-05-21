@@ -7,6 +7,15 @@ import { useApi } from "../lib/api";
 import dayjs from "dayjs";
 import {
   LayoutDashboard,
+  BrushCleaning,
+  Bubbles,
+  ListCheck,
+  Check,
+  SquareArrowRightExit,
+  MapPinCheckInside,
+  CheckLine,
+  TicketsPlane,
+  BadgeInfo,
   Map,
   Brush,
   Wrench,
@@ -62,12 +71,11 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
         to={to}
         className={({ isActive }) =>
           `relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ease-out
-          ${
-            isActive
-              ? highlight
-                ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
-                : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
-              : highlight
+          ${isActive
+            ? highlight
+              ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
+              : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
+            : highlight
               ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
               : "text-slate-100/80 hover:bg-white/10 hover:text-white"
           }`
@@ -76,17 +84,15 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
         {Icon && (
           <Icon
             size={18}
-            className={`transition-transform duration-200 ${
-              !showText ? "" : ""
-            }`}
+            className={`transition-transform duration-200 ${!showText ? "" : ""
+              }`}
           />
         )}
 
         {showText && (
           <span
-            className={`text-sm ${
-              highlight ? "text-indigo-200 font-medium" : ""
-            }`}
+            className={`text-sm ${highlight ? "text-indigo-200 font-medium" : ""
+              }`}
           >
             {children}
           </span>
@@ -95,9 +101,8 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
         {hasNotification ? (
           <span
             aria-hidden="true"
-            className={`rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)] ${
-              showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
-            }`}
+            className={`rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)] ${showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
+              }`}
           />
         ) : null}
       </NavLink>
@@ -202,9 +207,8 @@ const NavGroup = ({
         </div>
         <ChevronDown
           size={16}
-          className={`transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -450,7 +454,7 @@ export default function DashboardLayout() {
           {!viewerOnly && (
             <Item
               to="/cleaning-schedule"
-              icon={Puzzle}
+              icon={Bubbles}
               showText={showText}
               hasNotification={cleaningAlert.isPending}
             >
@@ -479,17 +483,17 @@ export default function DashboardLayout() {
           {!viewerOnly && (
             <Item
               to="/apresentacao-hospedes"
-              icon={MessageSquareText}
+              icon={ListCheck}
               showText={showText}
               hasNotification={presentationSummary.pending > 0}
             >
-              Apresentacao Hospedes
+              Apresentação Hóspedes
             </Item>
           )}
           {!viewerOnly && (
             <Item
               to="/guest-checkins"
-              icon={MessageSquareText}
+              icon={MapPinCheckInside}
               showText={showText}
               hasNotification={checkinAlert.isPending}
             >
@@ -499,7 +503,7 @@ export default function DashboardLayout() {
           {!viewerOnly && (
             <Item
               to="/guest-checkouts"
-              icon={MessageSquareText}
+              icon={SquareArrowRightExit}
               showText={showText}
               hasNotification={guestCheckoutSummary.pending > 0}
             >
@@ -511,68 +515,68 @@ export default function DashboardLayout() {
           <div className="mt-4 space-y-2">
             {/* CADASTROS */}
             {!viewerOnly && (
-             <NavGroup
-               label="Cadastros"
-               icon={ClipboardList}
-               isOpen={groupsOpen.cadastros}
-               onToggle={() => toggleGroup("cadastros")}
-               showText={showText}
-               hasNotification={maintenanceAlert.isPending}
-             >
-              <Item
-                to="/maintenance"
-                icon={Wrench}
+              <NavGroup
+                label="Cadastros"
+                icon={ClipboardList}
+                isOpen={groupsOpen.cadastros}
+                onToggle={() => toggleGroup("cadastros")}
                 showText={showText}
                 hasNotification={maintenanceAlert.isPending}
               >
-                Atividades
-              </Item>
-              <Item to="/reservations" icon={ClipboardList} showText={showText}>
-                Reservas
-              </Item>
-              <Item to="/guests" icon={Users} showText={showText}>
-                Hóspedes
-              </Item>
-              <Item to="/stays" icon={Building} showText={showText}>
-                Empreendimentos
-              </Item>
-              <Item to="/rooms" icon={Bed} showText={showText}>
-                Quartos
-              </Item>
-              <Item to="/staff" icon={UserCog} showText={showText}>
-                Funcionários
-              </Item>
-              <Item to="/maids" icon={UsersRound} showText={showText}>
-                Diaristas
-              </Item>
-              <Item to="/cleaning-reminders" icon={Bell} showText={showText}>
-                Lembretes de Limpeza
-              </Item>
-            </NavGroup>
+                <Item
+                  to="/maintenance"
+                  icon={Wrench}
+                  showText={showText}
+                  hasNotification={maintenanceAlert.isPending}
+                >
+                  Atividades
+                </Item>
+                <Item to="/reservations" icon={ClipboardList} showText={showText}>
+                  Reservas
+                </Item>
+                <Item to="/guests" icon={Users} showText={showText}>
+                  Hóspedes
+                </Item>
+                <Item to="/stays" icon={Building} showText={showText}>
+                  Empreendimentos
+                </Item>
+                <Item to="/rooms" icon={Bed} showText={showText}>
+                  Quartos
+                </Item>
+                <Item to="/staff" icon={UserCog} showText={showText}>
+                  Funcionários
+                </Item>
+                <Item to="/maids" icon={UsersRound} showText={showText}>
+                  Diaristas
+                </Item>
+                <Item to="/cleaning-reminders" icon={Bell} showText={showText}>
+                  Lembretes de Limpeza
+                </Item>
+              </NavGroup>
             )}
 
             {/* ESTOQUE */}
             {!viewerOnly && (
-            <NavGroup
-              label="Estoque"
-              icon={Boxes}
-              isOpen={groupsOpen.estoque}
-              onToggle={() => toggleGroup("estoque")}
-              showText={showText}
-            >
-              <Item to="/products" icon={Package} showText={showText}>
-                Produtos
-              </Item>
-              <Item to="/inventory" icon={Boxes} showText={showText}>
-                Inventário
-              </Item>
-              <Item to="/purchases" icon={ShoppingCart} showText={showText}>
-                Compras
-              </Item>
-              <Item to="/consumption" icon={Settings2} showText={showText}>
-                Perfis de Consumo
-              </Item>
-            </NavGroup>
+              <NavGroup
+                label="Estoque"
+                icon={Boxes}
+                isOpen={groupsOpen.estoque}
+                onToggle={() => toggleGroup("estoque")}
+                showText={showText}
+              >
+                <Item to="/products" icon={Package} showText={showText}>
+                  Produtos
+                </Item>
+                <Item to="/inventory" icon={Boxes} showText={showText}>
+                  Inventário
+                </Item>
+                <Item to="/purchases" icon={ShoppingCart} showText={showText}>
+                  Compras
+                </Item>
+                <Item to="/consumption" icon={Settings2} showText={showText}>
+                  Perfis de Consumo
+                </Item>
+              </NavGroup>
             )}
 
             {/* RELATÓRIOS */}
