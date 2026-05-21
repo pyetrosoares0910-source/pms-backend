@@ -3,6 +3,9 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useMemo } from "react";
 import clsx from "clsx";
 
+const MotionDiv = motion.div;
+const MotionSpan = motion.span;
+
 function AnimatedNumber({ value, className }) {
   const mv = useMotionValue(0);
 
@@ -19,7 +22,7 @@ function AnimatedNumber({ value, className }) {
     }
   }, [value, mv]);
 
-  return <motion.span className={className}>{display}</motion.span>;
+  return <MotionSpan className={className}>{display}</MotionSpan>;
 }
 
 export default function StatCard({
@@ -62,7 +65,7 @@ export default function StatCard({
       {...(to ? { to } : onClick ? { onClick } : {})}
       className="group block h-full"
     >
-      <motion.div
+      <MotionDiv
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         whileHover={clickable ? { y: -5, scale: 1.01 } : undefined}
@@ -93,13 +96,13 @@ export default function StatCard({
               </p>
             </div>
 
-            <motion.div
+            <MotionDiv
               whileHover={clickable ? { rotate: [-4, 4, 0], scale: 1.05 } : undefined}
               transition={{ duration: 0.35, ease: "easeOut" }}
               className="shrink-0"
             >
               {icon}
-            </motion.div>
+            </MotionDiv>
           </div>
 
           <div className="mt-6 flex items-end justify-between gap-3">
@@ -159,7 +162,7 @@ export default function StatCard({
             </div>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </Wrapper>
   );
 }
