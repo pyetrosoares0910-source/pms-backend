@@ -1,39 +1,53 @@
+import { createElement, lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
 import AuthLayout from "../layouts/AuthLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
 
-import Login from "../pages/Login";
-import Dashboard from "../pages/Dashboard";
-import Reservations from "../pages/Reservations";
-import Guests from "../pages/Guests";
-import CleaningStaff from "../pages/CleaningStaff";
-import Maintenance from "../pages/Maintenance";
-import Rooms from "../pages/Rooms";       
-import Staff from "../pages/Staff";       
-import Stays from "../pages/Stays";
-import MapView from "../pages/MapView";
-import CleaningDashboard from "../pages/CleaningDashboard";
-import CleaningSchedule from "../pages/CleaningSchedule";
 import PrivateRoute from "./PrivateRoute";
-import Maids from "../pages/Maids";
-import CleaningReport from "../pages/CleaningReport";
-import PerformanceReport from "../pages/PerformanceReport";
-import MaintenanceCalendar from "../pages/MaintenanceCalendar";
-import MaidAssignments from "../pages/MaidAssignments";
-import Products from "../pages/Products";
-import Inventory from "../pages/Inventory";
-import Purchases from "../pages/Purchases";
-import ConsumptionProfiles from "../pages/ConsumptionProfiles";
-import GuestCheckins from "../pages/GuestCheckins";
-import GuestCheckouts from "../pages/GuestCheckouts";
-import ApresentacaoHospedes from "../pages/ApresentacaoHospedes";
-import CleaningReminders from "../pages/CleaningReminders";
+
+const Login = lazy(() => import("../pages/Login"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const Reservations = lazy(() => import("../pages/Reservations"));
+const Guests = lazy(() => import("../pages/Guests"));
+const CleaningStaff = lazy(() => import("../pages/CleaningStaff"));
+const Maintenance = lazy(() => import("../pages/Maintenance"));
+const Rooms = lazy(() => import("../pages/Rooms"));
+const Staff = lazy(() => import("../pages/Staff"));
+const Stays = lazy(() => import("../pages/Stays"));
+const MapView = lazy(() => import("../pages/MapView"));
+const CleaningDashboard = lazy(() => import("../pages/CleaningDashboard"));
+const CleaningSchedule = lazy(() => import("../pages/CleaningSchedule"));
+const Maids = lazy(() => import("../pages/Maids"));
+const CleaningReport = lazy(() => import("../pages/CleaningReport"));
+const PerformanceReport = lazy(() => import("../pages/PerformanceReport"));
+const MaintenanceCalendar = lazy(() => import("../pages/MaintenanceCalendar"));
+const MaidAssignments = lazy(() => import("../pages/MaidAssignments"));
+const Products = lazy(() => import("../pages/Products"));
+const Inventory = lazy(() => import("../pages/Inventory"));
+const Purchases = lazy(() => import("../pages/Purchases"));
+const ConsumptionProfiles = lazy(() => import("../pages/ConsumptionProfiles"));
+const GuestCheckins = lazy(() => import("../pages/GuestCheckins"));
+const GuestCheckouts = lazy(() => import("../pages/GuestCheckouts"));
+const ApresentacaoHospedes = lazy(() => import("../pages/ApresentacaoHospedes"));
+const CleaningReminders = lazy(() => import("../pages/CleaningReminders"));
+
+const page = (PageComponent) => (
+  <Suspense
+    fallback={
+      <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500 dark:text-slate-300">
+        Carregando...
+      </div>
+    }
+  >
+    {createElement(PageComponent)}
+  </Suspense>
+);
 
 const router = createBrowserRouter([
   {
     element: <AuthLayout />,
-    children: [{ path: "/", element: <Login /> }],
+    children: [{ path: "/", element: page(Login) }],
   },
   {
     element: <PrivateRoute />,
@@ -41,30 +55,30 @@ const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: "/dashboard", element: <Dashboard /> },
-          { path: "/reservations", element: <Reservations /> },
-          { path: "/guests", element: <Guests /> },
-          { path: "/cleaning-staff", element: <CleaningStaff /> },
-          { path: "/maintenance", element: <Maintenance /> },
-          { path: "/rooms", element: <Rooms /> },   
-          { path: "/staff", element: <Staff /> },   
-          { path: "/stays", element: <Stays /> },
-          { path: "/map", element: <MapView /> },
-          { path: "/cleaning-dashboard", element: <CleaningDashboard /> },
-          { path: "/cleaning-schedule", element: <CleaningSchedule /> },
-          { path: "/maids", element: <Maids /> },
-          { path: "/cleaning-report", element: <CleaningReport /> },
-          { path: "/performance-report", element: <PerformanceReport />,},
-          { path: "/maintenance-calendar", element: <MaintenanceCalendar />},
-          { path: "/maid-assignments", element: <MaidAssignments /> },
-          { path: "/apresentacao-hospedes", element: <ApresentacaoHospedes /> },
-          { path: "/guest-checkins", element: <GuestCheckins /> },
-          { path: "/guest-checkouts", element: <GuestCheckouts /> },
-          { path: "/cleaning-reminders", element: <CleaningReminders /> },
-          { path: "/products", element: <Products /> },
-          { path: "/inventory", element: <Inventory /> },
-          { path: "/purchases", element: <Purchases /> },
-          { path: "/consumption", element: <ConsumptionProfiles /> },
+          { path: "/dashboard", element: page(Dashboard) },
+          { path: "/reservations", element: page(Reservations) },
+          { path: "/guests", element: page(Guests) },
+          { path: "/cleaning-staff", element: page(CleaningStaff) },
+          { path: "/maintenance", element: page(Maintenance) },
+          { path: "/rooms", element: page(Rooms) },
+          { path: "/staff", element: page(Staff) },
+          { path: "/stays", element: page(Stays) },
+          { path: "/map", element: page(MapView) },
+          { path: "/cleaning-dashboard", element: page(CleaningDashboard) },
+          { path: "/cleaning-schedule", element: page(CleaningSchedule) },
+          { path: "/maids", element: page(Maids) },
+          { path: "/cleaning-report", element: page(CleaningReport) },
+          { path: "/performance-report", element: page(PerformanceReport) },
+          { path: "/maintenance-calendar", element: page(MaintenanceCalendar) },
+          { path: "/maid-assignments", element: page(MaidAssignments) },
+          { path: "/apresentacao-hospedes", element: page(ApresentacaoHospedes) },
+          { path: "/guest-checkins", element: page(GuestCheckins) },
+          { path: "/guest-checkouts", element: page(GuestCheckouts) },
+          { path: "/cleaning-reminders", element: page(CleaningReminders) },
+          { path: "/products", element: page(Products) },
+          { path: "/inventory", element: page(Inventory) },
+          { path: "/purchases", element: page(Purchases) },
+          { path: "/consumption", element: page(ConsumptionProfiles) },
         ],
       },
     ],
