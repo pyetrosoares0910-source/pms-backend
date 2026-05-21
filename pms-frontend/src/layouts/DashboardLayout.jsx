@@ -11,7 +11,7 @@ import {
   Bubbles,
   ListCheck,
   Check,
-  SquareArrowRightExit,
+  SquareArrowRight as SquareArrowRightExit,
   MapPinCheckInside,
   CheckLine,
   TicketsPlane,
