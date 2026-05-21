@@ -69,11 +69,8 @@ export default function StatCard({
         transition={{ duration: 0.25, ease: "easeOut" }}
         className={clsx(
           `
-            relative flex h-full min-h-[154px] flex-col overflow-hidden rounded-[28px] border p-4
-            bg-gradient-to-br from-white via-slate-50 to-sky-50/80
-            dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-            border-slate-200/80 dark:border-slate-700/60
-            shadow-[0_18px_45px_rgba(15,23,42,0.08)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]
+            app-card
+            relative flex h-full min-h-[154px] flex-col overflow-hidden p-4
             transition-all duration-300
             select-none
           `,
@@ -82,9 +79,8 @@ export default function StatCard({
           className
         )}
       >
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-b from-white/70 via-white/10 to-transparent dark:from-white/5 dark:via-white/[0.03] dark:to-transparent" />
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-sky-400/14 blur-2xl dark:bg-sky-500/10" />
-        <div className="pointer-events-none absolute -bottom-12 left-6 h-24 w-24 rounded-full bg-cyan-300/18 blur-2xl dark:bg-cyan-400/8" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-300/60 to-transparent dark:via-sky-400/30" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-sky-400/10 blur-2xl dark:bg-sky-500/8" />
 
         <div className="relative flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">

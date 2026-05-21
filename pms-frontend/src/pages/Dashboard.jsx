@@ -1121,22 +1121,32 @@ export default function Dashboard() {
   const hasPendingCheckinsToday = checkinAlertSummary.pending > 0;
   const hasCheckinsToday = checkinAlertSummary.total > 0;
   const hasPendingPresentations = weeklyPresentationSummary.pending > 0;
+  const alertClass = (isPending) => (isPending ? "app-alert-warn" : "app-alert-ok");
 
   return (
-    <div className="p-6 space-y-8 min-h-screen bg-base-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
-      <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-slate-50">
-        Dashboard
-      </h1>
+    <div className="space-y-8 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200/80 bg-white/78 px-5 py-5 shadow-sm backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">
+            Visao operacional
+          </p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Indicadores principais, alertas do dia e eficiencia das acomodacoes.
+          </p>
+        </div>
+        <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
+          Atualizado em tempo real
+        </div>
+      </div>
 
       {/* ==== LINHA SUPERIOR: 10 KPI CARDS ==== */}
       <div>
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              checkinAlert.isPending
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(checkinAlert.isPending)}
           >
             {hasPendingCheckinsToday
               ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
@@ -1146,11 +1156,7 @@ export default function Dashboard() {
           </div>
 
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              hasPendingPresentations
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(hasPendingPresentations)}
           >
             {hasPendingPresentations
               ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
@@ -1158,41 +1164,25 @@ export default function Dashboard() {
           </div>
 
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              guestCheckoutAlert.isPending
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(guestCheckoutAlert.isPending)}
           >
             {guestCheckoutAlert.message}
           </div>
 
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              maidAssignmentsAlert.isPending
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(maidAssignmentsAlert.isPending)}
           >
             {maidAssignmentsAlert.message}
           </div>
 
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              cleaningAlert.isPending
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(cleaningAlert.isPending)}
           >
             {cleaningAlert.message}
           </div>
 
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              maintenanceAlert.isPending
-                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-            }`}
+            className={alertClass(maintenanceAlert.isPending)}
           >
             {maintenanceAlert.message}
           </div>
@@ -1222,21 +1212,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Melhor Eficiência */}
         <div className="
-  relative card flex-1 flex flex-col
-  rounded-3xl border
-  bg-gradient-to-br
-  from-white via-slate-50 to-white
-  dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-  border-slate-200 dark:border-slate-700/60
-  shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-  transition-colors duration-300
+  app-card
+  relative flex-1 flex flex-col
   overflow-hidden
 ">
 
           {/* glow overlay premium */}
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-400/12" />
-            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-400/12" />
+            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-sky-500/7 blur-3xl dark:bg-sky-400/10" />
+            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-cyan-500/7 blur-3xl dark:bg-cyan-400/8" />
           </div>
 
           <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 px-6 text-center text-slate-900 dark:text-slate-100 relative">
@@ -1392,21 +1376,15 @@ export default function Dashboard() {
         {/* Pior Eficiência */}
 
         <div className="
-  relative card flex-1 flex flex-col
-  rounded-3xl border
-  bg-gradient-to-br
-  from-white via-slate-50 to-white
-  dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-  border-slate-200 dark:border-slate-700/60
-  shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-  transition-colors duration-300
+  app-card
+  relative flex-1 flex flex-col
   overflow-hidden
 ">
 
           {/* glow overlay premium (negativo sutil) */}
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-rose-500/10 blur-3xl dark:bg-rose-400/12" />
-            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-red-500/10 blur-3xl dark:bg-red-400/12" />
+            <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-rose-500/8 blur-3xl dark:bg-rose-400/10" />
+            <div className="absolute -bottom-24 -right-16 h-64 w-64 rounded-full bg-orange-500/6 blur-3xl dark:bg-orange-400/8" />
           </div>
 
           <h2 className="font-semibold text-lg tracking-tight mt-6 mb-2 px-6 text-center text-slate-900 dark:text-slate-100 relative">
@@ -1662,19 +1640,12 @@ export default function Dashboard() {
         {/* Diaristas */}
         <div
           className="
-    relative overflow-hidden
-    rounded-3xl border p-6
-    bg-gradient-to-br
-    from-white via-slate-50 to-white
-    dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-    border-slate-200 dark:border-slate-700/60
-    shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-    transition-colors duration-300
+    app-card
+    relative overflow-hidden p-6
   "
         >
           {/* Glow sutil */}
-          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
-          <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
+          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl dark:bg-sky-400/8" />
 
           <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
             👥 Diaristas
@@ -1887,20 +1858,13 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
 
   return (
     <div
-      className="
-        relative overflow-hidden
-        rounded-3xl border p-6
-        bg-gradient-to-br
-        from-white via-slate-50 to-white
-        dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-        border-slate-200 dark:border-slate-700/60
-        shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-        transition-colors duration-300
-      "
+          className="
+    app-card
+    relative overflow-hidden p-6
+  "
     >
       {/* Glow sutil de fundo */}
-      <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
-      <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
+          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl dark:bg-sky-400/8" />
 
       {/* HEADER */}
       <div className="flex items-center justify-between mb-4">

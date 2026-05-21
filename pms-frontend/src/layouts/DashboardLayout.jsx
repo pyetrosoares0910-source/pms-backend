@@ -70,14 +70,14 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
       <NavLink
         to={to}
         className={({ isActive }) =>
-          `relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 ease-out
+          `relative flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-200 ease-out
           ${isActive
             ? highlight
-              ? "bg-indigo-500/20 text-indigo-200 font-semibold border-l-4 border-indigo-400"
-              : "bg-white/15 text-white font-semibold border-l-4 border-sky-400"
+              ? "bg-indigo-50 text-indigo-700 font-semibold ring-1 ring-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-200 dark:ring-indigo-400/25"
+              : "bg-sky-50 text-sky-800 font-semibold ring-1 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-100 dark:ring-sky-400/25"
             : highlight
-              ? "text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
-              : "text-slate-100/80 hover:bg-white/10 hover:text-white"
+              ? "text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-200"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
           }`
         }
       >
@@ -91,7 +91,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
 
         {showText && (
           <span
-            className={`text-sm ${highlight ? "text-indigo-200 font-medium" : ""
+            className={`text-sm ${highlight ? "font-medium" : ""
               }`}
           >
             {children}
@@ -101,7 +101,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
         {hasNotification ? (
           <span
             aria-hidden="true"
-            className={`rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)] ${showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
+            className={`rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)] dark:bg-rose-400 dark:shadow-[0_0_0_3px_rgba(15,23,42,0.58)] ${showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
               }`}
           />
         ) : null}
@@ -113,7 +113,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
           className="
             pointer-events-none
             absolute left-full top-1/2 -translate-y-1/2 ml-3
-            rounded-md bg-slate-900 text-white text-xs
+            rounded-md bg-slate-950 text-white text-xs
             px-2 py-1
             whitespace-nowrap
             opacity-0 group-hover:opacity-100 group-hover:translate-x-1
@@ -170,16 +170,18 @@ const NavGroup = ({
               w-10 h-10
               flex items-center justify-center
               rounded-xl
-              bg-white/5 hover:bg-white/15
-              border border-white/10
+              bg-slate-100 hover:bg-slate-200
+              border border-slate-200 text-slate-700
+              dark:bg-white/5 dark:hover:bg-white/15
+              dark:border-white/10 dark:text-slate-100
               transition-colors duration-200
             "
           >
-            {Icon && <Icon size={18} className="text-slate-100" />}
+            {Icon && <Icon size={18} className="text-current" />}
             {hasNotification ? (
               <span
                 aria-hidden="true"
-                className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_0_3px_rgba(15,23,42,0.38)]"
+                className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)] dark:bg-rose-400 dark:shadow-[0_0_0_3px_rgba(15,23,42,0.58)]"
               />
             ) : null}
           </button>
@@ -188,8 +190,9 @@ const NavGroup = ({
             onClickCapture={() => setFlyoutOpen(false)}
             className={`
               absolute left-full top-0 min-w-56
-              rounded-xl border border-white/10 bg-slate-950/95 p-2 text-white
-              shadow-2xl shadow-slate-950/40 backdrop-blur
+              rounded-2xl border border-slate-200 bg-white/95 p-2 text-slate-700
+              shadow-2xl shadow-slate-950/16 backdrop-blur
+              dark:border-white/10 dark:bg-slate-950/95 dark:text-slate-200 dark:shadow-slate-950/40
               transition-all duration-150
               z-[100]
               ${flyoutOpen
@@ -198,7 +201,7 @@ const NavGroup = ({
               }
             `}
           >
-            <div className="mb-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+            <div className="mb-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
               {label}
             </div>
             <div className="space-y-1">
@@ -221,9 +224,11 @@ const NavGroup = ({
           px-3 py-2
           rounded-lg
           text-[11px] font-semibold uppercase tracking-wide
-          text-slate-100/70
-          bg-white/5 hover:bg-white/10
-          border border-white/10
+          text-slate-500 dark:text-slate-300/80
+          bg-slate-100/80 hover:bg-slate-200/80
+          border border-slate-200
+          dark:bg-white/5 dark:hover:bg-white/10
+          dark:border-white/10
           transition-colors duration-200
         "
       >
@@ -423,42 +428,47 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="min-h-dvh w-full flex bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="app-shell-bg min-h-dvh w-full flex text-slate-900 dark:text-slate-100">
       {/* SIDEBAR */}
       <aside
         className={`
           h-dvh
-          bg-gradient-to-b 
-          from-sky-800 to-sky-950
-          dark:from-slate-950 dark:to-slate-900
-          text-white flex flex-col shadow-xl
+          app-sidebar
+          flex flex-col
           transition-[width] duration-300 ease-out
           sticky top-0 z-50
           ${collapsed ? "w-[72px] overflow-visible" : "w-[260px] overflow-hidden"}
         `}
       >
         {/* TOPO */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-center shrink-0">
+        <div className="p-4 border-b border-slate-200/70 dark:border-white/10 flex items-center justify-center shrink-0">
           {collapsed ? (
-            <Building
-              size={26}
-              className="text-white transition-transform duration-300 ease-out"
-            />
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-600 text-white shadow-lg shadow-sky-600/20">
+              <Building
+                size={22}
+                className="transition-transform duration-300 ease-out"
+              />
+            </div>
           ) : (
-            <div className="flex items-end gap-2">
-              <span className="text-2xl font-bold tracking-wide leading-none">
-                PMS
-              </span>
-              <span className="text-xl italic text-sky-200 -rotate-2 leading-none">
-                StayCore
-              </span>
+            <div className="flex w-full items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-sky-600 text-white shadow-lg shadow-sky-600/20">
+                <Building size={21} />
+              </div>
+              <div className="min-w-0">
+                <span className="block text-sm font-black tracking-wide text-slate-950 dark:text-white">
+                  StayCore
+                </span>
+                <span className="block text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-sky-200/70">
+                  PMS
+                </span>
+              </div>
             </div>
           )}
         </div>
 
         {/* USUÁRIO */}
         {user && showText && (
-          <div className="px-4 py-2 text-sm text-slate-100/90 border-b border-white/10 shrink-0">
+          <div className="border-b border-slate-200/70 px-4 py-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300 shrink-0">
             👋 Olá, <span className="font-medium">{user.name}</span>
           </div>
         )}
@@ -628,7 +638,7 @@ export default function DashboardLayout() {
         </nav>
 
         {/* BASE FIXA – sempre visível */}
-        <div className="p-3 space-y-2 border-t border-white/10 shadow-[0_-2px_6px_rgba(0,0,0,0.3)] shrink-0">
+        <div className="p-3 space-y-2 border-t border-slate-200/70 bg-slate-50/80 shadow-[0_-14px_35px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-950/60 dark:shadow-[0_-14px_35px_rgba(0,0,0,0.22)] shrink-0">
           {/* Toggle Tema */}
           <button
             onClick={toggleTheme}
@@ -638,9 +648,14 @@ export default function DashboardLayout() {
               w-full flex items-center justify-center
               px-3 py-2
               rounded-xl
-              border border-white/10
-              bg-white/5
-              hover:bg-white/15
+              border border-slate-200
+              bg-white
+              hover:bg-slate-100
+              text-slate-700
+              dark:border-white/10
+              dark:bg-white/5
+              dark:hover:bg-white/15
+              dark:text-slate-100
               transition-colors duration-200 ease-out
               ${isDark ? "shadow-[0_0_14px_rgba(56,189,248,0.45)]" : ""}
             `}
@@ -673,7 +688,7 @@ export default function DashboardLayout() {
 
           <button
             onClick={toggleSidebar}
-            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors duration-200 ease-out"
+            className="w-full flex items-center justify-center px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-colors duration-200 ease-out dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/15"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
             {showText && (
@@ -685,7 +700,7 @@ export default function DashboardLayout() {
 
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 transition-colors duration-200 ease-out"
+            className="w-full flex items-center justify-center px-3 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-colors duration-200 ease-out"
           >
             <LogOut size={18} />
             {showText && (
@@ -704,7 +719,7 @@ export default function DashboardLayout() {
           w-full
           mx-auto
           px-4 sm:px-6 lg:px-8
-          py-6
+          py-5
           max-w-full
           xl:max-w-[1600px]
           2xl:max-w-[1800px]
