@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
+import { Wrench } from "lucide-react";
 import PremiumIcon from "./PremiumIcon";
 
 const MotionDiv = motion.div;
@@ -25,7 +26,9 @@ export default function KpiMaintenanceProgress({ maintenanceStats }) {
 
       <div className="relative">
         <div className="flex items-center gap-2">
-          <PremiumIcon>MA</PremiumIcon>
+          <PremiumIcon>
+            <Wrench size={22} strokeWidth={2.4} />
+          </PremiumIcon>
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Progresso da Manutencao
           </h2>

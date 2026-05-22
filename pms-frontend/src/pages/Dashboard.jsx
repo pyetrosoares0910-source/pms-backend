@@ -120,10 +120,10 @@ function formatMaintenanceStatus(status) {
 function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, tone = "best" }) {
   const label = data?.[index]?.label || "";
   const percent = formatPercent(value);
-  const nights = Number(data?.[index]?.noites);
-  const detail = Number.isFinite(nights)
-    ? `${nights} ${pluralByCount(nights, "diaria", "diarias")} | ${percent}`
-    : percent;
+  const percentFill =
+    tone === "worst"
+      ? isDark ? "#fecaca" : "#7f1d1d"
+      : isDark ? "#cbd5e1" : "#475569";
   const hasRoomInside = width >= 150;
   const baseline = y + height / 2 + 4;
   const displayLabel = label.length > 18 ? `${label.slice(0, 16)}...` : label;
@@ -143,18 +143,18 @@ function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, t
         <text
           x={x + width + 8}
           y={baseline}
-          fill={tone === "worst" ? (isDark ? "#fecaca" : "#7f1d1d") : isDark ? "#e5e7eb" : "#0f172a"}
+          fill={percentFill}
           fontSize={12}
           fontWeight={800}
         >
-          {detail}
+          {percent}
         </text>
       </g>
     );
   }
 
   const badgeX = x + Math.max(width + 8, 10);
-  const badgeWidth = Math.min(Math.max(displayLabel.length * 6.4 + detail.length * 7 + 28, 128), 238);
+  const badgeWidth = Math.min(Math.max(displayLabel.length * 6.4 + percent.length * 7 + 28, 106), 198);
   const badgeFill =
     tone === "worst"
       ? isDark
@@ -193,8 +193,8 @@ function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, t
       />
       <text x={badgeX + 8} y={baseline} fill={labelFill} fontSize={12} fontWeight={700}>
         <tspan>{displayLabel}</tspan>
-        <tspan dx={6} fontWeight={900}>
-          {detail}
+        <tspan dx={6} fill={percentFill} fontWeight={800}>
+          {percent}
         </tspan>
       </text>
     </g>
@@ -1270,18 +1270,18 @@ export default function Dashboard() {
             {hasPendingCheckinsToday
               ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} ${pluralByCount(kpis.checkinsToday, "check-in", "check-ins")} de hoje ainda ${pendingText(kpis.pendingCheckinsToday)}.`
               : hasCheckinsToday
-                ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} ${pluralByCount(kpis.checkinsToday, "check-in", "check-ins")} de hoje ja ${doneVerbText(kpis.finishedCheckinsToday)}.`
-                : "Tudo certo: nao ha check-in previsto para hoje."}
+                ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} ${pluralByCount(kpis.checkinsToday, "check-in", "check-ins")} de hoje já ${doneVerbText(kpis.finishedCheckinsToday)}.`
+                : "Tudo certo: não há check-in previsto para hoje."}
           </div>
 
           <div
             className={alertClass(hasPendingPresentations)}
           >
             {hasPendingPresentations
-              ? `Alerta: ${weeklyPresentationSummary.pending} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentacao", "apresentacoes")} da semana ainda ${pendingText(weeklyPresentationSummary.pending)}.`
+              ? `Alerta: ${weeklyPresentationSummary.pending} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentação", "apresentações")} da semana ainda ${pendingText(weeklyPresentationSummary.pending)}.`
               : weeklyPresentationSummary.total > 0
-                ? `Tudo certo: ${weeklyPresentationSummary.completed} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentacao", "apresentacoes")} da semana ${completedVerbText(weeklyPresentationSummary.completed)}.`
-                : "Tudo certo: nao ha apresentacao prevista na semana."}
+                ? `Tudo certo: ${weeklyPresentationSummary.completed} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentação", "apresentações")} da semana ${completedVerbText(weeklyPresentationSummary.completed)}.`
+                : "Tudo certo: não há apresentação prevista na semana."}
           </div>
           <div
             className={alertClass(guestCheckoutAlert.isPending)}
@@ -1801,19 +1801,19 @@ export default function Dashboard() {
           </h2>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <DiaristaList
-            title="Ativas hoje"
-            data={maidsToday}
-            variant="active"
-            empty="Nenhuma diarista ativa hoje"
-          />
+            <DiaristaList
+              title="Ativas hoje"
+              data={maidsToday}
+              variant="active"
+              empty="Nenhuma diarista ativa hoje"
+            />
 
-          <DiaristaList
-            title="Confirmadas para amanhã"
-            data={maidsTomorrow}
-            variant="scheduled"
-            empty="Nenhuma diarista confirmada amanhã"
-          />
+            <DiaristaList
+              title="Confirmadas para amanhã"
+              data={maidsTomorrow}
+              variant="scheduled"
+              empty="Nenhuma diarista confirmada amanhã"
+            />
           </div>
         </div>
 

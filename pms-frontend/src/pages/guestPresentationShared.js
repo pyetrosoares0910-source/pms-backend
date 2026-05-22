@@ -612,7 +612,7 @@ export function getPresentationMessages(input, settings) {
           reservation.checkinDate
         )} e término em ${formatDate(reservation.checkoutDate)}.`,
         "",
-        `Me chamo ${hostName}, estarei responsavel pelo acompanhamento da estadia e disponivel para qualquer suporte que se fizer necessario.`,
+        `Me chamo ${hostName}, estarei responsável pelo acompanhamento da estadia e disponivel para qualquer suporte que se fizer necessário.`,
       ].join("\n"),
     ];
   }
@@ -665,7 +665,7 @@ export function getPresentationMessages(input, settings) {
         reservation.checkinDate
       )} e check-out no dia ${formatDate(reservation.checkoutDate)}.`,
       "",
-      `Meu nome e ${hostName}, e estarei a disposição para ajuda-${pronoun} durante sua estadia.`,
+      `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
       "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar no studio assim que disponível.",
       "",
       "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",

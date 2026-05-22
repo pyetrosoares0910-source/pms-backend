@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Trophy } from "lucide-react";
 import PremiumIcon from "./PremiumIcon";
 
 const MotionDiv = motion.div;
@@ -16,7 +17,9 @@ export default function KpiTotalReservas({ value, note }) {
 
       <div className="relative">
         <div className="flex items-center gap-2">
-          <PremiumIcon>RS</PremiumIcon>
+          <PremiumIcon>
+            <Trophy size={22} strokeWidth={2.4} />
+          </PremiumIcon>
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Total de Reservas
           </h2>

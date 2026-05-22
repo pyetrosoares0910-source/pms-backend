@@ -86,12 +86,12 @@ export function buildMaidListAlert(summary, targetLabel) {
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.sent} de ${summary.total} listagem(oes) de diaristas de ${targetLabel} ja foram enviadas.`,
+      message: `Tudo certo: ${summary.sent} de ${summary.total} listagem(oes) de diaristas de ${targetLabel} já foram enviadas.`,
     };
   }
 
   return {
     isPending: false,
-    message: `Tudo certo: nao ha listagens de diaristas previstas para ${targetLabel}.`,
+    message: `Tudo certo: não há listagens de diaristas previstas para ${targetLabel}.`,
   };
 }

@@ -5,6 +5,16 @@ import { useAuth } from "../context/AuthContext";
 import { isViewer } from "../lib/permissions";
 import { isHolidaySP } from "../lib/holidays";
 import CleaningDateModal from "../components/CleaningDateModal";
+import {
+  BedDouble,
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+} from "lucide-react";
 
 // ===== utils =====
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -100,15 +110,16 @@ function Modal({ open, onClose, title, children, maxWidth = "max-w-lg" }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative bg-white dark:bg-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl w-full ${maxWidth} mx-4 border border-slate-200/70 dark:border-slate-700`}>
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-          <h2 className="font-semibold">{title}</h2>
+      <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative w-full ${maxWidth} mx-4 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100`}>
+        <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/80">
+          <h2 className="font-semibold text-slate-950 dark:text-slate-50">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
-            className="text-neutral-600 dark:text-slate-300 hover:text-neutral-900 dark:hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
         <div className="p-5">{children}</div>
@@ -218,26 +229,26 @@ function DateRangePickerModal({
       <div className="flex items-center justify-between mb-3">
         <button
           type="button"
-          className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
           onClick={() =>
             setView((v) => new Date(v.getFullYear(), v.getMonth() - 1, 1))
           }
           title="Mês anterior"
         >
-          ‹
+          <ChevronLeft size={18} />
         </button>
 
-        <div className="font-semibold">{monthLabel}</div>
+        <div className="font-semibold text-slate-900 dark:text-slate-100">{monthLabel}</div>
 
         <button
           type="button"
-          className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-sky-800 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
           onClick={() =>
             setView((v) => new Date(v.getFullYear(), v.getMonth() + 1, 1))
           }
           title="Próximo mês"
         >
-          ›
+          <ChevronRight size={18} />
         </button>
       </div>
 
@@ -353,13 +364,13 @@ function ReservationBar({ res, day0, days, cellW = 45, onClick }) {
     >
       <button
         onClick={() => onClick?.(res)}
-        className={`relative h-[22px] ${color} text-white shadow flex items-center pl-4 pr-2 overflow-hidden w-full rounded-sm`}
+        className={`relative flex h-[24px] w-full items-center overflow-hidden rounded-md ${color} pl-4 pr-2 text-white shadow-sm shadow-slate-900/20 ring-1 ring-white/20 transition hover:brightness-105`}
         style={{ clipPath: `polygon(${clip})` }}
         title={`${res.guest?.name || "(sem nome)"} • ${fmtBR(ci)} → ${fmtBR(
           co
         )}`}
       >
-        <span className="truncate text-[12px]">
+        <span className="truncate text-[12px] font-semibold tracking-[0.01em]">
           {res.guest?.name || "(sem nome)"}
         </span>
       </button>
@@ -1247,46 +1258,83 @@ export default function MapView() {
     });
   };
 
+  const activeReservationsCount = useMemo(
+    () => reservations.filter((reservation) => reservation.status !== "cancelada").length,
+    [reservations]
+  );
+
   return (
-    <div className="p-4 overflow-x-auto">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-[30px] font-semibold text-slate-900 dark:text-slate-50">
-          Mapa de Reservas
-        </h1>
+    <div className="space-y-5 p-4 text-slate-900 dark:text-slate-100">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-950/70 dark:shadow-black/20 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/35 dark:text-sky-200">
+            <CalendarDays size={14} />
+            mapa operacional
+          </div>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
+            Mapa de Reservas
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Visao por acomodacao, periodo e status das reservas.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-2 dark:border-slate-800 dark:bg-slate-900/70">
+            <div className="px-3 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Stays</div>
+              <div className="text-lg font-black text-slate-950 dark:text-slate-50">{grouped.length}</div>
+            </div>
+            <div className="px-3 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">UHs</div>
+              <div className="text-lg font-black text-slate-950 dark:text-slate-50">{rooms.length}</div>
+            </div>
+            <div className="px-3 py-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Reservas</div>
+              <div className="text-lg font-black text-slate-950 dark:text-slate-50">{activeReservationsCount}</div>
+            </div>
+          </div>
         {!viewerOnly && (
           <button
             onClick={() => setAddOpen(true)}
-            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-md shadow-sky-500/20"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-700"
           >
+            <Plus size={18} />
             Adicionar reserva
           </button>
         )}
+        </div>
       </div>
 
       {/* Controle de datas */}
-      <div className="flex items-center justify-center mb-3">
-        <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm border border-sky-600/60">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/75 p-3 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="hidden items-center gap-2 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400 sm:flex">
+          <CalendarDays size={17} />
+          Janela do mapa
+        </div>
+        <div className="mx-auto flex items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <button
+            type="button"
             onClick={goPrev}
-            className="px-3 bg-sky-600 hover:bg-sky-700 text-white text-lg"
+            className="inline-flex w-11 items-center justify-center text-[0px] text-slate-600 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
             title="30 dias anteriores"
           >
-            ‹
+            <ChevronLeft size={20} />
           </button>
           <button
+            type="button"
             onClick={() => startPickerRef.current?.showPicker?.()}
-            className={`px-4 font-semibold border-x border-sky-500 text-sm ${isDark ? "bg-slate-950 text-sky-100" : "bg-white text-slate-800"
-              }`}
+            className="border-x border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-800 transition hover:bg-slate-50 dark:border-slate-800 dark:text-sky-100 dark:hover:bg-slate-800/80"
             title="Alterar data inicial"
           >
             {`${fmtBR(start)} à ${fmtBR(endDisplay)}`}
           </button>
           <button
+            type="button"
             onClick={goNext}
-            className="px-3 bg-sky-600 hover:bg-sky-700 text-white text-lg"
+            className="inline-flex w-11 items-center justify-center text-[0px] text-slate-600 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-300 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
             title="Próximos 30 dias"
           >
-            ›
+            <ChevronRight size={20} />
           </button>
         </div>
         <input
@@ -1299,10 +1347,10 @@ export default function MapView() {
       </div>
 
       {/* GRID PRINCIPAL */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-x-auto min-w-[900px] bg-white dark:bg-slate-900 shadow-sm dark:shadow-lg">
+      <div className="min-w-[900px] overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/20">
         {/* Cabeçalho topo */}
         <div
-          className="grid sticky top-0 z-30"
+          className="sticky top-0 z-30 grid"
           style={{
             gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
           }}
@@ -1310,10 +1358,10 @@ export default function MapView() {
           {/* Coluna UH / Mês */}
           <div
             className={`
-              sticky left-0 z-40 h-12 px-3 text-sm flex items-center
-              border-b border-slate-200 dark:border-slate-700
-              font-medium tracking-wide
-              ${isDark ? "bg-slate-950 text-sky-100" : "bg-sky-600 text-white"}
+              sticky left-0 z-40 h-12 px-4 text-sm flex items-center gap-2
+              border-b border-slate-200/80 dark:border-slate-800
+              font-bold tracking-wide shadow-[8px_0_18px_rgba(15,23,42,0.06)]
+              ${isDark ? "bg-slate-950 text-sky-100" : "bg-slate-950 text-white"}
             `}
           >
             UH / Mês
@@ -1323,7 +1371,7 @@ export default function MapView() {
           {Array.from({ length: days }).map((_, i) => (
             <div
               key={i}
-              className={`h-12 border-b border-slate-200 dark:border-slate-700 ${isDark ? "bg-slate-950" : "bg-sky-600 to bg-sky-400"
+              className={`h-12 border-b border-slate-200/80 dark:border-slate-800 ${isDark ? "bg-slate-950" : "bg-slate-950"
                 }`}
             />
           ))}
@@ -1336,7 +1384,7 @@ export default function MapView() {
             <div key={stay}>
               {/* Cabeçalho do empreendimento + dias */}
               <div
-                className="grid sticky top-10 z-20"
+                className="sticky top-10 z-20 grid"
                 style={{
                   gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
                 }}
@@ -1344,16 +1392,18 @@ export default function MapView() {
                 {/* Coluna Stay */}
                 <div
                   className={`
-                    sticky left-0 z-30 px-3 h-10 flex items-center cursor-pointer select-none
-                    border-b border-slate-200 dark:border-slate-700 text-[13px] font-semibold
+                    sticky left-0 z-30 px-3 h-10 flex items-center gap-2 cursor-pointer select-none
+                    border-b border-slate-200/80 dark:border-slate-800 text-[13px] font-bold
+                    shadow-[8px_0_18px_rgba(15,23,42,0.05)] transition
                     ${isDark
-                      ? "bg-slate-900 text-slate-100"
-                      : "bg-sky-100 text-slate-900"
+                      ? "bg-slate-900 text-slate-100 hover:bg-slate-800"
+                      : "bg-slate-100 text-slate-900 hover:bg-sky-50"
                     }
                   `}
                   onClick={() => toggleGroup(stay)}
                 >
-                  <span className="mr-2">{isOpen ? "⌄" : "›"}</span>
+                  {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                  <Building2 size={15} className="text-slate-400" />
                   {stay}
                 </div>
 
@@ -1363,20 +1413,20 @@ export default function MapView() {
                   const isHoliday = isHolidaySP(fmtISO(d));
                   const baseBg = isDark
                     ? isHoliday
-                      ? "bg-amber-900/40"
+                      ? "bg-amber-950/45"
                       : isWeekend
-                      ? "bg-slate-800"
-                      : "bg-slate-900"
+                      ? "bg-slate-900"
+                      : "bg-slate-950"
                     : isHoliday
-                      ? "bg-amber-100"
+                      ? "bg-amber-50"
                       : isWeekend
-                      ? "bg-sky-100"
-                      : "bg-sky-50";
+                      ? "bg-slate-50"
+                      : "bg-white";
 
                   return (
                     <div
                       key={i}
-                      className={`h-10 relative flex flex-col justify-center items-center border-l border-b border-slate-200 dark:border-slate-700 ${baseBg}`}
+                      className={`relative flex h-10 flex-col items-center justify-center border-l border-b border-slate-200/70 dark:border-slate-800 ${baseBg}`}
                       title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
                     >
                       {isHoliday && (
@@ -1408,13 +1458,14 @@ export default function MapView() {
                 rows.rooms.map((room) => (
                   <div
                     key={room.id}
-                    className="relative grid"
+                    className="relative grid transition-colors hover:bg-sky-50/35 dark:hover:bg-slate-900/60"
                     style={{
                       gridTemplateColumns: `${ROOM_COL_WIDTH}px repeat(${days}, ${cellW}px)`,
                     }}
                   >
                     {/* Nome da UH */}
-                    <div className="sticky left-0 z-10 bg-white dark:bg-slate-900 px-3 text-sm border-b border-slate-200 dark:border-slate-700 h-10 flex items-center text-slate-800 dark:text-slate-100">
+                    <div className="sticky left-0 z-10 flex h-10 items-center gap-2 border-b border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-[8px_0_18px_rgba(15,23,42,0.04)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+                      <BedDouble size={14} className="text-slate-400" />
                       {room.title}
                     </div>
 
@@ -1438,7 +1489,7 @@ export default function MapView() {
                       return (
                         <div
                           key={i}
-                          className={`relative h-10 border-l border-b border-slate-200 dark:border-slate-800 ${bgClass}`}
+                          className={`relative h-10 border-l border-b border-slate-200/70 dark:border-slate-800 ${bgClass}`}
                           title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
                         />
                       );
@@ -1466,6 +1517,24 @@ export default function MapView() {
             </div>
           );
         })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-3 text-xs font-semibold text-slate-600 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950/55 dark:text-slate-300">
+        <span className="mr-1 text-slate-400">Status:</span>
+        {[
+          ["Registrada", "bg-[#8E44AD]"],
+          ["Agendada", "bg-sky-500"],
+          ["Ativa", "bg-rose-500"],
+          ["Concluida", "bg-emerald-600"],
+        ].map(([label, color]) => (
+          <span key={label} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-800 dark:bg-slate-900">
+            <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
+            {label}
+          </span>
+        ))}
+        <span className="ml-auto hidden text-slate-400 sm:inline">
+          Clique em uma reserva para acoes rapidas.
+        </span>
       </div>
 
       {!viewerOnly && (
