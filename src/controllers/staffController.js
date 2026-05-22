@@ -1,6 +1,19 @@
 const { PrismaClient } = require("@prisma/client");
 const { hashPassword } = require("../utils/auth");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
 const prisma = new PrismaClient();
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+const uploadMiddleware = upload.single("image");
 
 /**
  * Criar funcionário (com senha)
@@ -96,6 +109,37 @@ async function updateStaff(req, res) {
   }
 }
 
+async function uploadStaffImage(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhum arquivo enviado" });
+    }
+
+    const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(fileBase64, {
+      folder: "rooms",
+      resource_type: "image",
+      transformation: [{ quality: "auto", fetch_format: "auto" }],
+    });
+
+    const updated = await prisma.staff.update({
+      where: { id: String(req.params.id) },
+      data: { imageUrl: result.secure_url },
+    });
+
+    const { passwordHash: _, ...safe } = updated;
+    return res.json({
+      message: "Upload concluido com sucesso!",
+      imageUrl: result.secure_url,
+      staff: safe,
+    });
+  } catch (error) {
+    console.error("Erro ao enviar imagem do funcionario:", error);
+    return res.status(500).json({ error: "Falha no upload", details: error.message });
+  }
+}
+
 /**
  * Deletar funcionário
  */
@@ -118,5 +162,7 @@ module.exports = {
   getAllStaff,
   getStaffById,
   updateStaff,
+  uploadMiddleware,
+  uploadStaffImage,
   deleteStaff,
 };

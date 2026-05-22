@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 const roleOptions = ["ADMIN", "STAFF", "VIEWER"];
 
@@ -22,9 +23,11 @@ const initialEditData = {
 };
 
 export default function Staff() {
+  const { user, updateUser } = useAuth();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState(initialFormData);
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [editId, setEditId] = useState(null);
   const [editData, setEditData] = useState(initialEditData);
   const [submitError, setSubmitError] = useState("");
@@ -49,13 +52,30 @@ export default function Staff() {
     err?.response?.data?.errors?.[0]?.msg ||
     fallback;
 
+  const handleImageUpload = async (id, file) => {
+    if (!file) return null;
+    const payload = new FormData();
+    payload.append("image", file);
+    const res = await api.post(`/staff/${id}/image`, payload);
+
+    if (user?.id === id && res.data?.staff) {
+      updateUser(res.data.staff);
+    }
+
+    return res.data;
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setSubmitError("");
 
     try {
-      await api.post("/staff", formData);
+      const created = await api.post("/staff", formData);
+      if (profileImageFile && created.data?.id) {
+        await handleImageUpload(created.data.id, profileImageFile);
+      }
       setFormData(initialFormData);
+      setProfileImageFile(null);
       fetchStaff();
     } catch (err) {
       console.error("Erro ao criar funcionário:", err);
@@ -104,7 +124,10 @@ export default function Staff() {
         payload.password = editData.password;
       }
 
-      await api.put(`/staff/${id}`, payload);
+      const updated = await api.put(`/staff/${id}`, payload);
+      if (user?.id === id) {
+        updateUser(updated.data);
+      }
       setEditId(null);
       setEditData(initialEditData);
       fetchStaff();
@@ -169,6 +192,17 @@ export default function Staff() {
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
         />
+        <label className="rounded border border-gray-300 bg-white p-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Foto de perfil
+          </span>
+          <input
+            type="file"
+            accept="image/*"
+            className="w-full text-sm"
+            onChange={(e) => setProfileImageFile(e.target.files?.[0] || null)}
+          />
+        </label>
         <label className="flex items-center gap-2 rounded border border-gray-300 bg-white p-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
           <input
             type="checkbox"
@@ -195,6 +229,7 @@ export default function Staff() {
       <table className="w-full rounded bg-white shadow dark:border dark:border-slate-700 dark:bg-slate-900">
         <thead>
           <tr className="bg-gray-200 dark:bg-slate-800">
+            <th className="p-2 text-left dark:text-slate-100">Foto</th>
             <th className="p-2 text-left dark:text-slate-100">Nome</th>
             <th className="p-2 text-left dark:text-slate-100">E-mail</th>
             <th className="p-2 text-left dark:text-slate-100">Função</th>
@@ -211,6 +246,41 @@ export default function Staff() {
             >
               {editId === employee.id ? (
                 <>
+                  <td className="p-2">
+                    {employee.imageUrl ? (
+                      <img
+                        src={employee.imageUrl}
+                        alt={employee.name}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-12 w-12 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {employee.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="mt-2 w-28 text-xs"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const result = await handleImageUpload(employee.id, file);
+                          setStaff((prev) =>
+                            prev.map((item) =>
+                              item.id === employee.id
+                                ? { ...item, imageUrl: result?.imageUrl || item.imageUrl }
+                                : item
+                            )
+                          );
+                        } catch (err) {
+                          console.error("Erro ao enviar imagem:", err);
+                          alert("Erro ao enviar imagem.");
+                        }
+                      }}
+                    />
+                  </td>
                   <td className="p-2">
                     <input
                       className="w-full rounded border border-gray-300 bg-white p-1 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
@@ -293,6 +363,19 @@ export default function Staff() {
                 </>
               ) : (
                 <>
+                  <td className="p-2">
+                    {employee.imageUrl ? (
+                      <img
+                        src={employee.imageUrl}
+                        alt={employee.name}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-12 w-12 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {employee.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                    )}
+                  </td>
                   <td className="p-2 text-slate-900 dark:text-slate-100">
                     {employee.name}
                   </td>
@@ -330,7 +413,7 @@ export default function Staff() {
           {staff.length === 0 && (
             <tr>
               <td
-                colSpan="6"
+                colSpan="7"
                 className="p-4 text-center text-gray-500 dark:text-slate-400"
               >
                 Nenhum funcionário cadastrado.

@@ -8,6 +8,7 @@ const handleValidation = require("../../middlewares/handleValidation");
 router.get("/", staffController.getAllStaff);
 router.get("/:id", staffController.getStaffById);
 router.post("/", validateStaff, handleValidation, staffController.createStaff);
+router.post("/:id/image", staffController.uploadMiddleware, staffController.uploadStaffImage);
 router.put("/:id", validateStaff, handleValidation, staffController.updateStaff);
 router.delete("/:id", staffController.deleteStaff);
 

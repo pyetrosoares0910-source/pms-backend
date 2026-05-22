@@ -490,12 +490,20 @@ export default function DashboardLayout() {
         >
           <div className="px-4 py-3">
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 shadow-sm shadow-slate-900/5 dark:border-white/10 dark:bg-white/5">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20">
-                {user?.name?.charAt(0)?.toUpperCase() || "U"}
-              </div>
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user?.name || "Usuario"}
+                  className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-md shadow-sky-600/20 ring-1 ring-slate-200/70 dark:ring-white/10"
+                />
+              ) : (
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20">
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+              )}
               <div className="min-w-0">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-                  Ola
+                <div className="font-serif text-[13px] italic leading-none text-slate-400 dark:text-slate-500">
+                  Olá,
                 </div>
                 <div className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
                   {user?.name}

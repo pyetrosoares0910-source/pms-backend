@@ -23,7 +23,15 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("pms_user");
   }
 
-  const value = useMemo(() => ({ token, user, login, logout }), [token, user]);
+  function updateUser(patch) {
+    setUser((current) => {
+      const next = current ? { ...current, ...patch } : patch;
+      localStorage.setItem("pms_user", JSON.stringify(next || null));
+      return next;
+    });
+  }
+
+  const value = useMemo(() => ({ token, user, login, logout, updateUser }), [token, user]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
