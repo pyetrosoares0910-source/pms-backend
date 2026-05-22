@@ -15,18 +15,20 @@ export default function KpiTotalReservas({ value, note }) {
     >
       <div className="pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl dark:bg-cyan-500/10" />
 
-      <div className="relative">
+      <div className="relative flex items-start gap-2">
         <div className="flex items-center gap-2">
           <PremiumIcon>
             <Trophy size={22} strokeWidth={2.4} />
           </PremiumIcon>
+        </div>
+        <div className="pt-1">
           <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Total de Reservas
           </h2>
+          <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+            acumulado do historico
+          </p>
         </div>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          acumulado do historico
-        </p>
       </div>
 
       <div className="relative mt-auto flex flex-col justify-end pt-5 text-center">

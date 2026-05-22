@@ -15,6 +15,10 @@ function isOperationalTask(task) {
   return !task?.isRecurring;
 }
 
+function pluralByCount(count, singular, plural) {
+  return Number(count) > 1 ? plural : singular;
+}
+
 function isTaskActive(task) {
   return isOperationalTask(task) && !isTaskCompleted(task);
 }
@@ -57,31 +61,33 @@ export function getMaintenanceAlertSummary(tasks, referenceDate = dayjs()) {
 }
 
 export function buildMaintenanceAlert(summary) {
+  const openText = `${summary.active} ${pluralByCount(summary.active, "atividade segue", "atividades seguem")} em aberto.`;
+
   if (summary.overdue > 0 || summary.dueToday > 0) {
     if (summary.overdue > 0 && summary.dueToday > 0) {
       return {
         isPending: true,
-        message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) e ${summary.dueToday} vence(m) hoje. ${summary.active} atividade(s) seguem em aberto.`,
+        message: `Alerta: ${summary.overdue} ${pluralByCount(summary.overdue, "atividade atrasada", "atividades atrasadas")} e ${summary.dueToday} ${pluralByCount(summary.dueToday, "vence", "vencem")} hoje. ${openText}`,
       };
     }
 
     if (summary.overdue > 0) {
       return {
         isPending: true,
-        message: `Alerta: ${summary.overdue} atividade(s) atrasada(s) exigem atencao. ${summary.active} atividade(s) seguem em aberto.`,
+        message: `Alerta: ${summary.overdue} ${pluralByCount(summary.overdue, "atividade atrasada exige", "atividades atrasadas exigem")} atencao. ${openText}`,
       };
     }
 
     return {
       isPending: true,
-      message: `Alerta: ${summary.dueToday} atividade(s) vence(m) hoje. ${summary.active} atividade(s) seguem em aberto.`,
+      message: `Alerta: ${summary.dueToday} ${pluralByCount(summary.dueToday, "atividade vence", "atividades vencem")} hoje. ${openText}`,
     };
   }
 
   if (summary.active > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: nenhuma atividade atrasada. ${summary.dueToday} vence(m) hoje, ${summary.next7} vence(m) nos proximos 7 dias e ${summary.unscheduled} segue(m) sem prazo.`,
+      message: `Tudo certo: nenhuma atividade atrasada. ${summary.dueToday} ${pluralByCount(summary.dueToday, "vence", "vencem")} hoje, ${summary.next7} ${pluralByCount(summary.next7, "vence", "vencem")} nos proximos 7 dias e ${summary.unscheduled} ${pluralByCount(summary.unscheduled, "segue", "seguem")} sem prazo.`,
     };
   }
 

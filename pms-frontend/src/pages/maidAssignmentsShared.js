@@ -17,6 +17,10 @@ export function makeMaidListDeliveryKey(date, maidName) {
   return [date, maidName || "sem-diarista"].join("|");
 }
 
+function pluralByCount(count, singular, plural) {
+  return Number(count) > 1 ? plural : singular;
+}
+
 export function getStoredMaidAssignmentsSettings() {
   if (typeof localStorage === "undefined") {
     return defaultMaidAssignmentsSettings;
@@ -79,14 +83,14 @@ export function buildMaidListAlert(summary, targetLabel) {
   if (summary.pending > 0) {
     return {
       isPending: true,
-      message: `Alerta: ${summary.pending} de ${summary.total} listagem(oes) de diarista(s) ainda pendente(s) para ${targetLabel}.`,
+      message: `Alerta: ${summary.pending} de ${summary.total} ${pluralByCount(summary.total, "listagem", "listagens")} de ${pluralByCount(summary.total, "diarista", "diaristas")} ainda ${pluralByCount(summary.pending, "pendente", "pendentes")} para ${targetLabel}.`,
     };
   }
 
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.sent} de ${summary.total} listagem(oes) de diaristas de ${targetLabel} já foram enviadas.`,
+      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "listagem", "listagens")} de ${pluralByCount(summary.total, "diarista", "diaristas")} de ${targetLabel} ja ${pluralByCount(summary.sent, "foi enviada", "foram enviadas")}.`,
     };
   }
 

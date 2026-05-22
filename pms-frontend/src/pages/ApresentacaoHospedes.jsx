@@ -534,8 +534,8 @@ export default function ApresentacaoHospedes() {
               }
               disabled={!hasPending || isSubmitting}
               className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${hasPending
-                  ? "bg-sky-700 hover:bg-sky-800"
-                  : "cursor-not-allowed bg-slate-500 hover:bg-slate-500"
+                ? "bg-sky-700 hover:bg-sky-800"
+                : "cursor-not-allowed bg-slate-500 hover:bg-slate-500"
                 }`}
             >
               {isSubmitting
@@ -565,7 +565,7 @@ export default function ApresentacaoHospedes() {
   return (
     <div className="min-h-screen space-y-6 bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Apresentação hóspedes</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Apresentação hóspede</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Mensagens de apresentação da semana, ordenadas como no mapa.
         </p>
@@ -631,8 +631,8 @@ export default function ApresentacaoHospedes() {
 
             <div
               className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${weeklyPresentationSummary.pending > 0
-                  ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
-                  : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
+                ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
                 }`}
             >
               {weeklyPresentationSummary.pending > 0
@@ -645,8 +645,8 @@ export default function ApresentacaoHospedes() {
                 type="button"
                 onClick={() => setShowOnlyPending(true)}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold ${effectiveShowOnlyPending
-                    ? "bg-rose-700 text-white hover:bg-rose-800"
-                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  ? "bg-rose-700 text-white hover:bg-rose-800"
+                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   }`}
               >
                 Somente pendentes
@@ -655,8 +655,8 @@ export default function ApresentacaoHospedes() {
                 type="button"
                 onClick={() => setShowOnlyPending(false)}
                 className={`rounded-xl px-4 py-2 text-sm font-semibold ${!effectiveShowOnlyPending
-                    ? "bg-slate-800 text-white hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-100"
-                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  ? "bg-slate-800 text-white hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-100"
+                  : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
                   }`}
               >
                 Mostrar todas

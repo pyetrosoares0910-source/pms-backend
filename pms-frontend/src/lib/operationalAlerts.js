@@ -9,6 +9,10 @@ function hasAssignedMaid(task) {
   return Boolean(task?.maidId || String(task?.maid || "").trim());
 }
 
+function pluralByCount(count, singular, plural) {
+  return Number(count) > 1 ? plural : singular;
+}
+
 export function mapCheckoutTask(task) {
   return {
     id: task.id,
@@ -47,14 +51,14 @@ export function buildCheckinAlert(summary, targetLabel = "hoje") {
   if (summary.pending > 0) {
     return {
       isPending: true,
-      message: `Alerta: ${summary.pending} de ${summary.total} check-in(s) de ${targetLabel} ainda pendente(s).`,
+      message: `Alerta: ${summary.pending} de ${summary.total} ${pluralByCount(summary.total, "check-in", "check-ins")} de ${targetLabel} ainda ${pluralByCount(summary.pending, "pendente", "pendentes")}.`,
     };
   }
 
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.finished} de ${summary.total} check-in(s) de ${targetLabel} ja foram feitos.`,
+      message: `Tudo certo: ${summary.finished} de ${summary.total} ${pluralByCount(summary.total, "check-in", "check-ins")} de ${targetLabel} ja ${pluralByCount(summary.finished, "foi feito", "foram feitos")}.`,
     };
   }
 
@@ -89,14 +93,14 @@ export function buildCleaningCoverageAlert(summary, targetLabel = "na semana atu
   if (summary.unassigned > 0) {
     return {
       isPending: true,
-      message: `Alerta: ${summary.unassigned} checkout(s) ${summary.unassignedDays > 0 ? `em ${summary.unassignedDays} dia(s) ` : ""}ainda sem diarista designada ${targetLabel}.`,
+      message: `Alerta: ${summary.unassigned} ${pluralByCount(summary.unassigned, "checkout", "checkouts")} ${summary.unassignedDays > 0 ? `em ${summary.unassignedDays} ${pluralByCount(summary.unassignedDays, "dia", "dias")} ` : ""}ainda sem diarista designada ${targetLabel}.`,
     };
   }
 
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.assigned} checkout(s) da limpeza ${targetLabel} ja possuem diarista designada.`,
+      message: `Tudo certo: ${summary.assigned} ${pluralByCount(summary.assigned, "checkout", "checkouts")} da limpeza ${targetLabel} ja ${pluralByCount(summary.assigned, "possui", "possuem")} diarista designada.`,
     };
   }
 

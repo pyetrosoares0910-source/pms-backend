@@ -34,6 +34,10 @@ function getGreetingTarget(gender) {
   };
 }
 
+function pluralByCount(count, singular, plural) {
+  return Number(count) > 1 ? plural : singular;
+}
+
 export function getGuestCheckoutStayKey(input) {
   const stay = input?.room?.stay || input;
   return stay?.id || stay?.name || "sem-stay";
@@ -131,14 +135,14 @@ export function buildGuestCheckoutAlert(summary, targetLabel = "hoje") {
   if (summary.pending > 0) {
     return {
       isPending: true,
-      message: `Alerta: ${summary.pending} de ${summary.total} mensagem(ns) de check-out de ${targetLabel} ainda pendente(s).`,
+      message: `Alerta: ${summary.pending} de ${summary.total} ${pluralByCount(summary.total, "mensagem", "mensagens")} de check-out de ${targetLabel} ainda ${pluralByCount(summary.pending, "pendente", "pendentes")}.`,
     };
   }
 
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.sent} de ${summary.total} mensagem(ns) de check-out de ${targetLabel} já foram confirmadas.`,
+      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "mensagem", "mensagens")} de check-out de ${targetLabel} ja ${pluralByCount(summary.sent, "foi confirmada", "foram confirmadas")}.`,
     };
   }
 

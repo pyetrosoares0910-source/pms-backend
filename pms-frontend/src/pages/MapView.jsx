@@ -776,7 +776,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
               {assignmentConflict.maid?.name || "Diarista"} esta marcada em{" "}
               {assignmentConflict.date
                 ? fmtBR(parseDateOnly(assignmentConflict.date))
-                : "data nao informada"}{" "}
+                : "data não informada"}{" "}
               para {assignmentConflict.task?.stay} - {assignmentConflict.task?.rooms}.
             </div>
 
@@ -904,7 +904,7 @@ function ReservationConflictModal({
         <div className="space-y-4">
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
             <div className="font-semibold">
-              A nova reserva nao foi inserida porque {roomTitle} ja esta ocupada.
+              A nova reserva não foi inserida porque {roomTitle} já esta ocupada.
             </div>
             <div className="mt-1">
               Periodo solicitado:{" "}
@@ -968,7 +968,7 @@ function ReservationConflictModal({
               onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-slate-700 dark:border-slate-600 dark:text-slate-200"
             >
-              Nao inserir nova reserva
+              Não inserir nova reserva
             </button>
           </div>
         </div>

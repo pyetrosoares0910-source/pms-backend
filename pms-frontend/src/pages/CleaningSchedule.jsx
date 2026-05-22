@@ -103,9 +103,12 @@ const CleaningSchedule = () => {
     };
   });
 
-  const sortedMaidStats = [...maidStats].sort(
-    (a, b) => (Number(a.maidId) || 0) - (Number(b.maidId) || 0)
-  );
+  const sortedMaidStats = [...maidStats].sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    const nameCompare = a.name.localeCompare(b.name, "pt-BR");
+    if (nameCompare !== 0) return nameCompare;
+    return (Number(a.maidId) || 0) - (Number(b.maidId) || 0);
+  });
 
   const assignedTasks = tasks.filter((t) => t.maidId || t.maid).length;
   const pendingTasks = Math.max(0, tasks.length - assignedTasks);
