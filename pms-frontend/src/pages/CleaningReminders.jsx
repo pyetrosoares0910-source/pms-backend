@@ -40,6 +40,11 @@ const emptyActivationForm = {
   endsAt: dayjs().add(14, "day").format("YYYY-MM-DD"),
 };
 
+const emptyCompletionForm = {
+  executionDate: dayjs().format("YYYY-MM-DD"),
+  notes: "",
+};
+
 const frequencyOptions = [
   { value: "DAILY", label: "Diaria" },
   { value: "WEEKLY", label: "Semanal" },
@@ -112,6 +117,8 @@ export default function CleaningReminders() {
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [activationReminder, setActivationReminder] = useState(null);
   const [activationForm, setActivationForm] = useState(emptyActivationForm);
+  const [completionTask, setCompletionTask] = useState(null);
+  const [completionForm, setCompletionForm] = useState(emptyCompletionForm);
   const [editingPeriodicId, setEditingPeriodicId] = useState(null);
   const [editingReminderId, setEditingReminderId] = useState(null);
   const [selectedPeriodicIds, setSelectedPeriodicIds] = useState([]);
@@ -347,6 +354,38 @@ export default function CleaningReminders() {
     } catch (err) {
       console.error("Erro ao alternar tarefa periodica:", err);
       setError(err.message || "Erro ao alternar tarefa periodica.");
+    }
+  };
+
+  const openCompletionModal = (task) => {
+    setCompletionTask(task);
+    setCompletionForm(emptyCompletionForm);
+  };
+
+  const closeCompletionModal = () => {
+    setCompletionTask(null);
+    setCompletionForm(emptyCompletionForm);
+  };
+
+  const completePeriodicTask = async (event) => {
+    event.preventDefault();
+    if (!completionTask) return;
+
+    try {
+      await api(`/periodic-tasks/${completionTask.id}/executions`, {
+        method: "POST",
+        body: JSON.stringify({
+          roomId: completionTask.roomId,
+          executionDate: completionForm.executionDate,
+          status: "COMPLETED",
+          notes: completionForm.notes || null,
+        }),
+      });
+      closeCompletionModal();
+      loadData();
+    } catch (err) {
+      console.error("Erro ao registrar conclusao periodica:", err);
+      setError(err.message || "Erro ao registrar conclusao da tarefa periodica.");
     }
   };
 
@@ -722,6 +761,14 @@ export default function CleaningReminders() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => openCompletionModal(task)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+                  >
+                    <CheckCircle2 size={14} />
+                    Registrar conclusao
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => togglePeriodicTask(task)}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
                   >
@@ -824,6 +871,78 @@ export default function CleaningReminders() {
           </div>
         )}
       </section>
+
+      {completionTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4">
+          <form
+            onSubmit={completePeriodicTask}
+            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">Registrar conclusao</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {completionTask.name} | {completionTask.room?.title || "Sem acomodacao"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeCompletionModal}
+                className="rounded-lg border border-slate-300 p-2 dark:border-slate-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold">
+                Data realizada
+                <input
+                  type="date"
+                  value={completionForm.executionDate}
+                  onChange={(e) =>
+                    setCompletionForm({ ...completionForm, executionDate: e.target.value })
+                  }
+                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
+                  required
+                />
+              </label>
+              <label className="block text-sm font-semibold">
+                Observacao
+                <textarea
+                  value={completionForm.notes}
+                  onChange={(e) =>
+                    setCompletionForm({ ...completionForm, notes: e.target.value })
+                  }
+                  placeholder="Ex.: feita antes do check-out programado"
+                  className="mt-1 min-h-24 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
+                />
+              </label>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-100">
+                A proxima designacao sera recalculada com base nessa data.
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeCompletionModal}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+              >
+                <CheckCircle2 size={16} />
+                Salvar conclusao
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {showReminderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4">
