@@ -96,6 +96,7 @@ const CleaningSchedule = () => {
     });
 
     return {
+      maidId: m.id,
       name: m.name,
       total: uniqueDays.size,
       byWeek,
@@ -103,7 +104,7 @@ const CleaningSchedule = () => {
   });
 
   const sortedMaidStats = [...maidStats].sort(
-    (a, b) => b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
+    (a, b) => (Number(a.maidId) || 0) - (Number(b.maidId) || 0)
   );
 
   const assignedTasks = tasks.filter((t) => t.maidId || t.maid).length;
@@ -246,7 +247,7 @@ const CleaningSchedule = () => {
                 <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                   <tr>
                     <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Grupo
+                      Nº
                     </th>
                     <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Acomodações
@@ -278,6 +279,9 @@ const CleaningSchedule = () => {
                         const stayTaskCount = startsStayGroup
                           ? sortedTasks.filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length
                           : 0;
+                        const stayTaskIndex = sortedTasks
+                          .slice(0, idx + 1)
+                          .filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length;
 
                         return [
                           startsStayGroup ? (
@@ -304,7 +308,7 @@ const CleaningSchedule = () => {
                           >
                             <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
                               <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                                {idx + 1}
+                                {stayTaskIndex}
                               </span>
                             </td>
                             <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200">
@@ -403,6 +407,9 @@ const CleaningSchedule = () => {
         <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
             <tr>
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                ID
+              </th>
               <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                 Diarista
               </th>
@@ -429,6 +436,11 @@ const CleaningSchedule = () => {
                 key={idx}
                 className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
               >
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                </td>
                 <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
                   {m.name}
                 </td>
@@ -486,7 +498,7 @@ const CleaningSchedule = () => {
               if (arg.event.title === "Sem diarista") {
                 return (
                   <div
-                    className="bg-orange-50 text-orange-800 border border-orange-200 px-2 py-1 rounded-lg shadow-sm text-xs font-semibold cursor-pointer dark:bg-orange-950/50 dark:text-orange-200 dark:border-orange-800/60"
+                    className="cursor-pointer rounded-lg border border-rose-300 bg-rose-600 px-2 py-1 text-xs font-black text-white shadow-sm shadow-rose-500/25 ring-1 ring-rose-100 transition hover:bg-rose-700 dark:border-rose-500/70 dark:bg-rose-600 dark:text-white dark:ring-rose-400/20 dark:hover:bg-rose-500"
                     onClick={() => setSelectedEvent(arg.event)}
                     role="button"
                     tabIndex={0}
