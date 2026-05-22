@@ -1,7 +1,9 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import isBetween from "dayjs/plugin/isBetween";
 
 dayjs.extend(utc);
+dayjs.extend(isBetween);
 
 function hasAssignedMaid(task) {
   return Boolean(task?.maidId || String(task?.maid || "").trim());

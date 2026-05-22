@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import isBetween from "dayjs/plugin/isBetween";
 import { useApi } from "../lib/api";
 import {
   compareRoomsInMapOrder,
@@ -17,6 +18,7 @@ import {
 } from "./guestPresentationShared";
 
 dayjs.extend(utc);
+dayjs.extend(isBetween);
 
 const SETTINGS_KEY = "guest-checkins-settings-v2";
 
