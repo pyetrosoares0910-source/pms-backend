@@ -61,6 +61,13 @@ import {
 import { getWeeklyPresentationSummary } from "../pages/guestPresentationShared";
 import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "../pages/maintenanceShared";
 
+const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
+
+function getInitialSidebarCollapsed() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+}
+
 // ======================= COMPONENTE ITEM =======================
 const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification = false }) => {
   const label = typeof children === "string" ? children : "";
@@ -267,8 +274,8 @@ export default function DashboardLayout() {
   const [alertCheckouts, setAlertCheckouts] = useState([]);
   const [alertMaintenance, setAlertMaintenance] = useState([]);
 
-  const [collapsed, setCollapsed] = useState(false);
-  const [showText, setShowText] = useState(!collapsed);
+  const [collapsed, setCollapsed] = useState(getInitialSidebarCollapsed);
+  const [showText, setShowText] = useState(() => !getInitialSidebarCollapsed());
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [groupsOpen, setGroupsOpen] = useState({
@@ -287,9 +294,12 @@ export default function DashboardLayout() {
     }
   }, [collapsed]);
 
+  useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "true" : "false");
+  }, [collapsed]);
+
   const toggleSidebar = () => {
-    localStorage.setItem("sidebar-collapsed", !collapsed);
-    setCollapsed(!collapsed);
+    setCollapsed((prev) => !prev);
   };
 
   const isDark = theme === "dark";
@@ -467,11 +477,33 @@ export default function DashboardLayout() {
         </div>
 
         {/* USUÁRIO */}
-        {user && showText && (
-          <div className="border-b border-slate-200/70 px-4 py-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300 shrink-0">
-            👋 Olá, <span className="font-medium">{user.name}</span>
+        <div
+          className={`
+            shrink-0 overflow-hidden border-b border-slate-200/70
+            transition-[max-height,opacity,transform] duration-300 ease-out
+            dark:border-white/10
+            ${user && showText
+              ? "max-h-20 translate-y-0 opacity-100"
+              : "max-h-0 -translate-y-1 opacity-0"
+            }
+          `}
+        >
+          <div className="px-4 py-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 shadow-sm shadow-slate-900/5 dark:border-white/10 dark:bg-white/5">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20">
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                  Ola
+                </div>
+                <div className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  {user?.name}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* NAVEGAÇÃO */}
         <nav className={`flex-1 px-2 py-4 space-y-1 ${collapsed ? "overflow-visible" : "overflow-y-auto"}`}>
