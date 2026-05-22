@@ -70,11 +70,35 @@ function formatPct(value, digits = 0) {
 function formatPointDelta(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return "sem comparativo";
-  if (numeric === 0) return "0 p.p.";
+  if (numeric === 0) return "0 ponto";
   return `${numeric > 0 ? "+" : ""}${numeric.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
-  })} p.p.`;
+  })} ${Math.abs(numeric) === 1 ? "ponto" : "pontos"}`;
+}
+
+function pluralByCount(count, singular, plural) {
+  const numeric = Number(count);
+  return numeric > 1 ? plural : singular;
+}
+
+function pendingText(count) {
+  return pluralByCount(count, "pendente", "pendentes");
+}
+
+function doneVerbText(count) {
+  return pluralByCount(count, "foi feito", "foram feitos");
+}
+
+function completedVerbText(count) {
+  return pluralByCount(count, "foi concluida", "foram concluidas");
+}
+
+function weightedOccupancyPct(rows) {
+  const occupied = (rows || []).reduce((sum, row) => sum + (Number(row.occupiedNights) || 0), 0);
+  const capacity = (rows || []).reduce((sum, row) => sum + (Number(row.capacity) || 0), 0);
+  if (capacity <= 0) return 0;
+  return Number(Math.min(100, (occupied / capacity) * 100).toFixed(1));
 }
 
 function formatMaintenanceDate(value) {
@@ -96,6 +120,10 @@ function formatMaintenanceStatus(status) {
 function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, tone = "best" }) {
   const label = data?.[index]?.label || "";
   const percent = formatPercent(value);
+  const nights = Number(data?.[index]?.noites);
+  const detail = Number.isFinite(nights)
+    ? `${nights} ${pluralByCount(nights, "diaria", "diarias")} | ${percent}`
+    : percent;
   const hasRoomInside = width >= 150;
   const baseline = y + height / 2 + 4;
   const displayLabel = label.length > 18 ? `${label.slice(0, 16)}...` : label;
@@ -119,14 +147,14 @@ function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, t
           fontSize={12}
           fontWeight={800}
         >
-          {percent}
+          {detail}
         </text>
       </g>
     );
   }
 
   const badgeX = x + Math.max(width + 8, 10);
-  const badgeWidth = Math.min(Math.max(displayLabel.length * 6.4 + percent.length * 7 + 28, 106), 198);
+  const badgeWidth = Math.min(Math.max(displayLabel.length * 6.4 + detail.length * 7 + 28, 128), 238);
   const badgeFill =
     tone === "worst"
       ? isDark
@@ -166,7 +194,7 @@ function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, t
       <text x={badgeX + 8} y={baseline} fill={labelFill} fontSize={12} fontWeight={700}>
         <tspan>{displayLabel}</tspan>
         <tspan dx={6} fontWeight={900}>
-          {percent}
+          {detail}
         </tspan>
       </text>
     </g>
@@ -214,14 +242,14 @@ function StayOccupancyBarLabel({ x, y, width, value, index, data, isDark }) {
 }
 
 function overlapDays(a0, a1, b0, b1) {
-  const start = dayjs.max(dayjs(a0), dayjs(b0));
-  const end = dayjs.min(dayjs(a1), dayjs(b1));
+  const start = dayjs.max(dayjs.utc(a0).startOf("day"), dayjs.utc(b0).startOf("day"));
+  const end = dayjs.min(dayjs.utc(a1).startOf("day"), dayjs.utc(b1).startOf("day"));
   const diff = end.diff(start, "day");
   return Math.max(0, diff);
 }
 
 function monthBounds(d = new Date()) {
-  const start = dayjs(d).startOf("month");
+  const start = dayjs.utc(d).startOf("month");
   const end = start.add(1, "month");
   return { start, end, daysInMonth: start.daysInMonth() };
 }
@@ -384,6 +412,9 @@ function buildRoomOccupancyRows(rooms, reservations, start, end) {
 
 function buildStayOccupancy(rows, reservations, start, end) {
   const roomsByStay = {};
+  const roomIdSet = new Set((rows || []).map((room) => room.id));
+  const historicalStartByRoom = buildHistoricalRoomStartMap(reservations, roomIdSet);
+  const fullMonthOpenStayIds = buildHistoricalOpenStaySet(reservations, rows, start, end);
 
   rows.forEach((room) => {
     const stayId = room.stay?.id || "none";
@@ -397,7 +428,13 @@ function buildStayOccupancy(rows, reservations, start, end) {
     .map((group) => {
       const roomSet = new Set(group.rooms.map((room) => room.id));
       const occupiedNights = getOccupiedNights(reservations, start, end, roomSet);
-      const capacity = getTotalCapacityDays(group.rooms, start, end);
+      const capacity = getTotalCapacityDays(
+        group.rooms,
+        start,
+        end,
+        historicalStartByRoom,
+        fullMonthOpenStayIds
+      );
 
       if (capacity <= 0) return null;
 
@@ -653,14 +690,8 @@ export default function Dashboard() {
       };
     });
 
-    const avg =
-      rows.length > 0
-        ? Number((rows.reduce((sum, r) => sum + r.ocupacao, 0) / rows.length).toFixed(1))
-        : 0;
-    const prevAvg =
-      prevRows.length > 0
-        ? Number((prevRows.reduce((sum, r) => sum + r.ocupacao, 0) / prevRows.length).toFixed(1))
-        : null;
+    const avg = weightedOccupancyPct(rows);
+    const prevAvg = prevRows.length > 0 ? weightedOccupancyPct(prevRows) : null;
     const deltaAvg = Number.isFinite(prevAvg) ? Number((avg - prevAvg).toFixed(1)) : null;
     const best = rows.length > 0 ? rows.reduce((a, b) => (a.ocupacao > b.ocupacao ? a : b)) : null;
     const improved = rows.filter((row) => Number(row.delta) > 0).length;
@@ -1237,20 +1268,20 @@ export default function Dashboard() {
             className={alertClass(checkinAlert.isPending)}
           >
             {hasPendingCheckinsToday
-              ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
+              ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} ${pluralByCount(kpis.checkinsToday, "check-in", "check-ins")} de hoje ainda ${pendingText(kpis.pendingCheckinsToday)}.`
               : hasCheckinsToday
-                ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
-                : "Tudo certo: não há check-ins previstos para hoje."}
+                ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} ${pluralByCount(kpis.checkinsToday, "check-in", "check-ins")} de hoje ja ${doneVerbText(kpis.finishedCheckinsToday)}.`
+                : "Tudo certo: nao ha check-in previsto para hoje."}
           </div>
 
           <div
             className={alertClass(hasPendingPresentations)}
           >
             {hasPendingPresentations
-              ? `Alerta: ${weeklyPresentationSummary.pending} de ${weeklyPresentationSummary.total} apresentacao(oes) da semana ainda pendente(s).`
+              ? `Alerta: ${weeklyPresentationSummary.pending} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentacao", "apresentacoes")} da semana ainda ${pendingText(weeklyPresentationSummary.pending)}.`
               : weeklyPresentationSummary.total > 0
-                ? `Tudo certo: ${weeklyPresentationSummary.completed} de ${weeklyPresentationSummary.total} apresentacao(oes) da semana foram concluidas.`
-                : "Tudo certo: nao ha apresentacoes previstas na semana."}
+                ? `Tudo certo: ${weeklyPresentationSummary.completed} de ${weeklyPresentationSummary.total} ${pluralByCount(weeklyPresentationSummary.total, "apresentacao", "apresentacoes")} da semana ${completedVerbText(weeklyPresentationSummary.completed)}.`
+                : "Tudo certo: nao ha apresentacao prevista na semana."}
           </div>
           <div
             className={alertClass(guestCheckoutAlert.isPending)}
