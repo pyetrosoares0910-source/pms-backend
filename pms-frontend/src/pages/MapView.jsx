@@ -1293,15 +1293,15 @@ export default function MapView() {
               <div className="text-lg font-black text-slate-950 dark:text-slate-50">{activeReservationsCount}</div>
             </div>
           </div>
-        {!viewerOnly && (
-          <button
-            onClick={() => setAddOpen(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-700"
-          >
-            <Plus size={18} />
-            Adicionar reserva
-          </button>
-        )}
+          {!viewerOnly && (
+            <button
+              onClick={() => setAddOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-700"
+            >
+              <Plus size={18} />
+              Adicionar reserva
+            </button>
+          )}
         </div>
       </div>
 
@@ -1415,13 +1415,13 @@ export default function MapView() {
                     ? isHoliday
                       ? "bg-amber-950/45"
                       : isWeekend
-                      ? "bg-slate-900"
-                      : "bg-slate-950"
+                        ? "bg-slate-900"
+                        : "bg-slate-950"
                     : isHoliday
                       ? "bg-amber-50"
                       : isWeekend
-                      ? "bg-slate-50"
-                      : "bg-white";
+                        ? "bg-slate-50"
+                        : "bg-white";
 
                   return (
                     <div
@@ -1478,13 +1478,13 @@ export default function MapView() {
                         ? isHoliday
                           ? "bg-amber-950/30"
                           : isWeekend
-                          ? "bg-slate-800/60"
-                          : "bg-slate-900"
+                            ? "bg-slate-800/60"
+                            : "bg-slate-900"
                         : isHoliday
                           ? "bg-amber-50"
                           : isWeekend
-                          ? "bg-slate-50"
-                          : "bg-white";
+                            ? "bg-slate-50"
+                            : "bg-white";
 
                       return (
                         <div
@@ -1525,7 +1525,6 @@ export default function MapView() {
           ["Registrada", "bg-[#8E44AD]"],
           ["Agendada", "bg-sky-500"],
           ["Ativa", "bg-rose-500"],
-          ["Concluida", "bg-emerald-600"],
         ].map(([label, color]) => (
           <span key={label} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-800 dark:bg-slate-900">
             <span className={`h-2.5 w-2.5 rounded-full ${color}`} />
