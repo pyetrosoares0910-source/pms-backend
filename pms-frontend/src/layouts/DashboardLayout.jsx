@@ -679,6 +679,26 @@ export default function DashboardLayout() {
 
         {/* BASE FIXA – sempre visível */}
         <div className="p-3 space-y-2 border-t border-slate-200/70 bg-slate-50/80 shadow-[0_-14px_35px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-950/60 dark:shadow-[0_-14px_35px_rgba(0,0,0,0.22)] shrink-0">
+          {collapsed && user ? (
+            <div className="flex justify-center pb-1">
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user?.name || "Usuario"}
+                  title={user?.name || "Usuario"}
+                  className="h-11 w-11 rounded-full object-cover shadow-lg shadow-sky-600/15 ring-2 ring-white dark:ring-slate-800"
+                />
+              ) : (
+                <div
+                  title={user?.name || "Usuario"}
+                  className="grid h-11 w-11 place-items-center rounded-full bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-600/20 ring-2 ring-white dark:ring-slate-800"
+                >
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+              )}
+            </div>
+          ) : null}
+
           {/* Toggle Tema */}
           <button
             onClick={toggleTheme}

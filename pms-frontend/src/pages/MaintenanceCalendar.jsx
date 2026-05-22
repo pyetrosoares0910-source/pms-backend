@@ -696,21 +696,21 @@ export default function MaintenanceCalendar() {
           <StatCard
             title="Atrasadas"
             value={overallSummary.overdue}
-            helper="Ja passaram do prazo."
+            helper="Já passaram do prazo."
             tone="rose"
             icon={AlertTriangle}
           />
           <StatCard
             title="Vencem hoje"
             value={overallSummary.dueToday}
-            helper="Entram na operacao do dia."
+            helper="Entram na operação do dia."
             tone="emerald"
             icon={CalendarClock}
           />
           <StatCard
             title="Concluidas"
             value={overallSummary.completed}
-            helper="Ja finalizadas neste recorte."
+            helper="Já finalizadas neste recorte."
             tone="slate"
             icon={CheckCircle2}
           />
@@ -720,7 +720,7 @@ export default function MaintenanceCalendar() {
           <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-950">
             <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-sky-600 dark:text-sky-400" />
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              Carregando agenda de manutencao...
+              Carregando agenda de manutenção...
             </p>
           </div>
         ) : (
@@ -728,7 +728,7 @@ export default function MaintenanceCalendar() {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="text-xl font-semibold tracking-[-0.03em] text-slate-900 dark:text-slate-100">
-                  Calendario de manutencao
+                  Calendário de manutenção
                 </h1>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Clique em um dia para inserir uma atividade simples, arraste eventos para remarcar e clique para editar.
@@ -785,7 +785,7 @@ export default function MaintenanceCalendar() {
               </span>
               <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Concluida
+                Concluída
               </span>
             </div>
 

@@ -108,33 +108,32 @@ function StatusBadge({ status, compact = false }) {
     normalized === "registrada"
       ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
       : normalized === "agendada"
-      ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-      : normalized === "ativa"
-      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-      : normalized === "concluida"
-      ? "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
-      : normalized === "cancelada"
-      ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
-      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
+        ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
+        : normalized === "ativa"
+          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+          : normalized === "concluida"
+            ? "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+            : normalized === "cancelada"
+              ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
+              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
 
   const label =
     normalized === "registrada"
       ? "Registrada"
       : normalized === "agendada"
-      ? "Agendada"
-      : normalized === "ativa"
-      ? "Ativa"
-      : normalized === "concluida"
-      ? "Concluida"
-      : normalized === "cancelada"
-      ? "Cancelada"
-      : status;
+        ? "Agendada"
+        : normalized === "ativa"
+          ? "Ativa"
+          : normalized === "concluida"
+            ? "Concluída"
+            : normalized === "cancelada"
+              ? "Cancelada"
+              : status;
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full text-center font-semibold uppercase ${classes} ${
-        compact ? "px-2.5 py-1 text-[11px]" : "min-w-[112px] px-3 py-1 text-xs"
-      }`}
+      className={`inline-flex items-center justify-center rounded-full text-center font-semibold uppercase ${classes} ${compact ? "px-2.5 py-1 text-[11px]" : "min-w-[112px] px-3 py-1 text-xs"
+        }`}
     >
       {label}
     </span>
@@ -192,7 +191,7 @@ export default function ApresentacaoHospedes() {
         setReservations(reservationsRes || []);
         setRooms(roomsRes || []);
       } catch (err) {
-        console.error("Erro ao carregar apresentacoes:", err);
+        console.error("Erro ao carregar apresentações:", err);
       } finally {
         setLoading(false);
       }
@@ -534,19 +533,18 @@ export default function ApresentacaoHospedes() {
                 )
               }
               disabled={!hasPending || isSubmitting}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${
-                hasPending
+              className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${hasPending
                   ? "bg-sky-700 hover:bg-sky-800"
                   : "cursor-not-allowed bg-slate-500 hover:bg-slate-500"
-              }`}
+                }`}
             >
               {isSubmitting
                 ? "Salvando..."
                 : hasPending
-                ? presentationGroup.pendingItems.length > 1
-                  ? "Confirmar enviadas"
-                  : "Confirmar enviada"
-                : "Apresentacao enviada"}
+                  ? presentationGroup.pendingItems.length > 1
+                    ? "Confirmar enviadas"
+                    : "Confirmar enviada"
+                  : "Apresentacao enviada"}
             </button>
           </div>
         </div>
@@ -567,16 +565,16 @@ export default function ApresentacaoHospedes() {
   return (
     <div className="min-h-screen space-y-6 bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Apresentacao hospedes</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Apresentação hóspedes</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Mensagens de apresentacao da semana, ordenadas como no mapa.
+          Mensagens de apresentação da semana, ordenadas como no mapa.
         </p>
       </div>
 
       <section className="grid grid-cols-1 gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900 lg:grid-cols-2">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Responsavel
+            Responsável
           </div>
           <input
             value={settings.hostName}
@@ -586,7 +584,7 @@ export default function ApresentacaoHospedes() {
         </div>
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Inicio apresentacoes
+            Início apresentações
           </div>
           <input
             type="date"
@@ -599,7 +597,7 @@ export default function ApresentacaoHospedes() {
 
       {loading ? (
         <div className="rounded-3xl border border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-900 dark:text-slate-400">
-          Carregando apresentacoes...
+          Carregando apresentações...
         </div>
       ) : (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-900">
@@ -607,7 +605,7 @@ export default function ApresentacaoHospedes() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/50">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Concluidas
+                  Concluídas
                 </div>
                 <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
                   {weeklyPresentationSummary.completed}
@@ -632,11 +630,10 @@ export default function ApresentacaoHospedes() {
             </div>
 
             <div
-              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                weeklyPresentationSummary.pending > 0
+              className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${weeklyPresentationSummary.pending > 0
                   ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
                   : "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200"
-              }`}
+                }`}
             >
               {weeklyPresentationSummary.pending > 0
                 ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
@@ -647,22 +644,20 @@ export default function ApresentacaoHospedes() {
               <button
                 type="button"
                 onClick={() => setShowOnlyPending(true)}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                  effectiveShowOnlyPending
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${effectiveShowOnlyPending
                     ? "bg-rose-700 text-white hover:bg-rose-800"
                     : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                }`}
+                  }`}
               >
                 Somente pendentes
               </button>
               <button
                 type="button"
                 onClick={() => setShowOnlyPending(false)}
-                className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                  !effectiveShowOnlyPending
+                className={`rounded-xl px-4 py-2 text-sm font-semibold ${!effectiveShowOnlyPending
                     ? "bg-slate-800 text-white hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-slate-100"
                     : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                }`}
+                  }`}
               >
                 Mostrar todas
               </button>
@@ -676,7 +671,7 @@ export default function ApresentacaoHospedes() {
 
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-              Apresentacoes da semana
+              Apresentações da semana
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Janela de {formatFullDate(normalizedStartDate)} ate {formatFullDate(presentationEndDate)}
@@ -693,7 +688,7 @@ export default function ApresentacaoHospedes() {
             </div>
           ) : visiblePresentationGroups.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-rose-300 bg-rose-50 px-4 py-10 text-center text-sm text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300">
-              Nao ha apresentacoes pendentes para o filtro atual.
+              Nao há apresentações pendentes para o filtro atual.
             </div>
           ) : (
             <div className="space-y-6">
@@ -738,7 +733,7 @@ export default function ApresentacaoHospedes() {
                               </div>
                             ) : (
                               <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                Nenhuma apresentacao pendente para este empreendimento.
+                                Nenhuma apresentação pendente para este empreendimento.
                               </div>
                             )}
                           </div>
@@ -758,7 +753,7 @@ export default function ApresentacaoHospedes() {
                                 </div>
                               ) : (
                                 <div className="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                                  Nenhuma apresentacao enviada para este empreendimento.
+                                  Nenhuma apresentação enviada para este empreendimento.
                                 </div>
                               )}
                             </div>
