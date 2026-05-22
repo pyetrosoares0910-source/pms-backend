@@ -761,15 +761,15 @@ export default function Dashboard() {
     const maiorOcupacaoSnapshot =
       currentSnapshotOccupancy.length > 0
         ? currentSnapshotOccupancy.reduce((a, b) =>
-            a.ocupacao > b.ocupacao ? a : b
-          )
+          a.ocupacao > b.ocupacao ? a : b
+        )
         : null;
 
     const menorOcupacaoSnapshot =
       currentSnapshotOccupancy.length > 0
         ? currentSnapshotOccupancy.reduce((a, b) =>
-            a.ocupacao < b.ocupacao ? a : b
-          )
+          a.ocupacao < b.ocupacao ? a : b
+        )
         : null;
 
     const nightsPrev = reservations.reduce((sum, r) => {
@@ -897,15 +897,15 @@ export default function Dashboard() {
     const maiorOcupacaoPrev =
       prevSnapshotOccupancy.length > 0
         ? prevSnapshotOccupancy.reduce((a, b) =>
-            a.ocupacao > b.ocupacao ? a : b
-          ).ocupacao
+          a.ocupacao > b.ocupacao ? a : b
+        ).ocupacao
         : null;
 
     const menorOcupacaoPrev =
       prevSnapshotOccupancy.length > 0
         ? prevSnapshotOccupancy.reduce((a, b) =>
-            a.ocupacao < b.ocupacao ? a : b
-          ).ocupacao
+          a.ocupacao < b.ocupacao ? a : b
+        ).ocupacao
         : null;
 
     const prev = {
@@ -1128,13 +1128,13 @@ export default function Dashboard() {
       <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200/80 bg-white/78 px-5 py-5 shadow-sm backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/70 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">
-            Visao operacional
+            Visão operacional
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
             Dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Indicadores principais, alertas do dia e eficiencia das acomodacoes.
+            Indicadores principais, alertas do dia e eficiência das acomodações.
           </p>
         </div>
         <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300">
@@ -1151,8 +1151,8 @@ export default function Dashboard() {
             {hasPendingCheckinsToday
               ? `Alerta: ${kpis.pendingCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje ainda pendente(s).`
               : hasCheckinsToday
-              ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
-              : "Tudo certo: não há check-ins previstos para hoje."}
+                ? `Tudo certo: ${kpis.finishedCheckinsToday} de ${kpis.checkinsToday} check-in(s) de hoje já foram feitos.`
+                : "Tudo certo: não há check-ins previstos para hoje."}
           </div>
 
           <div
@@ -1538,23 +1538,16 @@ export default function Dashboard() {
 
 
       {/* ==== OCUPAÇÃO + DIARISTAS ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {/* Ocupação por empreendimento */}
         <div
           className="
-    relative lg:col-span-2 overflow-hidden
-    rounded-3xl border p-6
-    bg-gradient-to-br
-    from-white via-slate-50 to-white
-    dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
-    border-slate-200 dark:border-slate-700/60
-    shadow-sm dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]
-    transition-colors duration-300
+    app-card
+    relative overflow-hidden p-6
   "
         >
           {/* Glow de fundo (sutil, mesmo padrão dos outros) */}
-          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/6 blur-3xl dark:bg-sky-400/8" />
-          <div className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-500/6 blur-3xl dark:bg-violet-400/8" />
+          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl dark:bg-sky-400/8" />
 
           <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
             📈 Ocupação por empreendimento{" "}
@@ -1651,6 +1644,7 @@ export default function Dashboard() {
             👥 Diaristas
           </h2>
 
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <DiaristaList
             title="Ativas hoje"
             data={maidsToday}
@@ -1658,14 +1652,13 @@ export default function Dashboard() {
             empty="Nenhuma diarista ativa hoje"
           />
 
-          <div className="my-4 h-px bg-slate-200/70 dark:bg-slate-700/60" />
-
           <DiaristaList
             title="Confirmadas para amanhã"
             data={maidsTomorrow}
             variant="scheduled"
             empty="Nenhuma diarista confirmada amanhã"
           />
+          </div>
         </div>
 
       </div>
@@ -1858,13 +1851,13 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
 
   return (
     <div
-          className="
+      className="
     app-card
     relative overflow-hidden p-6
   "
     >
       {/* Glow sutil de fundo */}
-          <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl dark:bg-sky-400/8" />
+      <div className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full bg-sky-500/5 blur-3xl dark:bg-sky-400/8" />
 
       {/* HEADER */}
       <div className="flex items-center justify-between mb-4">
@@ -1910,6 +1903,7 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
       {/* CALENDÁRIO */}
       <div
         className="
+          app-calendar
           rounded-2xl overflow-hidden border
           bg-white border-slate-200
           dark:bg-slate-950 dark:border-slate-800
@@ -1985,8 +1979,8 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
           dayCellClassNames={() =>
             "text-xs " +
             (isDark
-              ? "border-slate-900 hover:bg-slate-900/60"
-              : "border-slate-100 hover:bg-slate-50")
+              ? "border-slate-800"
+              : "border-slate-100")
           }
           eventClassNames={() => "border-0"}
           eventContent={(arg) => {
@@ -1995,7 +1989,7 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
 
 
             const base =
-              "px-2 py-1 rounded-md text-[11px] font-semibold shadow-sm truncate";
+              "px-2 py-1 rounded-lg text-[11px] font-semibold shadow-sm truncate";
 
             const style = isDark
               ? isNoEvent
@@ -2013,12 +2007,12 @@ function CalendarCard({ title, events, emptyText, icon: Icon, onSelectEvent }) {
                 ? {
                   background:
                     "linear-gradient(135deg,#fee2e2,#fecaca)",
-                  color: "#ea2929ff",
+                  color: "#9a3412",
                 }
                 : {
                   background:
                     "linear-gradient(135deg,#bfdbfe,#60a5fa)",
-                  color: "#b90d0dff",
+                  color: "#075985",
                 };
 
             return (

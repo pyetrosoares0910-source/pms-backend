@@ -104,7 +104,7 @@ export default function DashboardKPIGrid({ kpis }) {
       />
 
       <StatCard
-        title="Eficiência de limpeza"
+        title="Eficiência de limpeza (hoje)"
         value={kpis.eficienciaLimpeza}
         prev={kpis.prev?.eficienciaLimpeza}
         compareValue={kpis.compare?.eficienciaLimpeza}

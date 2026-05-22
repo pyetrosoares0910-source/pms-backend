@@ -16,7 +16,7 @@ const RANGE_OPTIONS = [
 export default function KpiGaugeOcupacao({ data = [] }) {
   const MotionDiv = motion.div;
   const MotionCircle = motion.circle;
-  const [selectedRange, setSelectedRange] = useState(3);
+  const [selectedRange, setSelectedRange] = useState(6);
   const allPoints = useMemo(() => (Array.isArray(data) ? data : []), [data]);
   const activeRange = Math.min(selectedRange, allPoints.length || selectedRange);
   const points = useMemo(

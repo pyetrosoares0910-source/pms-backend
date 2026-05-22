@@ -129,4 +129,85 @@
   .app-alert-warn {
     @apply rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm font-semibold text-amber-950 shadow-sm dark:border-amber-700/55 dark:bg-amber-950/35 dark:text-amber-200;
   }
+
+  .app-calendar {
+    --fc-border-color: rgb(226 232 240);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: rgb(248 250 252);
+    --fc-today-bg-color: rgb(240 249 255 / 0.8);
+  }
+
+  .dark .app-calendar {
+    --fc-border-color: rgb(30 41 59);
+    --fc-neutral-bg-color: rgb(15 23 42 / 0.72);
+    --fc-today-bg-color: rgb(8 47 73 / 0.32);
+  }
+
+  .app-calendar .fc {
+    @apply font-sans text-slate-700 dark:text-slate-200;
+  }
+
+  .app-calendar .fc a {
+    @apply text-inherit no-underline;
+  }
+
+  .app-calendar .fc-toolbar {
+    @apply mb-5 flex-wrap gap-3;
+  }
+
+  .app-calendar .fc-toolbar-title {
+    @apply text-lg font-black tracking-tight text-slate-950 dark:text-slate-50;
+  }
+
+  .app-calendar .fc-button {
+    @apply rounded-xl border-0 bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-none transition hover:bg-slate-800 focus:ring-2 focus:ring-sky-300 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white;
+  }
+
+  .app-calendar .fc-button-primary:not(:disabled).fc-button-active {
+    @apply bg-sky-700 text-white dark:bg-sky-500 dark:text-white;
+  }
+
+  .app-calendar .fc-button-group {
+    @apply overflow-hidden rounded-xl;
+  }
+
+  .app-calendar .fc-scrollgrid {
+    @apply overflow-hidden rounded-2xl border-slate-200 dark:border-slate-800;
+  }
+
+  .app-calendar .fc-col-header-cell {
+    @apply bg-slate-50/90 dark:bg-slate-950/50;
+  }
+
+  .app-calendar .fc-col-header-cell-cushion {
+    @apply px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400;
+  }
+
+  .app-calendar .fc-daygrid-day-frame {
+    @apply min-h-[104px];
+  }
+
+  .app-calendar .fc-daygrid-day-top {
+    @apply px-2 pt-2;
+  }
+
+  .app-calendar .fc-daygrid-day-number {
+    @apply text-sm font-semibold text-slate-500 dark:text-slate-300;
+  }
+
+  .app-calendar .fc-daygrid-day:hover {
+    @apply bg-slate-50/80 dark:bg-slate-900/50;
+  }
+
+  .app-calendar .fc-event {
+    @apply cursor-pointer rounded-xl border-0 shadow-none;
+  }
+
+  .app-calendar .fc-event-main {
+    @apply p-0;
+  }
+
+  .app-calendar .fc-daygrid-more-link {
+    @apply rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200;
+  }
 }

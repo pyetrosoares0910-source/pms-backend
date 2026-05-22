@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -232,7 +232,7 @@ function Modal({ open, onClose, title, subtitle, children, maxWidthClass = "max-
   );
 }
 
-function StatCard({ title, value, helper, tone, icon: Icon }) {
+function StatCard({ title, value, helper, tone, icon }) {
   const toneMap = {
     sky: {
       shell:
@@ -274,7 +274,7 @@ function StatCard({ title, value, helper, tone, icon: Icon }) {
         </div>
 
         <div className={cx("flex h-12 w-12 items-center justify-center rounded-2xl", style.icon)}>
-          <Icon className="h-5 w-5" />
+          {createElement(icon, { className: "h-5 w-5" })}
         </div>
       </div>
     </article>
@@ -791,7 +791,7 @@ export default function MaintenanceCalendar() {
 
             <div
               className={cx(
-                "rounded-[28px] border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950",
+                "app-calendar rounded-[28px] border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950",
                 "[&_.fc]:font-sans",
                 "[&_.fc-toolbar]:mb-5 [&_.fc-toolbar]:flex-wrap [&_.fc-toolbar]:gap-3",
                 "[&_.fc-toolbar-title]:text-2xl [&_.fc-toolbar-title]:font-semibold [&_.fc-toolbar-title]:tracking-[-0.03em] [&_.fc-toolbar-title]:text-slate-900 dark:[&_.fc-toolbar-title]:text-slate-100",

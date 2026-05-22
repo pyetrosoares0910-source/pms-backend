@@ -110,11 +110,11 @@ const CleaningSchedule = () => {
 
   // paleta adaptada para dark mode (classes completas)
   const colorPalette = [
-    "bg-green-100 text-green-800 border-green-400 dark:bg-green-900 dark:text-green-200 dark:border-green-700",
-    "bg-blue-100 text-blue-800 border-blue-400 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700",
-    "bg-purple-100 text-purple-800 border-purple-400 dark:bg-purple-900 dark:text-purple-200 dark:border-purple-700",
-    "bg-pink-100 text-pink-800 border-pink-400 dark:bg-pink-900 dark:text-pink-200 dark:border-pink-700",
-    "bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-700",
+    "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/45 dark:text-emerald-200 dark:border-emerald-800/60",
+    "bg-sky-50 text-sky-800 border border-sky-200 dark:bg-sky-950/45 dark:text-sky-200 dark:border-sky-800/60",
+    "bg-indigo-50 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/45 dark:text-indigo-200 dark:border-indigo-800/60",
+    "bg-fuchsia-50 text-fuchsia-800 border border-fuchsia-200 dark:bg-fuchsia-950/45 dark:text-fuchsia-200 dark:border-fuchsia-800/60",
+    "bg-amber-50 text-amber-900 border border-amber-200 dark:bg-amber-950/45 dark:text-amber-200 dark:border-amber-800/60",
   ];
 
   const getColorClass = (name) => {
@@ -353,11 +353,21 @@ const CleaningSchedule = () => {
       </div>
 
       {/* Agenda */}
-      <div className="rounded-2xl shadow-md border border-gray-200 bg-white dark:bg-slate-900 dark:border-slate-700">
-        <div className="bg-gradient-to-r from-green-700 to-green-500 dark:from-green-800 dark:to-green-900 text-white px-4 py-3 text-lg font-semibold tracking-wide rounded-t-2xl">
-          Agenda de Limpeza
+      <div className="app-card overflow-hidden p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-300">
+              Calendario
+            </p>
+            <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950 dark:text-slate-50">
+              Agenda de Limpeza
+            </h2>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+            Escalas e pendencias
+          </span>
         </div>
-        <div className="p-4">
+        <div className="app-calendar rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
           <FullCalendar
             plugins={[dayGridPlugin, interactionPlugin]}
             initialView="dayGridMonth"
@@ -374,7 +384,7 @@ const CleaningSchedule = () => {
               if (arg.event.title === "Sem diarista") {
                 return (
                   <div
-                    className="bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-lg shadow-sm text-xs font-medium cursor-pointer dark:bg-red-900 dark:text-red-200 dark:border-red-700"
+                    className="bg-orange-50 text-orange-800 border border-orange-200 px-2 py-1 rounded-lg shadow-sm text-xs font-semibold cursor-pointer dark:bg-orange-950/50 dark:text-orange-200 dark:border-orange-800/60"
                     onClick={() => setSelectedEvent(arg.event)}
                     role="button"
                     tabIndex={0}
@@ -390,7 +400,7 @@ const CleaningSchedule = () => {
               const colorClasses = getColorClass(arg.event.title);
               return (
                 <div
-                  className={`${colorClasses} px-2 py-1 rounded-lg shadow-sm text-xs font-medium cursor-pointer`}
+                  className={`${colorClasses} px-2 py-1 rounded-lg shadow-sm text-xs font-semibold cursor-pointer`}
                   onClick={() => setSelectedEvent(arg.event)}
                 >
                   {arg.event.title}
