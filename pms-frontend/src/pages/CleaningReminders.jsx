@@ -45,6 +45,13 @@ const emptyCompletionForm = {
   notes: "",
 };
 
+const emptyPeriodicFilters = {
+  query: "",
+  stayId: "",
+  status: "all",
+  schedule: "all",
+};
+
 const frequencyOptions = [
   { value: "DAILY", label: "Diaria" },
   { value: "WEEKLY", label: "Semanal" },
@@ -86,8 +93,21 @@ function getStatusLabel(active, endsAt) {
   return "Ativo continuo";
 }
 
-function sortPeriodicTasksByPosition(tasks) {
+function getTaskScheduleTime(task) {
+  const scheduleDate = task.scheduledExecution?.executionDate || task.nextExecutionDate;
+  const timestamp = scheduleDate ? dayjs.utc(scheduleDate).valueOf() : Number.MAX_SAFE_INTEGER;
+  return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
+}
+
+function sortPeriodicTasksBySchedule(tasks) {
   return [...tasks].sort((a, b) => {
+    const scheduledA = Boolean(a.scheduledExecution);
+    const scheduledB = Boolean(b.scheduledExecution);
+    if (scheduledA !== scheduledB) return scheduledA ? -1 : 1;
+
+    const scheduleCompare = getTaskScheduleTime(a) - getTaskScheduleTime(b);
+    if (scheduleCompare !== 0) return scheduleCompare;
+
     const stayPositionA = a.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
     const stayPositionB = b.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
     if (stayPositionA !== stayPositionB) return stayPositionA - stayPositionB;
@@ -114,6 +134,7 @@ export default function CleaningReminders() {
   const [reminders, setReminders] = useState([]);
   const [periodicForm, setPeriodicForm] = useState(emptyPeriodicForm);
   const [reminderForm, setReminderForm] = useState(emptyReminderForm);
+  const [periodicFilters, setPeriodicFilters] = useState(emptyPeriodicFilters);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [activationReminder, setActivationReminder] = useState(null);
   const [activationForm, setActivationForm] = useState(emptyActivationForm);
@@ -147,13 +168,41 @@ export default function CleaningReminders() {
     filteredRooms.length > 0 &&
     filteredRooms.every((room) => periodicForm.roomIds.includes(room.id));
 
-  const sortedPeriodicTasks = useMemo(
-    () => sortPeriodicTasksByPosition(periodicTasks),
-    [periodicTasks]
-  );
+  const sortedPeriodicTasks = useMemo(() => {
+    const query = periodicFilters.query.trim().toLowerCase();
+    const filtered = periodicTasks.filter((task) => {
+      if (periodicFilters.stayId) {
+        const taskStayId = task.room?.stayId || task.room?.stay?.id || "";
+        if (taskStayId !== periodicFilters.stayId) return false;
+      }
+
+      if (periodicFilters.status === "active" && !task.active) return false;
+      if (periodicFilters.status === "inactive" && task.active) return false;
+      if (periodicFilters.schedule === "scheduled" && !task.scheduledExecution) return false;
+      if (periodicFilters.schedule === "unscheduled" && task.scheduledExecution) return false;
+
+      if (!query) return true;
+      const searchable = [
+        task.name,
+        task.description,
+        task.room?.title,
+        task.room?.stay?.name,
+        task.frequency === "CUSTOM_DAYS" ? `${task.customIntervalDays} dias` : task.frequency,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(query);
+    });
+
+    return sortPeriodicTasksBySchedule(filtered);
+  }, [periodicFilters, periodicTasks]);
   const allPeriodicTasksSelected =
     sortedPeriodicTasks.length > 0 &&
     sortedPeriodicTasks.every((task) => selectedPeriodicIds.includes(task.id));
+  const hasPeriodicFilters = Object.entries(periodicFilters).some(
+    ([key, value]) => value !== emptyPeriodicFilters[key]
+  );
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -662,7 +711,7 @@ export default function CleaningReminders() {
           <div>
             <h2 className="text-xl font-semibold">Tarefas periodicas cadastradas</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {selectedPeriodicIds.length} selecionada(s)
+              {sortedPeriodicTasks.length} exibida(s) | {selectedPeriodicIds.length} selecionada(s)
             </p>
           </div>
           {sortedPeriodicTasks.length > 0 && (
@@ -685,6 +734,57 @@ export default function CleaningReminders() {
               </button>
             </div>
           )}
+        </div>
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40 md:grid-cols-5">
+          <input
+            value={periodicFilters.query}
+            onChange={(e) => setPeriodicFilters({ ...periodicFilters, query: e.target.value })}
+            placeholder="Buscar tarefa, quarto..."
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 md:col-span-2"
+          />
+          <select
+            value={periodicFilters.stayId}
+            onChange={(e) => setPeriodicFilters({ ...periodicFilters, stayId: e.target.value })}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+          >
+            <option value="">Todos os empreendimentos</option>
+            {stays.map((stay) => (
+              <option key={stay.id} value={stay.id}>
+                {stay.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={periodicFilters.status}
+            onChange={(e) => setPeriodicFilters({ ...periodicFilters, status: e.target.value })}
+            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+          >
+            <option value="all">Ativas e inativas</option>
+            <option value="active">Somente ativas</option>
+            <option value="inactive">Somente inativas</option>
+          </select>
+          <div className="flex gap-2">
+            <select
+              value={periodicFilters.schedule}
+              onChange={(e) =>
+                setPeriodicFilters({ ...periodicFilters, schedule: e.target.value })
+              }
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+            >
+              <option value="all">Com e sem agenda</option>
+              <option value="scheduled">Com agendamento</option>
+              <option value="unscheduled">Sem agendamento</option>
+            </select>
+            {hasPeriodicFilters && (
+              <button
+                type="button"
+                onClick={() => setPeriodicFilters(emptyPeriodicFilters)}
+                className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
         </div>
         {loading ? (
           <div className="py-8 text-center text-sm text-slate-500">Carregando...</div>

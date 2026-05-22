@@ -1,5 +1,9 @@
 const { prisma } = require("../prisma");
-const { calculateNextExecutionDate, toUtcDay } = require("../services/periodicTaskSchedule");
+const {
+  calculateNextExecutionDate,
+  getExecutionWindow,
+  toUtcDay,
+} = require("../services/periodicTaskSchedule");
 const { composeCleaningOperations } = require("../services/cleaningOperationsService");
 
 function parseOptionalDate(value) {
@@ -52,6 +56,16 @@ function normalizeTaskInput(body, currentTask = {}) {
   };
 }
 
+function getCurrentScheduledExecution(task) {
+  const window = getExecutionWindow(task);
+  return (
+    task.executions?.find((execution) => {
+      const executionDate = toUtcDay(execution.executionDate);
+      return executionDate >= window.earliestDate && executionDate <= window.latestDate;
+    }) || null
+  );
+}
+
 exports.list = async (req, res) => {
   try {
     const { active, roomId, stayId } = req.query;
@@ -102,7 +116,7 @@ exports.list = async (req, res) => {
     const sortedTasks = tasks
       .map((task) => ({
         ...task,
-        scheduledExecution: task.executions?.[0] || null,
+        scheduledExecution: getCurrentScheduledExecution(task),
       }))
       .sort((a, b) => {
         const stayPositionA = a.room?.stay?.position ?? Number.MAX_SAFE_INTEGER;
@@ -236,17 +250,26 @@ exports.createExecution = async (req, res) => {
     });
 
     if (status === "COMPLETED") {
-      await prisma.periodicTask.update({
-        where: { id: task.id },
-        data: {
-          lastExecutionDate: executionDate,
-          nextExecutionDate: calculateNextExecutionDate({
-            frequency: task.frequency,
-            customIntervalDays: task.customIntervalDays,
-            fromDate: executionDate,
-          }),
-        },
-      });
+      await prisma.$transaction([
+        prisma.periodicTaskExecution.deleteMany({
+          where: {
+            taskId: task.id,
+            roomId: req.body.roomId || task.roomId,
+            status: "SCHEDULED",
+          },
+        }),
+        prisma.periodicTask.update({
+          where: { id: task.id },
+          data: {
+            lastExecutionDate: executionDate,
+            nextExecutionDate: calculateNextExecutionDate({
+              frequency: task.frequency,
+              customIntervalDays: task.customIntervalDays,
+              fromDate: executionDate,
+            }),
+          },
+        }),
+      ]);
     }
 
     res.status(201).json(execution);
