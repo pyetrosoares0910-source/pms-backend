@@ -7,6 +7,15 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import CleaningDateModal from "../components/CleaningDateModal";
+import {
+  CalendarDays,
+  ClipboardList,
+  Hotel,
+  RefreshCw,
+  Sparkles,
+  Users,
+  X,
+} from "lucide-react";
 
 // ativar plugins
 dayjs.extend(utc);
@@ -92,6 +101,9 @@ const CleaningSchedule = () => {
     (a, b) => b.total - a.total || a.name.localeCompare(b.name, "pt-BR")
   );
 
+  const assignedTasks = tasks.filter((t) => t.maidId || t.maid).length;
+  const pendingTasks = Math.max(0, tasks.length - assignedTasks);
+
   // agenda: agrupar eventos por diarista + data
   const groupedEvents = {};
   tasks.forEach((t) => {
@@ -129,45 +141,83 @@ const CleaningSchedule = () => {
   const events = Object.values(groupedEvents);
 
   return (
-    <div className="p-6 space-y-10 min-h-screen bg-gray-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
-      <h1 className="text-4xl font-extrabold mb-8 tracking-tight text-slate-900 dark:text-slate-50">
-        Controle de Limpeza
-      </h1>
+    <div className="min-h-screen space-y-6 p-4 text-slate-900 transition-colors duration-300 dark:text-slate-100 sm:p-6">
+      <div className="flex flex-col gap-5 rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm shadow-slate-900/5 backdrop-blur dark:border-slate-800 dark:bg-slate-950/70 dark:shadow-black/20 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/35 dark:text-emerald-200">
+            <Sparkles size={14} />
+            operacao de limpeza
+          </div>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
+            Controle de Limpeza
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Escalas por checkout, diaristas e calendario operacional.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-2 dark:border-slate-800 dark:bg-slate-900/70">
+          <div className="px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Tarefas
+            </div>
+            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{tasks.length}</div>
+          </div>
+          <div className="px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Designadas
+            </div>
+            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{assignedTasks}</div>
+          </div>
+          <div className="px-3 py-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Pendentes
+            </div>
+            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{pendingTasks}</div>
+          </div>
+        </div>
+      </div>
 
       {/* Filtro de Datas */}
-      <div className="flex flex-wrap gap-4 items-end mb-6">
+      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/80 bg-white/75 p-4 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950/60">
+        <div className="mr-auto flex items-center gap-2 pb-2 text-sm font-bold text-slate-600 dark:text-slate-300">
+          <CalendarDays size={18} />
+          Periodo de exibicao
+        </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
             Início
           </label>
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="input input-bordered bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-slate-200">
+          <label className="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
             Fim
           </label>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="input input-bordered bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
           />
         </div>
         <button
+          type="button"
           onClick={fetchData}
-          className="btn btn-primary bg-sky-700 border-sky-700 hover:bg-sky-800 hover:border-sky-800 dark:bg-sky-600 dark:border-sky-600 dark:hover:bg-sky-500 dark:hover:border-sky-500"
+          className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-700"
         >
+          <RefreshCw size={16} />
           Aplicar
         </button>
       </div>
 
       {/* Tabelas por dia */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         {days.map((d) => {
           const dayTasks = tasks.filter(
             (t) => t.date === d.format("YYYY-MM-DD")
@@ -175,24 +225,31 @@ const CleaningSchedule = () => {
           return (
             <div
               key={d.toString()}
-              className="rounded-2xl shadow-md overflow-hidden border border-gray-200 bg-white dark:bg-slate-900 dark:border-slate-700"
+              className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/20"
             >
-              <div className="bg-gradient-to-r from-sky-700 to-sky-600 dark:from-sky-800 dark:to-sky-900 text-white px-4 py-3 text-lg font-semibold tracking-wide">
-                {d.format("DD/MM dddd")}
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-950 px-4 py-3 text-white dark:border-slate-800">
+                <div className="flex items-center gap-2 text-base font-black tracking-tight">
+                  <ClipboardList size={18} />
+                  {d.format("DD/MM dddd")}
+                </div>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
+                  {dayTasks.length} tarefas
+                </span>
               </div>
-              <table className="w-full text-sm text-left border-collapse">
-                <thead className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm uppercase tracking-wide">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                   <tr>
-                    <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Local
                     </th>
-                    <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Acomodações
                     </th>
-                    <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Diarista
                     </th>
-                    <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Acao
                     </th>
                   </tr>
@@ -210,15 +267,15 @@ const CleaningSchedule = () => {
                       .map((t, idx) => (
                         <tr
                           key={idx}
-                          className="hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                          className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
                         >
-                          <td className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                          <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
                             {t.stay}
                           </td>
-                          <td className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                          <td className="border-b border-slate-200/70 px-4 py-3 text-slate-600 dark:border-slate-800 dark:text-slate-300">
                             {t.rooms}
                           </td>
-                          <td className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                          <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
                             <select
                               value={t.maidId || ""}
                               onChange={async (e) => {
@@ -246,7 +303,7 @@ const CleaningSchedule = () => {
                                   )
                                 );
                               }}
-                              className="select select-sm w-full border-gray-300 rounded-lg bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
                             >
                               <option value="">-- Selecionar --</option>
                               {maids
@@ -260,12 +317,12 @@ const CleaningSchedule = () => {
                                 ))}
                             </select>
                           </td>
-                          <td className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+                          <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
                             <button
                               type="button"
                               onClick={() => setSelectedCleaningTask(t)}
                               disabled={!t.reservation}
-                              className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               Alterar dia de limpeza
                             </button>
@@ -281,7 +338,7 @@ const CleaningSchedule = () => {
                     <tr>
                       <td
                         colSpan="4"
-                        className="px-4 py-5 text-center text-gray-400 dark:text-slate-500"
+                        className="px-4 py-8 text-center text-sm font-semibold text-slate-400 dark:text-slate-500"
                       >
                         Nenhuma tarefa para este dia
                       </td>
@@ -289,35 +346,43 @@ const CleaningSchedule = () => {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           );
         })}
       </div>
 
       {/* Estatísticas semanais */}
-      <div className="rounded-2xl shadow-md border border-gray-200 bg-white dark:bg-slate-900 dark:border-slate-700">
-        <div className="bg-gradient-to-r from-purple-700 to-purple-500 dark:from-purple-800 dark:to-purple-900 text-white px-4 py-3 text-lg font-semibold tracking-wide rounded-t-2xl">
-          Controle Semanal de Diaristas
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 dark:shadow-black/20">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-950 px-4 py-3 text-white dark:border-slate-800">
+          <div className="flex items-center gap-2 text-lg font-black tracking-tight">
+            <Users size={18} />
+            Controle Semanal de Diaristas
+          </div>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
+            {sortedMaidStats.length} diaristas
+          </span>
         </div>
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 text-sm uppercase tracking-wide">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
             <tr>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+              <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                 Diarista
               </th>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
                 1ª sem
               </th>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
                 2ª sem
               </th>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
                 3ª sem
               </th>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700">
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
                 4ª sem
               </th>
-              <th className="px-4 py-3 border border-gray-200 dark:border-slate-700 font-bold">
+              <th className="border-b border-slate-200/80 px-4 py-3 text-center font-bold dark:border-slate-800">
                 TOTAL
               </th>
             </tr>
@@ -326,30 +391,31 @@ const CleaningSchedule = () => {
             {sortedMaidStats.map((m, idx) => (
               <tr
                 key={idx}
-                className="hover:bg-gray-50 dark:hover:bg-slate-800 transition"
+                className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
               >
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 font-medium">
+                <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
                   {m.name}
                 </td>
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 text-center">
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
                   {m.byWeek[0]}
                 </td>
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 text-center">
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
                   {m.byWeek[1]}
                 </td>
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 text-center">
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
                   {m.byWeek[2]}
                 </td>
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 text-center">
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
                   {m.byWeek[3]}
                 </td>
-                <td className="px-4 py-3 border border-gray-200 dark:border-slate-700 font-bold text-center">
+                <td className="border-b border-slate-200/70 px-4 py-3 text-center font-black text-slate-950 dark:border-slate-800 dark:text-slate-50">
                   {m.total}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Agenda */}
@@ -414,22 +480,36 @@ const CleaningSchedule = () => {
 
       {/* Modal de detalhes */}
       {selectedEvent && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white dark:bg-slate-800 dark:text-slate-100 rounded-2xl shadow-xl max-w-lg w-full p-6 border border-gray-200 dark:border-slate-700">
-            <h2 className="text-xl font-semibold mb-4">
-              {selectedEvent.title}
-            </h2>
-            <ul className="space-y-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-900/20 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
+            <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/80">
+              <h2 className="flex items-center gap-2 text-lg font-black text-slate-950 dark:text-slate-50">
+                <Hotel size={18} />
+                {selectedEvent.title}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setSelectedEvent(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ul className="space-y-2 p-5">
               {selectedEvent.extendedProps.details.map((d, idx) => (
-                <li key={idx} className="text-gray-700 dark:text-slate-200">
+                <li
+                  key={idx}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                >
                   🏨 {d}
                 </li>
               ))}
             </ul>
-            <div className="mt-6 text-right">
+            <div className="border-t border-slate-200/80 px-5 py-4 text-right dark:border-slate-800">
               <button
+                type="button"
                 onClick={() => setSelectedEvent(null)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition dark:bg-blue-500 dark:hover:bg-blue-400"
+                className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-700"
               >
                 Fechar
               </button>
