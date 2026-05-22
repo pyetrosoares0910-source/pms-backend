@@ -58,6 +58,25 @@ function formatPercent(value) {
   return `${numeric}%`;
 }
 
+function formatPct(value, digits = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "0%";
+  return `${numeric.toLocaleString("pt-BR", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}%`;
+}
+
+function formatPointDelta(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "sem comparativo";
+  if (numeric === 0) return "0 p.p.";
+  return `${numeric > 0 ? "+" : ""}${numeric.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} p.p.`;
+}
+
 function formatMaintenanceDate(value) {
   if (!value) return "Sem prazo definido";
   return dayjs(value).isValid() ? dayjs(value).format("DD/MM/YYYY") : "Sem prazo definido";
@@ -150,6 +169,46 @@ function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, t
           {percent}
         </tspan>
       </text>
+    </g>
+  );
+}
+
+function StayOccupancyBarLabel({ x, y, width, value, index, data, isDark }) {
+  const item = data?.[index];
+  const delta = Number(item?.delta);
+  const hasDelta = Number.isFinite(delta);
+  const deltaColor = hasDelta
+    ? delta > 0
+      ? isDark ? "#86efac" : "#047857"
+      : delta < 0
+        ? isDark ? "#fda4af" : "#be123c"
+        : isDark ? "#cbd5e1" : "#64748b"
+    : isDark ? "#94a3b8" : "#64748b";
+
+  return (
+    <g>
+      <text
+        x={x + width / 2}
+        y={Math.max(14, y - 22)}
+        textAnchor="middle"
+        fill={isDark ? "#e2e8f0" : "#0f172a"}
+        fontSize={12}
+        fontWeight={800}
+      >
+        {formatPct(value, 1)}
+      </text>
+      {hasDelta ? (
+        <text
+          x={x + width / 2}
+          y={Math.max(28, y - 8)}
+          textAnchor="middle"
+          fill={deltaColor}
+          fontSize={10}
+          fontWeight={700}
+        >
+          {formatPointDelta(delta)}
+        </text>
+      ) : null}
     </g>
   );
 }
@@ -309,14 +368,18 @@ function buildRoomOccupancyRows(rooms, reservations, start, end) {
 
   return [...roomMap.values()]
     .filter(({ capacidade }) => capacidade > 0)
-    .map(({ room, noites, capacidade }) => ({
-      roomId: room.id,
-      label: room?.title || room?.name || `Quarto ${room.id}`,
-      image: room?.imageUrl || room?.image || "/placeholder.jpg",
-      noites,
-      capacidade,
-      ocupacao: Math.min(100, Math.round((noites / capacidade) * 100)),
-    }));
+    .map(({ room, noites, capacidade }) => {
+      const rawOccupancy = Math.min(100, (noites / capacidade) * 100);
+
+      return {
+        roomId: room.id,
+        label: room?.title || room?.name || `Quarto ${room.id}`,
+        image: room?.imageUrl || room?.image || "/placeholder.jpg",
+        noites,
+        capacidade,
+        ocupacao: Number(rawOccupancy.toFixed(1)),
+      };
+    });
 }
 
 function buildStayOccupancy(rows, reservations, start, end) {
@@ -338,11 +401,15 @@ function buildStayOccupancy(rows, reservations, start, end) {
 
       if (capacity <= 0) return null;
 
+      const rawOccupancy = Math.min(100, (occupiedNights / capacity) * 100);
+
       return {
         stayId: group.stayId,
         name: group.stayName,
         label: compactStayLabel(group.stayName),
-        ocupacao: Math.round((occupiedNights / capacity) * 100),
+        occupiedNights,
+        capacity,
+        ocupacao: Number(rawOccupancy.toFixed(1)),
       };
     })
     .filter(Boolean);
@@ -570,15 +637,36 @@ export default function Dashboard() {
   // === Ocupação por empreendimento ===
   const occupancy = useMemo(() => {
     const occRows = buildStayOccupancy(rooms, reservations, mStart, mEnd);
+    const { start: prevStart, end: prevEnd } = monthBounds(dayjs().subtract(1, "month"));
+    const prevRows = buildStayOccupancy(rooms, reservations, prevStart, prevEnd);
+    const prevByStay = new Map(prevRows.map((row) => [row.stayId, row]));
+
+    const rows = occRows.map((row) => {
+      const prevOcupacao = prevByStay.get(row.stayId)?.ocupacao;
+
+      return {
+        ...row,
+        prevOcupacao,
+        delta: Number.isFinite(prevOcupacao)
+          ? Number((row.ocupacao - prevOcupacao).toFixed(1))
+          : null,
+      };
+    });
 
     const avg =
-      occRows.length > 0
-        ? Math.round(
-          occRows.reduce((sum, r) => sum + r.ocupacao, 0) / occRows.length
-        )
+      rows.length > 0
+        ? Number((rows.reduce((sum, r) => sum + r.ocupacao, 0) / rows.length).toFixed(1))
         : 0;
+    const prevAvg =
+      prevRows.length > 0
+        ? Number((prevRows.reduce((sum, r) => sum + r.ocupacao, 0) / prevRows.length).toFixed(1))
+        : null;
+    const deltaAvg = Number.isFinite(prevAvg) ? Number((avg - prevAvg).toFixed(1)) : null;
+    const best = rows.length > 0 ? rows.reduce((a, b) => (a.ocupacao > b.ocupacao ? a : b)) : null;
+    const improved = rows.filter((row) => Number(row.delta) > 0).length;
+    const reduced = rows.filter((row) => Number(row.delta) < 0).length;
 
-    return { rows: occRows, avg };
+    return { rows, avg, prevAvg, deltaAvg, best, improved, reduced };
   }, [rooms, reservations, mStart, mEnd]);
 
   // === Ocupação geral do mês atual ===
@@ -1159,10 +1247,11 @@ export default function Dashboard() {
             className={alertClass(hasPendingPresentations)}
           >
             {hasPendingPresentations
-              ? `Alerta: ${weeklyPresentationSummary.pending} apresentação(ões) ainda pendente(s) na semana.`
-              : "Tudo certo: todas as apresentações da semana foram concluídas."}
+              ? `Alerta: ${weeklyPresentationSummary.pending} de ${weeklyPresentationSummary.total} apresentacao(oes) da semana ainda pendente(s).`
+              : weeklyPresentationSummary.total > 0
+                ? `Tudo certo: ${weeklyPresentationSummary.completed} de ${weeklyPresentationSummary.total} apresentacao(oes) da semana foram concluidas.`
+                : "Tudo certo: nao ha apresentacoes previstas na semana."}
           </div>
-
           <div
             className={alertClass(guestCheckoutAlert.isPending)}
           >
@@ -1191,16 +1280,13 @@ export default function Dashboard() {
       </div>
 
       {/* ==== LINHA: OCUPAÇÃO + MANUTENÇÃO + TOTAL ==== */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
-        <div className="lg:col-span-2 h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="h-full">
           <KpiGaugeOcupacao data={monthsTrend} />
         </div>
 
-        <div className="lg:col-span-1 h-full">
-          <KpiMaintenanceProgress maintenanceStats={maintenanceStats} isDark={isDark} />
-        </div>
-
-        <div className="lg:col-span-1 h-full">
+        <div className="grid h-full grid-cols-1 gap-6">
+          <KpiMaintenanceProgress maintenanceStats={maintenanceStats} />
           <KpiTotalReservas value={kpis.totalReservas + 1963} note="Inclui 1.963 reservas do PMS anterior" />
         </div>
 
@@ -1556,11 +1642,36 @@ export default function Dashboard() {
             </span>
           </h2>
 
-          <ResponsiveContainer width="100%" height={350}>
+          <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Media</div>
+              <div className="mt-1 text-2xl font-black text-slate-950 dark:text-slate-50">{formatPct(occupancy.avg, 1)}</div>
+              <div className={`mt-1 text-xs font-semibold ${Number(occupancy.deltaAvg) >= 0 ? "text-emerald-600 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}`}>
+                {formatPointDelta(occupancy.deltaAvg)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Melhor</div>
+              <div className="mt-1 truncate text-lg font-black text-slate-950 dark:text-slate-50">{occupancy.best?.label || "-"}</div>
+              <div className="mt-1 text-xs font-semibold text-sky-700 dark:text-sky-300">{formatPct(occupancy.best?.ocupacao, 1)}</div>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Subiram</div>
+              <div className="mt-1 text-2xl font-black">{occupancy.improved}</div>
+              <div className="mt-1 text-xs font-semibold">vs mes anterior</div>
+            </div>
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-rose-800 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Cairam</div>
+              <div className="mt-1 text-2xl font-black">{occupancy.reduced}</div>
+              <div className="mt-1 text-xs font-semibold">vs mes anterior</div>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={370}>
             <BarChart
               data={occupancy.rows}
               barSize={52}
-              margin={{ top: 10, right: 20, left: 0, bottom: 18 }}
+              margin={{ top: 38, right: 20, left: 0, bottom: 18 }}
             >
               <defs>
                 {/* Gradiente principal (mesmo do resto do dash) */}
@@ -1606,7 +1717,10 @@ export default function Dashboard() {
               />
 
               <RechartsTooltip
-                formatter={(v) => `${v}%`}
+                formatter={(v, name, item) => [
+                  formatPct(v, 1),
+                  `${name}${Number.isFinite(item?.payload?.delta) ? ` (${formatPointDelta(item.payload.delta)})` : ""}`,
+                ]}
                 labelFormatter={(l, p) => p?.[0]?.payload?.name || l}
                 contentStyle={{
                   backgroundColor: isDark ? "#020617" : "#ffffff",
@@ -1624,7 +1738,18 @@ export default function Dashboard() {
                 fill="url(#occGrad)"
                 filter="url(#occGlow)"
                 isAnimationActive={false}
-              />
+              >
+                <LabelList
+                  dataKey="ocupacao"
+                  content={(props) => (
+                    <StayOccupancyBarLabel
+                      {...props}
+                      data={occupancy.rows}
+                      isDark={isDark}
+                    />
+                  )}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
