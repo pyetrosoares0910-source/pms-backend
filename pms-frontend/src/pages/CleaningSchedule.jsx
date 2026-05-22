@@ -21,6 +21,11 @@ import {
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+function getCleaningStayGroup(stay) {
+  const name = stay || "Sem Stay";
+  return name.toLowerCase().includes("iguatemi") ? "Iguatemi Stay" : name;
+}
+
 const CleaningSchedule = () => {
   const api = useApi();
   const [tasks, setTasks] = useState([]);
@@ -258,16 +263,20 @@ const CleaningSchedule = () => {
                   {dayTasks.length > 0 ? (
                     [...dayTasks]
                       .sort((a, b) => {
-                        if (a.stay < b.stay) return -1;
-                        if (a.stay > b.stay) return 1;
+                        const groupA = getCleaningStayGroup(a.stay);
+                        const groupB = getCleaningStayGroup(b.stay);
+                        if (groupA < groupB) return -1;
+                        if (groupA > groupB) return 1;
                         if (a.rooms < b.rooms) return -1;
                         if (a.rooms > b.rooms) return 1;
                         return 0;
                       })
                       .flatMap((t, idx, sortedTasks) => {
-                        const startsStayGroup = idx === 0 || sortedTasks[idx - 1].stay !== t.stay;
+                        const stayGroup = getCleaningStayGroup(t.stay);
+                        const startsStayGroup =
+                          idx === 0 || getCleaningStayGroup(sortedTasks[idx - 1].stay) !== stayGroup;
                         const stayTaskCount = startsStayGroup
-                          ? sortedTasks.filter((item) => item.stay === t.stay).length
+                          ? sortedTasks.filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length
                           : 0;
 
                         return [
@@ -280,7 +289,7 @@ const CleaningSchedule = () => {
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
                                     <Hotel size={14} className="text-sky-500" />
-                                    {t.stay}
+                                    {stayGroup}
                                   </div>
                                   <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                                     {stayTaskCount} tarefas
