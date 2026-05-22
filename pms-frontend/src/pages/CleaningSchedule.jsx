@@ -241,7 +241,7 @@ const CleaningSchedule = () => {
                 <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                   <tr>
                     <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Local
+                      Grupo
                     </th>
                     <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                       Acomodações
@@ -264,24 +264,50 @@ const CleaningSchedule = () => {
                         if (a.rooms > b.rooms) return 1;
                         return 0;
                       })
-                      .map((t, idx) => (
-                        <tr
-                          key={idx}
-                          className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
-                        >
-                          <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
-                            {t.stay}
-                          </td>
-                          <td className="border-b border-slate-200/70 px-4 py-3 text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                            {t.rooms}
-                          </td>
-                          <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
-                            <select
-                              value={t.maidId || ""}
-                              onChange={async (e) => {
-                                const maidId = e.target.value
-                                  ? parseInt(e.target.value, 10)
-                                  : null;
+                      .flatMap((t, idx, sortedTasks) => {
+                        const startsStayGroup = idx === 0 || sortedTasks[idx - 1].stay !== t.stay;
+                        const stayTaskCount = startsStayGroup
+                          ? sortedTasks.filter((item) => item.stay === t.stay).length
+                          : 0;
+
+                        return [
+                          startsStayGroup ? (
+                            <tr key={`stay-${d.format("YYYY-MM-DD")}-${t.stay}`}>
+                              <td
+                                colSpan="4"
+                                className="border-y border-slate-200/80 bg-slate-100/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/80"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
+                                    <Hotel size={14} className="text-sky-500" />
+                                    {t.stay}
+                                  </div>
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                                    {stayTaskCount} tarefas
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null,
+                          <tr
+                            key={t.id || `${t.date}-${t.stay}-${t.rooms}-${idx}`}
+                            className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
+                          >
+                            <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
+                              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                                {idx + 1}
+                              </span>
+                            </td>
+                            <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                              {t.rooms}
+                            </td>
+                            <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
+                              <select
+                                value={t.maidId || ""}
+                                onChange={async (e) => {
+                                  const maidId = e.target.value
+                                    ? parseInt(e.target.value, 10)
+                                    : null;
 
                                 await api(`/tasks/${t.id}/assign`, {
                                   method: "PUT",
@@ -303,37 +329,38 @@ const CleaningSchedule = () => {
                                   )
                                 );
                               }}
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
-                            >
-                              <option value="">-- Selecionar --</option>
-                              {maids
-                                .filter((m) =>
-                                  m.available?.includes(d.format("ddd"))
-                                )
-                                .map((m) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.name}
-                                  </option>
-                                ))}
-                            </select>
-                          </td>
-                          <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCleaningTask(t)}
-                              disabled={!t.reservation}
-                              className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Alterar dia de limpeza
-                            </button>
-                            {t.reservation?.cleaningDateOverride ? (
-                              <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
-                                Motivo: {t.reservation.cleaningChangeReason || "Nao informado"}
-                              </div>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
+                              >
+                                <option value="">-- Selecionar --</option>
+                                {maids
+                                  .filter((m) =>
+                                    m.available?.includes(d.format("ddd"))
+                                  )
+                                  .map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </td>
+                            <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCleaningTask(t)}
+                                disabled={!t.reservation}
+                                className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Alterar dia de limpeza
+                              </button>
+                              {t.reservation?.cleaningDateOverride ? (
+                                <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
+                                  Motivo: {t.reservation.cleaningChangeReason || "Nao informado"}
+                                </div>
+                              ) : null}
+                            </td>
+                          </tr>,
+                        ].filter(Boolean);
+                      })
                   ) : (
                     <tr>
                       <td
