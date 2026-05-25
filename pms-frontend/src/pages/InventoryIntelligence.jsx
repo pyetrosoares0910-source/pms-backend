@@ -38,8 +38,9 @@ const operationTypes = [
 ];
 
 const laundryItems = [
-  ["SHEET_SET", "Jogo de lencol", 2],
-  ["PILLOWCASE_SET", "Jogo de fronhas", 2],
+  ["FITTED_SHEET", "Lencol elastico", 1],
+  ["TOP_SHEET", "Lencol de cobrir", 1],
+  ["PILLOWCASE", "Fronha", 1],
   ["BLANKET", "Manta", 1],
   ["BEDSPREAD", "Colcha", 1],
   ["FACE_TOWEL", "Toalha rosto", 1],
@@ -52,6 +53,8 @@ const emptyEntry = {
   quantity: "",
   unit: "L",
   supplier: "",
+  unitsPerPackage: "",
+  packageBaseQuantity: "",
   totalCost: "",
   entryDate: dayjs().format("YYYY-MM-DD"),
   expiresAt: "",
@@ -83,6 +86,19 @@ const emptyProduct = {
   minimumStock: "",
   targetStock: "",
   supplier: "",
+  unitsPerPackage: "",
+  packageBaseQuantity: "",
+  corridorWeight: "1",
+};
+
+const emptyCycle = {
+  stayId: "",
+  productId: "",
+  lotId: "",
+  startedAt: dayjs().subtract(30, "day").format("YYYY-MM-DD"),
+  endedAt: dayjs().format("YYYY-MM-DD"),
+  consumedQuantity: "",
+  notes: "",
 };
 
 function classNames(...items) {
@@ -212,6 +228,8 @@ export default function InventoryIntelligence() {
   const [maids, setMaids] = useState([]);
   const [staff, setStaff] = useState([]);
   const [reservations, setReservations] = useState([]);
+  const [lots, setLots] = useState([]);
+  const [cycleForm, setCycleForm] = useState(emptyCycle);
   const [entryForm, setEntryForm] = useState(emptyEntry);
   const [consumptionForm, setConsumptionForm] = useState(emptyConsumption);
   const [productForm, setProductForm] = useState(emptyProduct);
@@ -225,7 +243,7 @@ export default function InventoryIntelligence() {
     notes: "",
     items: laundryItems.map(([itemType, , unitPieces]) => ({
       itemType,
-      quantity: itemType === "BLANKET" || itemType === "BEDSPREAD" ? 0 : 2,
+      quantity: itemType === "BLANKET" || itemType === "BEDSPREAD" ? 0 : itemType === "PILLOWCASE" ? 2 : 1,
       unitPieces,
     })),
   });
@@ -249,7 +267,7 @@ export default function InventoryIntelligence() {
       if (filters.from) qs.set("from", filters.from);
       if (filters.to) qs.set("to", filters.to);
 
-      const [dash, productRows, stayRows, roomRows, maidRows, staffRows, reservationRows] = await Promise.all([
+      const [dash, productRows, stayRows, roomRows, maidRows, staffRows, reservationRows, lotRows] = await Promise.all([
         api(`/api/inventory-intelligence/dashboard?${qs.toString()}`),
         api("/api/products"),
         api("/stays"),
@@ -257,6 +275,7 @@ export default function InventoryIntelligence() {
         api("/maids"),
         api("/staff"),
         api("/reservations"),
+        api(`/api/inventory-intelligence/lots?${qs.toString()}`),
       ]);
       setDashboard(dash);
       setProducts(Array.isArray(productRows) ? productRows : []);
@@ -265,6 +284,7 @@ export default function InventoryIntelligence() {
       setMaids(Array.isArray(maidRows) ? maidRows : []);
       setStaff(Array.isArray(staffRows) ? staffRows : []);
       setReservations(Array.isArray(reservationRows) ? reservationRows : []);
+      setLots(Array.isArray(lotRows) ? lotRows : []);
     } catch (err) {
       console.error("Erro ao carregar estoque inteligente:", err);
       setError(err.message || "Erro ao carregar dados.");
@@ -282,6 +302,7 @@ export default function InventoryIntelligence() {
     setEntryForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
     setConsumptionForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
     setLaundryForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
+    setCycleForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
   }, [filters.stayId]);
 
   async function submitEntry(event) {
@@ -333,6 +354,9 @@ export default function InventoryIntelligence() {
           defaultPrice: productForm.defaultPrice ? Number(productForm.defaultPrice) : null,
           minimumStock: productForm.minimumStock ? Number(productForm.minimumStock) : null,
           targetStock: productForm.targetStock ? Number(productForm.targetStock) : null,
+          unitsPerPackage: productForm.unitsPerPackage ? Number(productForm.unitsPerPackage) : null,
+          packageBaseQuantity: productForm.packageBaseQuantity ? Number(productForm.packageBaseQuantity) : null,
+          corridorWeight: productForm.corridorWeight ? Number(productForm.corridorWeight) : 1,
         }),
       });
       setProductForm(emptyProduct);
@@ -364,6 +388,24 @@ export default function InventoryIntelligence() {
       setTab("dashboard");
     } catch (err) {
       alert(err.message || "Falha ao registrar lavanderia.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitCycle(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await api("/api/inventory-intelligence/cycles", {
+        method: "POST",
+        body: JSON.stringify(cycleForm),
+      });
+      setCycleForm({ ...emptyCycle, stayId: cycleForm.stayId });
+      await load();
+      setTab("dashboard");
+    } catch (err) {
+      alert(err.message || "Falha ao calcular ciclo de consumo.");
     } finally {
       setSaving(false);
     }
@@ -415,6 +457,7 @@ export default function InventoryIntelligence() {
           ["dashboard", BarChart3, "Painel"],
           ["entry", PackagePlus, "Entrada"],
           ["consumption", ClipboardCheck, "Uso"],
+          ["cycles", TrendingUp, "Ciclos"],
           ["laundry", Shirt, "Lavanderia"],
           ["products", Boxes, "Produtos"],
         ].map(([key, Icon, label]) => (
@@ -554,7 +597,7 @@ export default function InventoryIntelligence() {
             </Field>
             <Field label="Unidade">
               <select value={entryForm.unit} onChange={(event) => setEntryForm((prev) => ({ ...prev, unit: event.target.value }))} className={inputClass()}>
-                <option>ml</option><option>L</option><option>g</option><option>kg</option><option>un</option>
+                <option>ml</option><option>L</option><option>g</option><option>kg</option><option>un</option><option>pacote</option><option>galao</option><option>caixa</option>
               </select>
             </Field>
             <Field label="Fornecedor">
@@ -680,6 +723,85 @@ export default function InventoryIntelligence() {
         </Section>
       ) : null}
 
+      {!loading && tab === "cycles" ? (
+        <Section title="Ciclos de consumo por reposicao">
+          <form onSubmit={submitCycle} className="grid gap-3 lg:grid-cols-6">
+            <Field label="Empreendimento">
+              <select required value={cycleForm.stayId} onChange={(event) => setCycleForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>
+                <option value="">Selecione</option>
+                {stays.map((stay) => <option key={stay.id} value={stay.id}>{stay.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Produto">
+              <select required value={cycleForm.productId} onChange={(event) => {
+                const productId = event.target.value;
+                const lot = lots.find((item) => item.productId === productId);
+                setCycleForm((prev) => ({
+                  ...prev,
+                  productId,
+                  lotId: lot?.id || "",
+                  consumedQuantity: lot?.initialQuantity || prev.consumedQuantity,
+                }));
+              }} className={inputClass()}>
+                <option value="">Selecione</option>
+                {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Lote/sobra">
+              <select value={cycleForm.lotId} onChange={(event) => {
+                const lot = lots.find((item) => item.id === event.target.value);
+                setCycleForm((prev) => ({
+                  ...prev,
+                  lotId: event.target.value,
+                  consumedQuantity: lot?.initialQuantity || prev.consumedQuantity,
+                  startedAt: lot?.openedAt ? dayjs(lot.openedAt).format("YYYY-MM-DD") : lot?.createdAt ? dayjs(lot.createdAt).format("YYYY-MM-DD") : prev.startedAt,
+                  endedAt: lot?.depletedAt ? dayjs(lot.depletedAt).format("YYYY-MM-DD") : prev.endedAt,
+                }));
+              }} className={inputClass()}>
+                <option value="">Sem lote especifico</option>
+                {lots
+                  .filter((lot) => !cycleForm.productId || lot.productId === cycleForm.productId)
+                  .map((lot) => (
+                    <option key={lot.id} value={lot.id}>
+                      {lot.product?.name || "Produto"} - {formatDate(lot.createdAt)} - {lot.status}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+            <Field label="Inicio">
+              <input required type="date" value={cycleForm.startedAt} onChange={(event) => setCycleForm((prev) => ({ ...prev, startedAt: event.target.value }))} className={inputClass()} />
+            </Field>
+            <Field label="Fim/esgotamento">
+              <input required type="date" value={cycleForm.endedAt} onChange={(event) => setCycleForm((prev) => ({ ...prev, endedAt: event.target.value }))} className={inputClass()} />
+            </Field>
+            <Field label="Qtd consumida base">
+              <input required type="number" step="0.01" value={cycleForm.consumedQuantity} onChange={(event) => setCycleForm((prev) => ({ ...prev, consumedQuantity: event.target.value }))} className={inputClass()} />
+            </Field>
+            <Field label="Observacoes">
+              <input value={cycleForm.notes} onChange={(event) => setCycleForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass("lg:col-span-5")} />
+            </Field>
+            <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
+              <Save size={16} />
+              Calcular ciclo
+            </button>
+          </form>
+          <div className="mt-5">
+            <MiniTable
+              empty="Sem ciclos calculados."
+              columns={[
+                { key: "endedAt", label: "Periodo", render: (row) => `${formatDate(row.startedAt)} ate ${formatDate(row.endedAt)}` },
+                { key: "product", label: "Produto", render: (row) => row.product?.name },
+                { key: "checkoutCount", label: "Check-outs" },
+                { key: "corridorDays", label: "Dias corredor" },
+                { key: "avgPerWeightedOperation", label: "Media operacional", render: (row) => row.avgPerWeightedOperation ? Number(row.avgPerWeightedOperation).toFixed(2) : "-" },
+                { key: "costPerCheckout", label: "Custo/check-out", render: (row) => row.costPerCheckout ? formatMoney(row.costPerCheckout) : "-" },
+              ]}
+              rows={recent.usageCycles || []}
+            />
+          </div>
+        </Section>
+      ) : null}
+
       {!loading && tab === "laundry" ? (
         <Section title="Envios para lavanderia">
           <form onSubmit={submitLaundry} className="space-y-4">
@@ -691,7 +813,22 @@ export default function InventoryIntelligence() {
                 </select>
               </Field>
               <Field label="Acomodacao">
-                <select value={laundryForm.roomId} onChange={(event) => setLaundryForm((prev) => ({ ...prev, roomId: event.target.value }))} className={inputClass()}>
+                <select value={laundryForm.roomId} onChange={(event) => {
+                  const room = rooms.find((item) => item.id === event.target.value);
+                  const beds = Math.max(0, Number(room?.preparedBeds || 1));
+                  const template = room?.laundryTemplate || {};
+                  setLaundryForm((prev) => ({
+                    ...prev,
+                    roomId: event.target.value,
+                    items: prev.items.map((item) => ({
+                      ...item,
+                      quantity: template[item.itemType] ?? (
+                        item.itemType === "PILLOWCASE" ? beds * 2 :
+                          item.itemType === "FITTED_SHEET" || item.itemType === "TOP_SHEET" || item.itemType === "FACE_TOWEL" || item.itemType === "BATH_TOWEL" ? beds : 0
+                      ),
+                    })),
+                  }));
+                }} className={inputClass()}>
                   <option value="">Opcional</option>
                   {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
                 </select>
@@ -776,11 +913,20 @@ export default function InventoryIntelligence() {
               <Field label="Fornecedor padrao">
                 <input value={productForm.supplier} onChange={(event) => setProductForm((prev) => ({ ...prev, supplier: event.target.value }))} className={inputClass()} />
               </Field>
+              <Field label="Unidades por pacote">
+                <input type="number" step="0.01" value={productForm.unitsPerPackage} onChange={(event) => setProductForm((prev) => ({ ...prev, unitsPerPackage: event.target.value }))} className={inputClass()} />
+              </Field>
+              <Field label="Qtd base por embalagem">
+                <input type="number" step="0.01" value={productForm.packageBaseQuantity} onChange={(event) => setProductForm((prev) => ({ ...prev, packageBaseQuantity: event.target.value }))} className={inputClass()} />
+              </Field>
               <Field label="Estoque minimo">
                 <input type="number" value={productForm.minimumStock} onChange={(event) => setProductForm((prev) => ({ ...prev, minimumStock: event.target.value }))} className={inputClass()} />
               </Field>
               <Field label="Estoque alvo">
                 <input type="number" value={productForm.targetStock} onChange={(event) => setProductForm((prev) => ({ ...prev, targetStock: event.target.value }))} className={inputClass()} />
+              </Field>
+              <Field label="Peso corredor">
+                <input type="number" step="0.1" value={productForm.corridorWeight} onChange={(event) => setProductForm((prev) => ({ ...prev, corridorWeight: event.target.value }))} className={inputClass()} />
               </Field>
               <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 md:col-span-2">
                 <Save size={16} />
@@ -797,6 +943,8 @@ export default function InventoryIntelligence() {
                 { key: "category", label: "Categoria" },
                 { key: "unitBase", label: "Base" },
                 { key: "packageSizeValue", label: "Embalagem", render: (row) => row.packageSizeValue ? `${row.packageSizeValue} ${row.packageSizeUnit || ""}` : "-" },
+                { key: "unitsPerPackage", label: "Un/pct", render: (row) => row.unitsPerPackage || "-" },
+                { key: "packageBaseQuantity", label: "Base/emb.", render: (row) => row.packageBaseQuantity || "-" },
                 { key: "active", label: "Status", render: (row) => row.active ? "Ativo" : "Inativo" },
               ]}
               rows={products}

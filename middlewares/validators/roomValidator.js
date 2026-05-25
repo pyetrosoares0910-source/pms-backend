@@ -30,4 +30,14 @@ exports.validateRoom = [
     .optional({ values: "falsy" })
     .isInt()
     .withMessage("Posicao deve ser um numero inteiro."),
+
+  body("preparedBeds")
+    .optional({ values: "falsy" })
+    .isInt({ min: 0 })
+    .withMessage("Camas preparadas deve ser um numero inteiro maior ou igual a zero."),
+
+  body("laundryTemplate")
+    .optional({ values: "falsy" })
+    .custom((value) => typeof value === "object" || typeof value === "string")
+    .withMessage("Modelo de lavanderia invalido."),
 ];

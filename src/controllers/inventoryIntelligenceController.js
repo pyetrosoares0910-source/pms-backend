@@ -1,12 +1,15 @@
 const { prisma } = require("../prisma.js");
 const {
   buildInventoryDashboard,
+  createUsageCycle,
   listLaundryDispatches,
   listProductConsumptions,
   listProductEntries,
+  listUsageCycles,
   registerLaundryDispatch,
   registerProductConsumption,
   registerProductEntry,
+  updateUsageCycle,
   updateLaundryDispatch,
 } = require("../services/inventoryIntelligenceService.js");
 
@@ -89,6 +92,33 @@ async function updateLaundry(req, res) {
   }
 }
 
+async function createCycle(req, res) {
+  try {
+    const cycle = await createUsageCycle(req.body);
+    res.status(201).json(cycle);
+  } catch (error) {
+    handleError(res, error, "Erro ao calcular ciclo de consumo.");
+  }
+}
+
+async function listCycles(req, res) {
+  try {
+    const cycles = await listUsageCycles(req.query);
+    res.json(cycles);
+  } catch (error) {
+    handleError(res, error, "Erro ao listar ciclos de consumo.");
+  }
+}
+
+async function updateCycle(req, res) {
+  try {
+    const cycle = await updateUsageCycle(String(req.params.id), req.body);
+    res.json(cycle);
+  } catch (error) {
+    handleError(res, error, "Erro ao atualizar ciclo de consumo.");
+  }
+}
+
 async function listLots(req, res) {
   try {
     const lots = await prisma.productLot.findMany({
@@ -107,13 +137,16 @@ async function listLots(req, res) {
 
 async function updateLot(req, res) {
   try {
-    const { remainingQuantity, status, openedAt, expiresAt, notes } = req.body;
+    const { remainingQuantity, status, openedAt, depletedAt, expiresAt, notes } = req.body;
+    const shouldSetDepletedAt = status === "DEPLETED" && !depletedAt;
     const lot = await prisma.productLot.update({
       where: { id: String(req.params.id) },
       data: {
         ...(remainingQuantity !== undefined ? { remainingQuantity: Number(remainingQuantity) } : {}),
         ...(status ? { status } : {}),
         ...(openedAt ? { openedAt: new Date(openedAt) } : {}),
+        ...(depletedAt ? { depletedAt: new Date(depletedAt) } : {}),
+        ...(shouldSetDepletedAt ? { depletedAt: new Date() } : {}),
         ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
         ...(notes !== undefined ? { notes } : {}),
       },
@@ -127,13 +160,16 @@ async function updateLot(req, res) {
 
 module.exports = {
   createConsumption,
+  createCycle,
   createEntry,
   createLaundry,
   dashboard,
   listConsumptions,
+  listCycles,
   listEntries,
   listLaundry,
   listLots,
+  updateCycle,
   updateLaundry,
   updateLot,
 };

@@ -33,6 +33,27 @@ function normalizeRoomPayload(payload = {}) {
       : parsedPosition;
   }
 
+  if (
+    normalized.preparedBeds === "" ||
+    normalized.preparedBeds === null ||
+    typeof normalized.preparedBeds === "undefined"
+  ) {
+    normalized.preparedBeds = 1;
+  } else {
+    const parsedPreparedBeds = Number.parseInt(normalized.preparedBeds, 10);
+    normalized.preparedBeds = Number.isNaN(parsedPreparedBeds)
+      ? 1
+      : Math.max(0, parsedPreparedBeds);
+  }
+
+  if (typeof normalized.laundryTemplate === "string") {
+    try {
+      normalized.laundryTemplate = JSON.parse(normalized.laundryTemplate);
+    } catch {
+      normalized.laundryTemplate = null;
+    }
+  }
+
   return normalized;
 }
 

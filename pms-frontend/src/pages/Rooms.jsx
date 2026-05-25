@@ -15,6 +15,16 @@ function normalizeRoomPayload(data) {
     description: description || null,
     stayId: data.stayId || null,
     position: data.position === "" ? null : Number.parseInt(data.position, 10),
+    preparedBeds: data.preparedBeds === "" ? 1 : Number.parseInt(data.preparedBeds, 10),
+    laundryTemplate: {
+      FITTED_SHEET: Number.parseInt(data.fittedSheets || data.preparedBeds || 1, 10) || 0,
+      TOP_SHEET: Number.parseInt(data.topSheets || data.preparedBeds || 1, 10) || 0,
+      PILLOWCASE: Number.parseInt(data.pillowcases || 2, 10) || 0,
+      BLANKET: Number.parseInt(data.blankets || 0, 10) || 0,
+      BEDSPREAD: Number.parseInt(data.bedspreads || 0, 10) || 0,
+      FACE_TOWEL: Number.parseInt(data.faceTowels || data.preparedBeds || 1, 10) || 0,
+      BATH_TOWEL: Number.parseInt(data.bathTowels || data.preparedBeds || 1, 10) || 0,
+    },
   };
 }
 
@@ -30,6 +40,14 @@ export default function Rooms() {
     description: "",
     active: true,
     stayId: "",
+    preparedBeds: "1",
+    fittedSheets: "1",
+    topSheets: "1",
+    pillowcases: "2",
+    blankets: "0",
+    bedspreads: "0",
+    faceTowels: "1",
+    bathTowels: "1",
   });
 
   const [editId, setEditId] = useState(null);
@@ -40,6 +58,14 @@ export default function Rooms() {
     description: "",
     active: true,
     stayId: "",
+    preparedBeds: "1",
+    fittedSheets: "1",
+    topSheets: "1",
+    pillowcases: "2",
+    blankets: "0",
+    bedspreads: "0",
+    faceTowels: "1",
+    bathTowels: "1",
   });
 
   // Buscar Rooms + Stays
@@ -74,6 +100,14 @@ export default function Rooms() {
         description: "",
         active: true,
         stayId: "",
+        preparedBeds: "1",
+        fittedSheets: "1",
+        topSheets: "1",
+        pillowcases: "2",
+        blankets: "0",
+        bedspreads: "0",
+        faceTowels: "1",
+        bathTowels: "1",
       });
       fetchRoomsAndStays();
     } catch (err) {
@@ -102,6 +136,14 @@ export default function Rooms() {
       description: room.description,
       active: room.active,
       stayId: room.stayId || "",
+      preparedBeds: String(room.preparedBeds ?? 1),
+      fittedSheets: String(room.laundryTemplate?.FITTED_SHEET ?? room.preparedBeds ?? 1),
+      topSheets: String(room.laundryTemplate?.TOP_SHEET ?? room.preparedBeds ?? 1),
+      pillowcases: String(room.laundryTemplate?.PILLOWCASE ?? (room.preparedBeds ?? 1) * 2),
+      blankets: String(room.laundryTemplate?.BLANKET ?? 0),
+      bedspreads: String(room.laundryTemplate?.BEDSPREAD ?? 0),
+      faceTowels: String(room.laundryTemplate?.FACE_TOWEL ?? room.preparedBeds ?? 1),
+      bathTowels: String(room.laundryTemplate?.BATH_TOWEL ?? room.preparedBeds ?? 1),
     });
   };
 
@@ -114,6 +156,14 @@ export default function Rooms() {
       description: "",
       active: true,
       stayId: "",
+      preparedBeds: "1",
+      fittedSheets: "1",
+      topSheets: "1",
+      pillowcases: "2",
+      blankets: "0",
+      bedspreads: "0",
+      faceTowels: "1",
+      bathTowels: "1",
     });
   };
 
@@ -192,6 +242,49 @@ export default function Rooms() {
           }
         />
 
+        <input
+          type="number"
+          min="0"
+          placeholder="Camas previamente feitas"
+          className="border p-2 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+          value={formData.preparedBeds}
+          onChange={(e) => {
+            const beds = e.target.value;
+            setFormData({
+              ...formData,
+              preparedBeds: beds,
+              fittedSheets: beds,
+              topSheets: beds,
+              pillowcases: String((Number.parseInt(beds, 10) || 0) * 2),
+              faceTowels: beds,
+              bathTowels: beds,
+            });
+          }}
+        />
+
+        <div className="col-span-2 grid grid-cols-2 gap-2 rounded border border-gray-200 p-3 dark:border-slate-700 md:grid-cols-4">
+          {[
+            ["fittedSheets", "Lencol elastico"],
+            ["topSheets", "Lencol cobrir"],
+            ["pillowcases", "Fronhas"],
+            ["blankets", "Mantas"],
+            ["bedspreads", "Colchas"],
+            ["faceTowels", "Toalhas rosto"],
+            ["bathTowels", "Toalhas banho"],
+          ].map(([key, label]) => (
+            <label key={key} className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              {label}
+              <input
+                type="number"
+                min="0"
+                className="mt-1 w-full rounded border border-gray-300 bg-white p-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                value={formData[key]}
+                onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+              />
+            </label>
+          ))}
+        </div>
+
         <textarea
           placeholder="Descrição"
           className="border p-2 rounded col-span-2
@@ -248,6 +341,7 @@ export default function Rooms() {
             <th className="p-2 text-left dark:text-slate-100">Categoria</th>
             <th className="p-2 text-left dark:text-slate-100">Posição</th>
             <th className="p-2 text-left dark:text-slate-100">Descrição</th>
+            <th className="p-2 text-left dark:text-slate-100">Lavanderia</th>
             <th className="p-2 text-left dark:text-slate-100">Empreendimento</th>
             <th className="p-2 text-center dark:text-slate-100">Ativo?</th>
             <th className="p-2 text-center dark:text-slate-100">Ações</th>
@@ -329,6 +423,27 @@ export default function Rooms() {
                           description: e.target.value,
                         })
                       }
+                    />
+                  </td>
+
+                  <td className="p-2">
+                    <input
+                      type="number"
+                      min="0"
+                      className="border p-1 rounded w-full bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
+                      value={editData.preparedBeds}
+                      onChange={(e) => {
+                        const beds = e.target.value;
+                        setEditData({
+                          ...editData,
+                          preparedBeds: beds,
+                          fittedSheets: beds,
+                          topSheets: beds,
+                          pillowcases: String((Number.parseInt(beds, 10) || 0) * 2),
+                          faceTowels: beds,
+                          bathTowels: beds,
+                        });
+                      }}
                     />
                   </td>
 
@@ -416,6 +531,13 @@ export default function Rooms() {
                   </td>
 
                   <td className="p-2 text-slate-900 dark:text-slate-100">
+                    <div className="text-sm font-semibold">{room.preparedBeds ?? 1} cama(s)</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {(room.laundryTemplate?.FITTED_SHEET ?? room.preparedBeds ?? 1)} elast. / {(room.laundryTemplate?.TOP_SHEET ?? room.preparedBeds ?? 1)} cobrir / {(room.laundryTemplate?.PILLOWCASE ?? (room.preparedBeds ?? 1) * 2)} fronhas
+                    </div>
+                  </td>
+
+                  <td className="p-2 text-slate-900 dark:text-slate-100">
                     {room.stay?.name || "-"}
                   </td>
 
@@ -446,7 +568,7 @@ export default function Rooms() {
           {rooms.length === 0 && (
             <tr>
               <td
-                colSpan="8"
+                colSpan="9"
                 className="p-4 text-center text-gray-500 dark:text-slate-400"
               >
                 Nenhuma UH cadastrada.

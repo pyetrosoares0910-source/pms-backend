@@ -1,14 +1,17 @@
 const express = require("express");
 const {
   createConsumption,
+  createCycle,
   createEntry,
   createLaundry,
   dashboard,
   listConsumptions,
+  listCycles,
   listEntries,
   listLaundry,
   listLots,
   updateLaundry,
+  updateCycle,
   updateLot,
 } = require("../controllers/inventoryIntelligenceController.js");
 
@@ -22,6 +25,9 @@ router.post("/inventory-intelligence/consumptions", createConsumption);
 router.get("/inventory-intelligence/laundry", listLaundry);
 router.post("/inventory-intelligence/laundry", createLaundry);
 router.put("/inventory-intelligence/laundry/:id", updateLaundry);
+router.get("/inventory-intelligence/cycles", listCycles);
+router.post("/inventory-intelligence/cycles", createCycle);
+router.put("/inventory-intelligence/cycles/:id", updateCycle);
 router.get("/inventory-intelligence/lots", listLots);
 router.patch("/inventory-intelligence/lots/:id", updateLot);
 

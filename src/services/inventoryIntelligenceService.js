@@ -8,6 +8,9 @@ const CRITICAL_DAYS = 7;
 const WARNING_DAYS = 14;
 
 const laundryPieces = {
+  FITTED_SHEET: 1,
+  TOP_SHEET: 1,
+  PILLOWCASE: 1,
   SHEET_SET: 2,
   PILLOWCASE_SET: 2,
   BLANKET: 1,
@@ -15,6 +18,33 @@ const laundryPieces = {
   FACE_TOWEL: 1,
   BATH_TOWEL: 1,
 };
+
+function buildDefaultLaundryItems(room, overrides = []) {
+  const preparedBeds = Math.max(0, Number(room?.preparedBeds || 1));
+  const template = room?.laundryTemplate && typeof room.laundryTemplate === "object"
+    ? room.laundryTemplate
+    : {};
+  const base = {
+    FITTED_SHEET: Number(template.FITTED_SHEET ?? preparedBeds),
+    TOP_SHEET: Number(template.TOP_SHEET ?? preparedBeds),
+    PILLOWCASE: Number(template.PILLOWCASE ?? preparedBeds * 2),
+    BLANKET: Number(template.BLANKET ?? 0),
+    BEDSPREAD: Number(template.BEDSPREAD ?? 0),
+    FACE_TOWEL: Number(template.FACE_TOWEL ?? preparedBeds),
+    BATH_TOWEL: Number(template.BATH_TOWEL ?? preparedBeds),
+  };
+
+  overrides.forEach((item) => {
+    if (!item?.itemType) return;
+    base[item.itemType] = Math.max(0, Math.round(Number(item.quantity || 0)));
+  });
+
+  return Object.entries(base).map(([itemType, quantity]) => ({
+    itemType,
+    quantity,
+    unitPieces: Number(laundryPieces[itemType] || 1),
+  }));
+}
 
 function assertRequired(data, fields) {
   const missing = fields.filter((field) => data[field] === undefined || data[field] === null || data[field] === "");
@@ -144,7 +174,17 @@ async function decrementLots(tx, { stayId, productId, baseQuantity, lotId }) {
 
 async function registerProductEntry(data) {
   assertRequired(data, ["stayId", "productId", "quantity", "unit"]);
-  const normalized = normalizeQuantity(data.quantity, data.unit);
+  const product = await prisma.product.findUnique({ where: { id: data.productId } });
+  if (!product) {
+    const error = new Error("Produto nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+  const unit = String(data.unit || "").trim().toLowerCase();
+  const isPackageUnit = ["pct", "pacote", "pacotes", "galao", "galão", "galoes", "galões", "cx", "caixa", "caixas"].includes(unit);
+  const normalized = isPackageUnit && product.packageBaseQuantity
+    ? { unitBase: product.unitBase, baseValue: Number(data.quantity) * Number(product.packageBaseQuantity) }
+    : normalizeQuantity(data.quantity, data.unit);
   const totalCost = data.totalCost !== undefined && data.totalCost !== "" ? Number(data.totalCost) : null;
   const unitCost = totalCost && normalized.baseValue > 0 ? totalCost / normalized.baseValue : null;
   const entryDate = data.entryDate ? new Date(data.entryDate) : new Date();
@@ -323,14 +363,13 @@ async function listProductConsumptions(query = {}) {
 async function registerLaundryDispatch(data) {
   assertRequired(data, ["stayId"]);
   const dispatchDate = data.dispatchDate ? new Date(data.dispatchDate) : new Date();
-  const items = Array.isArray(data.items) && data.items.length
-    ? data.items
-    : [
-        { itemType: "SHEET_SET", quantity: Number(data.expectedSets || 2) },
-        { itemType: "PILLOWCASE_SET", quantity: Number(data.expectedSets || 2) },
-        { itemType: "BATH_TOWEL", quantity: Number(data.expectedSets || 2) },
-        { itemType: "FACE_TOWEL", quantity: Number(data.expectedSets || 2) },
-      ];
+  const room = data.roomId
+    ? await prisma.room.findUnique({ where: { id: data.roomId } })
+    : null;
+  const items = buildDefaultLaundryItems(
+    room,
+    Array.isArray(data.items) && data.items.length ? data.items : [],
+  );
 
   return prisma.laundryDispatch.create({
     data: {
@@ -353,6 +392,113 @@ async function registerLaundryDispatch(data) {
       },
     },
     include: { stay: true, room: true, maid: true, reservation: true, items: true },
+  });
+}
+
+async function getCheckoutStats({ stayId, startedAt, endedAt }) {
+  const reservations = await prisma.reservation.findMany({
+    where: {
+      status: { not: "cancelada" },
+      checkoutDate: { gte: startedAt, lte: endedAt },
+      room: { stayId },
+    },
+    include: { room: true },
+  });
+  const corridorDays = new Set(reservations.map((item) => dayjs(item.checkoutDate).format("YYYY-MM-DD"))).size;
+  return { checkoutCount: reservations.length, corridorDays };
+}
+
+async function calculateUsageCycle(data) {
+  assertRequired(data, ["stayId", "productId", "startedAt", "endedAt", "consumedQuantity"]);
+  const product = await prisma.product.findUnique({ where: { id: data.productId } });
+  if (!product) {
+    const error = new Error("Produto nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  const startedAt = new Date(data.startedAt);
+  const endedAt = new Date(data.endedAt);
+  const consumedQuantity = parsePositiveNumber(data.consumedQuantity, "consumedQuantity");
+  const stats = await getCheckoutStats({ stayId: data.stayId, startedAt, endedAt });
+  const corridorWeight = Number(product.corridorWeight ?? 1);
+  const weightedOperations = stats.checkoutCount + stats.corridorDays * corridorWeight;
+  const avgPerWeightedOperation = weightedOperations > 0 ? consumedQuantity / weightedOperations : null;
+  const avgPerCheckout = stats.checkoutCount > 0 ? consumedQuantity / stats.checkoutCount : null;
+  const avgPerCorridorDay = stats.corridorDays > 0 ? consumedQuantity / stats.corridorDays : null;
+
+  const entry = data.lotId
+    ? await prisma.productEntry.findFirst({ where: { lotId: data.lotId } })
+    : await prisma.productEntry.findFirst({
+        where: {
+          stayId: data.stayId,
+          productId: data.productId,
+          entryDate: { gte: dayjs(startedAt).subtract(3, "day").toDate(), lte: endedAt },
+        },
+        orderBy: { entryDate: "asc" },
+      });
+  const costPerBase = entry?.unitCost ? Number(entry.unitCost) : null;
+
+  return {
+    stayId: data.stayId,
+    productId: data.productId,
+    lotId: data.lotId || null,
+    startedAt,
+    endedAt,
+    consumedQuantity,
+    checkoutCount: stats.checkoutCount,
+    corridorDays: stats.corridorDays,
+    weightedOperations,
+    avgPerCheckout,
+    avgPerCorridorDay,
+    avgPerWeightedOperation,
+    costPerCheckout: costPerBase && avgPerCheckout ? costPerBase * avgPerCheckout : null,
+    notes: data.notes || null,
+  };
+}
+
+async function createUsageCycle(data) {
+  const cycle = await calculateUsageCycle(data);
+  return prisma.productUsageCycle.create({
+    data: cycle,
+    include: { stay: true, product: true, lot: true },
+  });
+}
+
+async function updateUsageCycle(id, data) {
+  const existing = await prisma.productUsageCycle.findUnique({ where: { id } });
+  if (!existing) {
+    const error = new Error("Ciclo de consumo nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+  const recalculated = await calculateUsageCycle({
+    stayId: data.stayId || existing.stayId,
+    productId: data.productId || existing.productId,
+    lotId: data.lotId !== undefined ? data.lotId : existing.lotId,
+    startedAt: data.startedAt || existing.startedAt,
+    endedAt: data.endedAt || existing.endedAt,
+    consumedQuantity: data.consumedQuantity ?? existing.consumedQuantity,
+    notes: data.notes ?? existing.notes,
+  });
+  return prisma.productUsageCycle.update({
+    where: { id },
+    data: recalculated,
+    include: { stay: true, product: true, lot: true },
+  });
+}
+
+async function listUsageCycles(query = {}) {
+  const { from, to } = getDateRange(query);
+  return prisma.productUsageCycle.findMany({
+    where: {
+      ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+      ...(query.productId ? { productId: String(query.productId) } : {}),
+      startedAt: { lte: to },
+      endedAt: { gte: from },
+    },
+    include: { stay: true, product: true, lot: true },
+    orderBy: { endedAt: "desc" },
   });
 }
 
@@ -536,7 +682,7 @@ async function buildInventoryDashboard(query = {}) {
   const stayWhere = query.stayId ? { stayId: String(query.stayId) } : {};
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
 
-  const [products, inventory, consumptions, entries, reservations, laundryDispatches, persistedAlerts] = await Promise.all([
+  const [products, inventory, consumptions, entries, reservations, laundryDispatches, usageCycles, persistedAlerts] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.inventory.findMany({ where: stayWhere, include: { product: true, stay: true } }),
     prisma.productConsumption.findMany({
@@ -561,6 +707,15 @@ async function buildInventoryDashboard(query = {}) {
       where: { ...stayWhere, dispatchDate: { gte: dayjs(from).subtract(30, "day").toDate(), lte: to } },
       include: { items: true, room: true, maid: true },
       orderBy: { dispatchDate: "desc" },
+    }),
+    prisma.productUsageCycle.findMany({
+      where: {
+        ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+        startedAt: { lte: to },
+        endedAt: { gte: dayjs(from).subtract(150, "day").toDate() },
+      },
+      include: { product: true, stay: true, lot: true },
+      orderBy: { endedAt: "desc" },
     }),
     prisma.productAlert.findMany({
       where: { status: "open", ...(query.stayId ? { stayId: String(query.stayId) } : {}) },
@@ -667,11 +822,17 @@ async function buildInventoryDashboard(query = {}) {
       byRoom: groupMetric(periodConsumptions, (item) => item.room?.title || item.location, (item) => item.baseQuantity).slice(0, 10),
       byStaff: groupMetric(periodConsumptions, (item) => item.staff?.name || item.maid?.name, (item) => item.baseQuantity).slice(0, 10),
       costByProduct: costByProduct.slice(0, 10),
+      learnedConsumption: groupMetric(
+        usageCycles,
+        (item) => item.product?.name,
+        (item) => item.avgPerWeightedOperation || 0,
+      ).slice(0, 10),
     },
     recent: {
       entries: periodEntries.slice(0, 12),
       consumptions: periodConsumptions.slice(0, 12),
       laundryDispatches: laundryDispatches.slice(0, 12),
+      usageCycles: usageCycles.slice(0, 12),
     },
   };
 
@@ -680,13 +841,17 @@ async function buildInventoryDashboard(query = {}) {
 
 module.exports = {
   buildInventoryDashboard,
+  buildDefaultLaundryItems,
+  createUsageCycle,
   formatBaseQuantity,
   laundryPieces,
   listLaundryDispatches,
   listProductConsumptions,
   listProductEntries,
+  listUsageCycles,
   registerLaundryDispatch,
   registerProductConsumption,
   registerProductEntry,
+  updateUsageCycle,
   updateLaundryDispatch,
 };

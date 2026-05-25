@@ -32,6 +32,7 @@ model Stay {
   productAlerts    ProductAlert[]
   productPredictions ProductPrediction[]
   inventorySnapshots ProductInventorySnapshot[]
+  productUsageCycles ProductUsageCycle[]
   laundryDispatches LaundryDispatch[]
 
   @@unique([name])
@@ -49,6 +50,8 @@ model Room {
   updatedAt        DateTime             @updatedAt
   category         String?
   position         Int?
+  preparedBeds     Int                  @default(1)
+  laundryTemplate  Json?
   maintenanceTasks MaintenanceTask[]
   periodicTasks    PeriodicTask[]
   periodicTaskExecutions PeriodicTaskExecution[]
@@ -241,6 +244,10 @@ model Product {
   active           Boolean  @default(true)
   sku              String?
   supplier         String?
+  packageBaseQuantity Float?
+  unitsPerPackage  Float?
+  usageUnit        String?
+  corridorWeight   Float?   @default(1)
   minimumStock     Float?
   targetStock      Float?
   reorderPoint     Float?
@@ -260,6 +267,7 @@ model Product {
   alerts           ProductAlert[]
   predictions      ProductPrediction[]
   inventorySnapshots ProductInventorySnapshot[]
+  usageCycles      ProductUsageCycle[]
 
   @@unique([name, category])
   @@index([active])
@@ -381,6 +389,7 @@ model ProductLot {
   openedQuantity Float?
   status          ProductLotStatus @default(SEALED)
   openedAt        DateTime?
+  depletedAt      DateTime?
   expiresAt       DateTime?
   notes           String?
   createdAt       DateTime         @default(now())
@@ -390,9 +399,38 @@ model ProductLot {
   product      Product              @relation(fields: [productId], references: [id])
   entries      ProductEntry[]
   consumptions ProductConsumption[]
+  usageCycles  ProductUsageCycle[]
 
   @@index([stayId, productId, status])
   @@index([expiresAt])
+}
+
+model ProductUsageCycle {
+  id              String   @id @default(cuid())
+  stayId          String
+  productId       String
+  lotId           String?
+  startedAt       DateTime
+  endedAt         DateTime
+  consumedQuantity Float
+  checkoutCount   Int
+  corridorDays    Int
+  weightedOperations Float
+  avgPerCheckout  Float?
+  avgPerCorridorDay Float?
+  avgPerWeightedOperation Float?
+  costPerCheckout Float?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  stay    Stay        @relation(fields: [stayId], references: [id])
+  product Product     @relation(fields: [productId], references: [id])
+  lot     ProductLot? @relation(fields: [lotId], references: [id])
+
+  @@index([stayId, startedAt, endedAt])
+  @@index([productId])
+  @@index([lotId])
 }
 
 model ProductConsumption {
@@ -569,6 +607,9 @@ enum ProductAlertSeverity {
 }
 
 enum LaundryItemType {
+  FITTED_SHEET
+  TOP_SHEET
+  PILLOWCASE
   SHEET_SET
   PILLOWCASE_SET
   BLANKET
