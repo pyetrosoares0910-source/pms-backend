@@ -434,7 +434,7 @@ export default function Guests() {
     <div className="min-h-screen space-y-5 bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hóspedes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Hospedes</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Cadastro pesquisavel com contexto de reservas, estadias e contatos.
           </p>
@@ -571,7 +571,7 @@ export default function Guests() {
             />
           </label>
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Criado até
+            Criado ate
             <input
               type="date"
               value={filters.createdTo}
@@ -589,7 +589,7 @@ export default function Guests() {
             />
           </label>
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Estadia até
+            Estadia ate
             <input
               type="date"
               value={filters.stayTo}
@@ -662,13 +662,13 @@ export default function Guests() {
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               <tr>
-                <th className="px-4 py-3">Hóspede</th>
+                <th className="px-4 py-3">Hospede</th>
                 <th className="px-4 py-3">Contato</th>
                 <th className="px-4 py-3">Reservas</th>
                 <th className="px-4 py-3">Status atual</th>
-                <th className="px-4 py-3">Próxima/Última estadia</th>
-                <th className="px-4 py-3">Histórico</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-3">Proxima/ultima estadia</th>
+                <th className="px-4 py-3">Historico</th>
+                <th className="px-4 py-3 text-right">Acoes</th>
               </tr>
             </thead>
             <tbody>
@@ -734,7 +734,7 @@ export default function Guests() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
                         <UserRound size={16} className="text-slate-400" />
-                        {guest.name || "Hóspede sem nome"}
+                        {guest.name || "Hospede sem nome"}
                       </div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         ID {guest.id.slice(0, 8)}
@@ -774,7 +774,7 @@ export default function Guests() {
                         </span>
                       ) : summaryData.total > 0 ? (
                         <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                          histórico
+                          historico
                         </span>
                       ) : (
                         <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
@@ -787,10 +787,10 @@ export default function Guests() {
                         <div>
                           <div className="flex items-center gap-2 font-medium">
                             <CalendarDays size={16} className="text-slate-400" />
-                            {formatDate(referenceReservation.checkinDate)} até {formatDate(referenceReservation.checkoutDate)}
+                            {formatDate(referenceReservation.checkinDate)} ate {formatDate(referenceReservation.checkoutDate)}
                           </div>
                           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {referenceReservation.room?.title || "Sem acomodação"} - {abbrevStay(getStayName(referenceReservation.room))}
+                            {referenceReservation.room?.title || "Sem acomodacao"} - {abbrevStay(getStayName(referenceReservation.room))}
                           </div>
                           <div className="mt-1">
                             <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase ${getStatusClass(referenceReservation.status)}`}>
@@ -805,7 +805,7 @@ export default function Guests() {
                     <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
                       <div>Criado: {formatDateTime(guest.createdAt)}</div>
                       <div className="mt-1">
-                        Última alteração: {hasMeaningfulUpdate(guest) ? formatDateTime(guest.updatedAt) : "sem alteração"}
+                        Ultima alteracao: {hasMeaningfulUpdate(guest) ? formatDateTime(guest.updatedAt) : "sem alteracao"}
                       </div>
                     </td>
                     <td className="px-4 py-3">

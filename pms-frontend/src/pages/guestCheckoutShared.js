@@ -142,7 +142,7 @@ export function buildGuestCheckoutAlert(summary, targetLabel = "hoje") {
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "mensagem", "mensagens")} de check-out de ${targetLabel} já ${pluralByCount(summary.sent, "foi confirmada", "foram confirmadas")}.`,
+      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "mensagem", "mensagens")} de check-out de ${targetLabel} ja ${pluralByCount(summary.sent, "foi confirmada", "foram confirmadas")}.`,
     };
   }
 

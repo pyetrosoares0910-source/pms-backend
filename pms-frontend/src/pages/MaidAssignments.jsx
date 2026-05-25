@@ -385,7 +385,7 @@ function DetailSection({
                             <div className="mt-3 space-y-2 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:bg-sky-900/20 dark:text-sky-100">
                               {periodicTasks.map((periodicTask) => (
                                 <div key={periodicTask.id}>
-                                  <span className="font-semibold">Tarefa periódica:</span>{" "}
+                                  <span className="font-semibold">Tarefa periodica:</span>{" "}
                                   {periodicTask.name}
                                   {periodicTask.description ? ` - ${periodicTask.description}` : ""}
                                   {periodicTask.urgent ? (
@@ -395,14 +395,14 @@ function DetailSection({
                                   ) : null}
                                   {periodicTask.daysSinceLastExecution !== null ? (
                                     <div className="mt-1 text-xs text-sky-800 dark:text-sky-200">
-                                      {periodicTask.daysSinceLastExecution} dias desde a Última execução
+                                      {periodicTask.daysSinceLastExecution} dias desde a ultima execucao
                                     </div>
                                   ) : null}
                                 </div>
                               ))}
                               {blockedTasks.map((periodicTask) => (
                                 <div key={periodicTask.id} className="text-amber-800 dark:text-amber-200">
-                                  <span className="font-semibold">Tarefa não adicionada:</span>{" "}
+                                  <span className="font-semibold">Tarefa nao adicionada:</span>{" "}
                                   {periodicTask.name}
                                   {periodicTask.blockedBy?.[0]?.message
                                     ? ` (${periodicTask.blockedBy[0].message})`

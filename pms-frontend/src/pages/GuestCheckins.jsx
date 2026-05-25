@@ -19,15 +19,15 @@ const DEFAULT_TEMPLATE = `*{{WELCOME}} ao {{STAY_NAME}}*🌎
 Check-in 16:00 - Check-out 10:00
 Endereço: {{APARTMENT_ADDRESS}}
 
-⬢ Ao chegar ao endereço, dirija-se à porta de entrada. Para abrir digite o código: #*{{DOOR1}}
+• Ao chegar ao endereço, dirija-se à porta de entrada. Para abrir digite o código: #*{{DOOR1}}
 
-⬢ Prossiga para a próxima porta, passe a palma da mão sob o visor da fechadura e insira o código: *{{DOOR2}}.
+• Prossiga para a próxima porta, passe a palma da mão sob o visor da fechadura e insira o código: *{{DOOR2}}.
 
 • Direcione-se ao apartamento {{ROOM_NAME}} e repita o processo inserindo o código: {{UNIT_DOOR}}✓.
 
 *Ao sair do apartamento, lembre-se de encostar a mão no visor da fechadura para acionar seu fechamento*
 
-⬢ *Rede Wi-Fi:*
+• *Rede Wi-Fi:*
 {{WIFI_NAME}}
 {{WIFI_PASSWORD}}
 
@@ -138,7 +138,7 @@ function getGeneratedMessages(reservation, settings) {
   const roomSettings = getRoomSettings(settings, reservation);
   const templates =
     Array.isArray(roomSettings.templates) && roomSettings.templates.length > 0
-                                  ? roomSettings.templates
+      ? roomSettings.templates
       : [DEFAULT_TEMPLATE];
 
   const data = buildTemplateData(reservation, settings);
@@ -190,7 +190,7 @@ function StatusBadge({ status }) {
       : normalized === "ativa"
       ? "Ativa"
       : normalized === "concluida"
-      ? "Concluída"
+      ? "Concluida"
       : normalized === "cancelada"
       ? "Cancelada"
       : status;
@@ -481,10 +481,10 @@ export default function GuestCheckins() {
                             {getStayName(reservation)}
                           </div>
                           <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {reservation.guest?.name || "Hóspede sem nome"}
+                            {reservation.guest?.name || "Hospede sem nome"}
                           </div>
                           <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            {reservation.room?.title || "Sem acomodação"}
+                            {reservation.room?.title || "Sem acomodacao"}
                           </div>
                           <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                             entra {formatDate(reservation.checkinDate)} e sai {formatDate(reservation.checkoutDate)}
@@ -549,7 +549,7 @@ export default function GuestCheckins() {
                 Dados por empreendimento e unidade
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Endereço do apto, 1a porta, endereco de retirada e senha do cofre sao salvos localmente por empreendimento.
+                Endereco do apto, 1a porta, endereco de retirada e senha do cofre sao salvos localmente por empreendimento.
               </p>
 
               <div className="mt-4 space-y-4">
@@ -594,7 +594,7 @@ export default function GuestCheckins() {
                                   e.target.value
                                 )
                               }
-                              placeholder="Endereço do apartamento (válido para todas as unidades)"
+                              placeholder="Endereco do apartamento (valido para todas as unidades)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                             />
                             <input
@@ -602,7 +602,7 @@ export default function GuestCheckins() {
                               onChange={(e) =>
                                 handleStayFieldChange(stayIdentity, "door1", e.target.value)
                               }
-                              placeholder="Código da 1a porta (válido para todas as unidades)"
+                              placeholder="Codigo da 1a porta (valido para todas as unidades)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                             />
                             <input
@@ -614,7 +614,7 @@ export default function GuestCheckins() {
                                   e.target.value
                                 )
                               }
-                              placeholder="Endereço de retirada das chaves (opcional)"
+                              placeholder="Endereco de retirada das chaves (opcional)"
                               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                             />
                             <input
@@ -658,7 +658,7 @@ export default function GuestCheckins() {
                                       onChange={(e) =>
                                         handleRoomFieldChange(room, "door2", e.target.value)
                                       }
-                                      placeholder="Código da 2a porta"
+                                      placeholder="Codigo da 2a porta"
                                       className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                                     />
                                     <input
@@ -666,7 +666,7 @@ export default function GuestCheckins() {
                                       onChange={(e) =>
                                         handleRoomFieldChange(room, "unitDoor", e.target.value)
                                       }
-                                      placeholder="Código da porta da unidade"
+                                      placeholder="Codigo da porta da unidade"
                                       className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                                     />
                                     <input

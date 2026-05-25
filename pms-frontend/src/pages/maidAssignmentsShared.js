@@ -90,7 +90,7 @@ export function buildMaidListAlert(summary, targetLabel) {
   if (summary.total > 0) {
     return {
       isPending: false,
-      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "listagem", "listagens")} de ${pluralByCount(summary.total, "diarista", "diaristas")} de ${targetLabel} já ${pluralByCount(summary.sent, "foi enviada", "foram enviadas")}.`,
+      message: `Tudo certo: ${summary.sent} de ${summary.total} ${pluralByCount(summary.total, "listagem", "listagens")} de ${pluralByCount(summary.total, "diarista", "diaristas")} de ${targetLabel} ja ${pluralByCount(summary.sent, "foi enviada", "foram enviadas")}.`,
     };
   }
 
