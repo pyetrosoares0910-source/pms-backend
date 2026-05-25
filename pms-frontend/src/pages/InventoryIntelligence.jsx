@@ -115,6 +115,29 @@ function getLaundryCost(items = [], priceMap = new Map()) {
   return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(priceMap.get(item.itemType) || 0), 0);
 }
 
+function groupEntriesByStayDay(entries = []) {
+  const groups = new Map();
+  entries.forEach((entry) => {
+    const dateKey = dayjs(entry.entryDate).format("YYYY-MM-DD");
+    const stayName = entry.stay?.name || "Sem empreendimento";
+    const key = `${dateKey}-${stayName}`;
+    const group = groups.get(key) || {
+      id: key,
+      date: dateKey,
+      stayName,
+      entries: [],
+      totalCost: 0,
+      totalBaseQuantity: 0,
+    };
+    group.entries.push(entry);
+    group.totalCost += Number(entry.totalCost || 0);
+    group.totalBaseQuantity += Number(entry.baseQuantity || 0);
+    groups.set(key, group);
+  });
+
+  return [...groups.values()].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+}
+
 function getRoomLaundryTemplateValues(room) {
   const beds = Math.max(0, Number(room?.preparedBeds ?? 1));
   const template = room?.laundryTemplate || {};
@@ -1005,6 +1028,11 @@ export default function InventoryIntelligence() {
     alerts: [],
     productUsage: [],
   }, [dashboard?.todaySummary]);
+  const groupedEntryRows = useMemo(() => groupEntriesByStayDay(recent.entries || []), [recent.entries]);
+  const usageLots = dashboard?.activeLotProgress || [];
+  const openedUsageLots = usageLots.filter((lot) => lot.status === "OPEN");
+  const learnedUsageLots = usageLots.filter((lot) => lot.learnedAverage);
+  const usageTotalEstimatedCost = usageLots.reduce((total, lot) => total + Number(lot.estimatedCost || 0), 0);
 
   useEffect(() => {
     setLaundryDrafts((prev) => {
@@ -1270,23 +1298,38 @@ export default function InventoryIntelligence() {
             <MiniTable
               empty="Sem entradas recentes."
               columns={[
-                { key: "entryDate", label: "Data", render: (row) => formatDate(row.entryDate) },
-                { key: "product", label: "Produto", render: (row) => row.product?.name },
-                { key: "stay", label: "Empreendimento", render: (row) => row.stay?.name },
-                { key: "baseQuantity", label: "Qtd base" },
-                { key: "totalCost", label: "Valor", render: (row) => row.totalCost ? formatMoney(row.totalCost) : "-" },
                 {
-                  key: "actions",
-                  label: "Acoes",
+                  key: "date",
+                  label: "Data",
+                  render: (row) => formatDate(row.date),
+                },
+                { key: "stayName", label: "Empreendimento" },
+                {
+                  key: "entries",
+                  label: "Itens",
                   render: (row) => (
-                    <RowActions
-                      onEdit={() => openEditModal("entry", row)}
-                      onDelete={() => deleteResource(`/api/inventory-intelligence/entries/${row.id}`, "Excluir esta entrada e reverter o saldo?")}
-                    />
+                    <div className="space-y-2">
+                      {row.entries.map((entry) => (
+                        <div key={entry.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-2 py-1.5 dark:bg-slate-900">
+                          <div>
+                            <div className="font-black text-slate-800 dark:text-slate-100">{entry.product?.name || "Produto"}</div>
+                            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              {entry.quantity} {entry.unit} | base {Number(entry.baseQuantity || 0).toFixed(2)}
+                            </div>
+                          </div>
+                          <RowActions
+                            onEdit={() => openEditModal("entry", entry)}
+                            onDelete={() => deleteResource(`/api/inventory-intelligence/entries/${entry.id}`, "Excluir esta entrada e reverter o saldo?")}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   ),
                 },
+                { key: "totalBaseQuantity", label: "Qtd base total", render: (row) => Number(row.totalBaseQuantity || 0).toFixed(2) },
+                { key: "totalCost", label: "Valor total", render: (row) => row.totalCost ? formatMoney(row.totalCost) : "-" },
               ]}
-              rows={recent.entries || []}
+              rows={groupedEntryRows}
             />
           </div>
         </Section>
@@ -1294,6 +1337,98 @@ export default function InventoryIntelligence() {
 
       {!loading && tab === "consumption" ? (
         <Section title="Uso operacional">
+          <div className="mb-5 space-y-5 border-b border-slate-200 pb-5 dark:border-slate-800">
+            <div className="grid gap-3 md:grid-cols-4">
+              <Kpi icon={Boxes} label="Produtos abertos" value={openedUsageLots.length || 0} />
+              <Kpi icon={CheckCircle2} label="Acomodacoes hoje" value={todaySummary.accommodationCleanings || 0} tone="emerald" />
+              <Kpi icon={TrendingUp} label="Com historico" value={learnedUsageLots.length || 0} tone="amber" />
+              <Kpi icon={DollarSign} label="Custo estimado" value={usageTotalEstimatedCost ? formatMoney(usageTotalEstimatedCost) : "sem historico"} tone="emerald" />
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-2">
+              {(usageLots || []).slice(0, 8).map((lot) => (
+                <div key={lot.lotId} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-black text-slate-950 dark:text-slate-50">{lot.productName}</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        D.A {formatDate(lot.startedAt)} | {lot.status === "OPEN" ? "aberto" : "fechado"} | saldo {lot.remainingPercent ?? "-"}%
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => closeLotCycle(lot)}
+                      disabled={closingLotId === lot.lotId}
+                      className="rounded-lg bg-cyan-700 px-3 py-1.5 text-xs font-black text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                    >
+                      {closingLotId === lot.lotId ? "Salvando..." : "Registrar esgotamento"}
+                    </button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div>
+                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.durationDays || 0}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">dias</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.accommodationCleanings || 0}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">check-outs</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.learnedAverage ? lot.learnedAverage : "sem historico"}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">media/op.</div>
+                    </div>
+                    <div>
+                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.estimatedCost ? formatMoney(lot.estimatedCost) : "sem historico"}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!(usageLots || []).length ? (
+                <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 xl:col-span-2">
+                  Sem lotes ativos para acompanhar uso.
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <div className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Uso por acomodacao de hoje</div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {(todaySummary.rooms || []).length ? todaySummary.rooms.map((room) => (
+                  <div key={room.reservationId} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <div className="h-14 w-20 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
+                        {room.imageUrl ? (
+                          <img src={room.imageUrl} alt={room.title} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="grid h-full w-full place-items-center text-sm font-black text-slate-400">{String(room.title || "UH").slice(0, 2).toUpperCase()}</div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black text-slate-950 dark:text-slate-50">{room.title}</div>
+                        <div className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{room.guestName || "Check-out"}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {(usageLots || []).slice(0, 4).map((lot) => (
+                        <div key={`${room.reservationId}-${lot.lotId}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-2 py-1.5 text-xs dark:bg-slate-900">
+                          <span className="font-bold text-slate-700 dark:text-slate-200">{lot.productName}</span>
+                          <span className="font-black text-slate-950 dark:text-slate-50">
+                            {lot.learnedAverage ? `${lot.learnedAverage} ${lot.unitBase || ""}` : "sem historico"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )) : (
+                  <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 md:col-span-2 xl:col-span-3">
+                    Nenhuma acomodacao com limpeza prevista hoje.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={submitConsumption} className="grid gap-3 lg:grid-cols-6">
             <Field label="Empreendimento">
               <select required value={consumptionForm.stayId} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>

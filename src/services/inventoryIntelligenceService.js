@@ -34,8 +34,8 @@ function buildDefaultLaundryItems(room, overrides = []) {
     BLANKET: Number(template.BLANKET ?? 0),
     COMFORTER: Number(template.COMFORTER ?? 0),
     BEDSPREAD: Number(template.BEDSPREAD ?? 0),
-    FACE_TOWEL: Number(template.FACE_TOWEL ?? preparedBeds),
-    BATH_TOWEL: Number(template.BATH_TOWEL ?? preparedBeds),
+    FACE_TOWEL: Number(template.FACE_TOWEL ?? preparedBeds * 2),
+    BATH_TOWEL: Number(template.BATH_TOWEL ?? preparedBeds * 2),
     RUG: Number(template.RUG ?? 0),
   };
 
@@ -483,14 +483,14 @@ async function decrementLots(tx, { stayId, productId, baseQuantity, lotId }) {
   const lots = lotId
     ? await tx.productLot.findMany({ where: { id: lotId } })
     : await tx.productLot.findMany({
-        where: {
-          stayId,
-          productId,
-          remainingQuantity: { gt: 0 },
-          status: { in: ["OPEN", "SEALED"] },
-        },
-        orderBy: [{ status: "asc" }, { expiresAt: "asc" }, { createdAt: "asc" }],
-      });
+      where: {
+        stayId,
+        productId,
+        remainingQuantity: { gt: 0 },
+        status: { in: ["OPEN", "SEALED"] },
+      },
+      orderBy: [{ status: "asc" }, { expiresAt: "asc" }, { createdAt: "asc" }],
+    });
 
   for (const lot of lots) {
     if (remaining <= 0) break;
@@ -922,13 +922,13 @@ async function calculateUsageCycle(data) {
   const entry = data.lotId
     ? await prisma.productEntry.findFirst({ where: { lotId: data.lotId } })
     : await prisma.productEntry.findFirst({
-        where: {
-          ...(scope.isShared ? { stayId: { in: scope.stockStayIds } } : { stayId: stockStayId }),
-          productId: data.productId,
-          entryDate: { gte: dayjs(startedAt).subtract(3, "day").toDate(), lte: endedAt },
-        },
-        orderBy: { entryDate: "asc" },
-      });
+      where: {
+        ...(scope.isShared ? { stayId: { in: scope.stockStayIds } } : { stayId: stockStayId }),
+        productId: data.productId,
+        entryDate: { gte: dayjs(startedAt).subtract(3, "day").toDate(), lte: endedAt },
+      },
+      orderBy: { entryDate: "asc" },
+    });
   const costPerBase = entry?.unitCost ? Number(entry.unitCost) : null;
 
   return {
@@ -1030,19 +1030,38 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
     consumedQuantity,
     notes: data.notes || "Ciclo gerado ao fechar lote.",
   });
+  const previousCycles = await prisma.productUsageCycle.findMany({
+    where: {
+      stayId: cycle.stayId,
+      productId: cycle.productId,
+      ...(lot.id ? { lotId: { not: lot.id } } : {}),
+      avgPerWeightedOperation: { not: null },
+    },
+    orderBy: { endedAt: "desc" },
+    take: 12,
+  });
+  const previousAverage = mean(
+    previousCycles
+      .map((item) => Number(item.avgPerWeightedOperation))
+      .filter((value) => Number.isFinite(value) && value > 0),
+  );
+  const currentAverage = Number(cycle.avgPerWeightedOperation || 0);
+  const variationPct = previousAverage > 0 && currentAverage > 0
+    ? ((currentAverage - previousAverage) / previousAverage) * 100
+    : null;
 
   return prisma.$transaction(async (tx) => {
     const existingCycle = await tx.productUsageCycle.findFirst({ where: { lotId: lot.id } });
     const savedCycle = existingCycle
       ? await tx.productUsageCycle.update({
-          where: { id: existingCycle.id },
-          data: cycle,
-          include: { stay: true, product: true, lot: true },
-        })
+        where: { id: existingCycle.id },
+        data: cycle,
+        include: { stay: true, product: true, lot: true },
+      })
       : await tx.productUsageCycle.create({
-          data: cycle,
-          include: { stay: true, product: true, lot: true },
-        });
+        data: cycle,
+        include: { stay: true, product: true, lot: true },
+      });
 
     const updatedLot = await tx.productLot.update({
       where: { id: lot.id },
@@ -1051,9 +1070,35 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
         status: remainingQuantity > 0 ? "OPEN" : "DEPLETED",
         depletedAt: remainingQuantity > 0 ? null : endedAt,
         openedAt: lot.openedAt || startedAt,
+        openedQuantity: lot.openedQuantity || lot.initialQuantity,
       },
       include: { product: true, stay: true },
     });
+
+    let nextLot = null;
+    if (remainingQuantity <= 0) {
+      nextLot = await tx.productLot.findFirst({
+        where: {
+          id: { not: lot.id },
+          stayId: lot.stayId,
+          productId: lot.productId,
+          status: "SEALED",
+          remainingQuantity: { gt: 0 },
+        },
+        orderBy: [{ createdAt: "asc" }],
+      });
+      if (nextLot) {
+        nextLot = await tx.productLot.update({
+          where: { id: nextLot.id },
+          data: {
+            status: "OPEN",
+            openedAt: endedAt,
+            openedQuantity: nextLot.openedQuantity || nextLot.initialQuantity,
+          },
+          include: { product: true, stay: true },
+        });
+      }
+    }
 
     await tx.inventory.upsert({
       where: { stayId_productId: { stayId: lot.stayId, productId: lot.productId } },
@@ -1076,7 +1121,27 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
       },
     });
 
-    return { lot: updatedLot, cycle: savedCycle };
+    if (variationPct !== null && Math.abs(variationPct) > 20) {
+      await tx.productAlert.create({
+        data: {
+          stayId: cycle.stayId,
+          productId: cycle.productId,
+          type: "HIGH_CONSUMPTION",
+          severity: Math.abs(variationPct) > 40 ? "CRITICAL" : "WARNING",
+          title: "Variacao de consumo",
+          message: `${lot.product?.name || "Produto"} variou ${round(variationPct, 1)}% contra a media dos ciclos anteriores.`,
+          metric: currentAverage,
+          baseline: previousAverage,
+          metadata: {
+            cycleId: savedCycle.id,
+            lotId: lot.id,
+            variationPct: round(variationPct, 2),
+          },
+        },
+      });
+    }
+
+    return { lot: updatedLot, nextLot, cycle: savedCycle };
   });
 }
 
@@ -1162,15 +1227,15 @@ async function updateLaundryDispatch(id, data) {
         ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
         ...(items
           ? {
-              items: {
-                create: items.map((item) => ({
-                  itemType: item.itemType,
-                  quantity: Math.max(0, Math.round(Number(item.quantity || 0))),
-                  unitPieces: Number(item.unitPieces || laundryPieces[item.itemType] || 1),
-                  notes: item.notes || null,
-                })),
-              },
-            }
+            items: {
+              create: items.map((item) => ({
+                itemType: item.itemType,
+                quantity: Math.max(0, Math.round(Number(item.quantity || 0))),
+                unitPieces: Number(item.unitPieces || laundryPieces[item.itemType] || 1),
+                notes: item.notes || null,
+              })),
+            },
+          }
           : {}),
       },
       include: { stay: true, room: true, maid: true, reservation: true, items: true },
@@ -1361,7 +1426,7 @@ async function buildInventoryDashboard(query = {}) {
         remainingQuantity: { gt: 0 },
       },
       include: { product: true, stay: true },
-      orderBy: [{ createdAt: "asc" }],
+      orderBy: [{ status: "asc" }, { openedAt: "asc" }, { createdAt: "asc" }],
     }),
     prisma.productAlert.findMany({
       where: { status: "open", ...stayWhere },
@@ -1445,6 +1510,11 @@ async function buildInventoryDashboard(query = {}) {
           .filter((value) => Number.isFinite(value) && value > 0)
       );
       const estimatedConsumed = learnedAverage > 0 ? learnedAverage * weightedOperations : null;
+      const entry = entries.find((row) => row.lotId === lot.id) || entries.find((row) => row.productId === lot.productId && row.unitCost);
+      const estimatedCost = estimatedConsumed !== null && entry?.unitCost
+        ? estimatedConsumed * Number(entry.unitCost)
+        : null;
+      const durationDays = Math.max(1, dayjs().diff(dayjs(startedAt), "day") + 1);
       return {
         lotId: lot.id,
         stayId: lot.stayId,
@@ -1453,13 +1523,19 @@ async function buildInventoryDashboard(query = {}) {
         productName: lot.product?.name,
         unitBase: lot.product?.unitBase,
         startedAt,
+        openedAt: lot.openedAt,
+        status: lot.status,
+        durationDays,
         initialQuantity: round(lot.initialQuantity, 2),
         remainingQuantity: round(lot.remainingQuantity, 2),
+        remainingPercent: lot.initialQuantity > 0 ? round((Number(lot.remainingQuantity || 0) / Number(lot.initialQuantity || 1)) * 100, 1) : null,
         accommodationCleanings: usage?.accommodationCleanings || 0,
         corridorCleanings: usage?.corridorCleanings || 0,
         weightedOperations: round(weightedOperations, 2),
         learnedAverage: learnedAverage ? round(learnedAverage, 2) : null,
         estimatedConsumed: estimatedConsumed === null ? null : round(estimatedConsumed, 2),
+        estimatedCost: estimatedCost === null ? null : round(estimatedCost, 2),
+        unitCost: entry?.unitCost ? round(entry.unitCost, 4) : null,
         estimatedRemaining: estimatedConsumed === null ? null : round(Number(lot.initialQuantity || 0) - estimatedConsumed, 2),
       };
     })
