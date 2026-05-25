@@ -186,6 +186,15 @@ function TodaySummaryCard({ summary }) {
   const visibleRooms = rooms.slice(0, 8);
   const hiddenRooms = Math.max(0, rooms.length - visibleRooms.length);
   const laundry = summary?.laundry || {};
+  const bedItemTypes = new Set(["FITTED_SHEET", "TOP_SHEET", "PILLOWCASE", "SHEET_SET", "PILLOWCASE_SET", "BLANKET", "BEDSPREAD"]);
+  const towelItemTypes = new Set(["FACE_TOWEL", "BATH_TOWEL"]);
+  const expectedItems = laundry.expected || [];
+  const bedPieces = expectedItems
+    .filter((item) => bedItemTypes.has(item.itemType))
+    .reduce((total, item) => total + Number(item.pieces || 0), 0);
+  const towelPieces = expectedItems
+    .filter((item) => towelItemTypes.has(item.itemType))
+    .reduce((total, item) => total + Number(item.pieces || 0), 0);
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950">
@@ -210,15 +219,30 @@ function TodaySummaryCard({ summary }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {visibleRooms.map((room) => (
               <div
-                key={`${room.id}-${room.cleaningDate}`}
-                className="flex min-h-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-xs font-black text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                key={room.reservationId || `${room.id}-${room.cleaningDate}`}
+                className="group relative min-h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
                 title={[room.title, room.guestName, room.stayName].filter(Boolean).join(" - ")}
               >
-                {room.title}
+                {room.imageUrl ? (
+                  <img
+                    src={room.imageUrl}
+                    alt={room.title}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-200 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="absolute inset-0 grid place-items-center text-lg font-black text-slate-400 dark:text-slate-600">
+                    {String(room.title || "UH").slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-2 py-2">
+                  <div className="truncate text-xs font-black text-white">{room.title}</div>
+                  {room.guestName ? <div className="truncate text-[10px] font-semibold text-slate-200">{room.guestName}</div> : null}
+                </div>
               </div>
             ))}
             {hiddenRooms ? (
-              <div className="flex min-h-14 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 text-center text-sm font-black text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 text-center text-sm font-black text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
                 +{hiddenRooms}
               </div>
             ) : null}
@@ -230,12 +254,19 @@ function TodaySummaryCard({ summary }) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+      <div className="grid grid-cols-2 divide-x divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800 lg:grid-cols-4 lg:divide-y-0">
         <div className="flex items-center gap-3 px-4 py-3">
           <Shirt size={18} className="text-cyan-700 dark:text-cyan-200" />
           <div>
-            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{laundry.expectedPieces || 0}</div>
-            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas previstas</div>
+            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{bedPieces}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas de cama</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Shirt size={18} className="text-sky-700 dark:text-sky-200" />
+          <div>
+            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{towelPieces}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">toalhas</div>
           </div>
         </div>
         <div className="flex items-center gap-3 px-4 py-3">

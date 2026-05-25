@@ -225,8 +225,10 @@ async function getDailyOperationalSummary(query = {}) {
     bucket.accommodationCleanings += 1;
     bucket.corridorDates.add(cleaningDate);
     bucket.rooms.push({
+      reservationId: reservation.id,
       id: reservation.roomId,
       title: reservation.room?.title || "Acomodacao",
+      imageUrl: reservation.room?.imageUrl || null,
       guestName: reservation.guest?.name || "",
       checkoutDate: reservation.checkoutDate,
       cleaningDate: getReservationCleaningDate(reservation),
@@ -261,8 +263,10 @@ async function getDailyOperationalSummary(query = {}) {
     accommodationCleanings: reservations.length,
     corridorCleanings: stays.reduce((total, item) => total + item.corridorCleanings, 0),
     rooms: reservations.map((reservation) => ({
+      reservationId: reservation.id,
       id: reservation.roomId,
       title: reservation.room?.title || "Acomodacao",
+      imageUrl: reservation.room?.imageUrl || null,
       stayName: reservation.room?.stay?.name || "",
       guestName: reservation.guest?.name || "",
       cleaningDate: getReservationCleaningDate(reservation),
