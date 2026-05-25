@@ -26,6 +26,13 @@ model Stay {
   profiles         ConsumptionProfile[]
   events           ConsumptionEvent[]
   dailyCommon      DailyCommonConsumptionLog[]
+  productEntries   ProductEntry[]
+  productLots      ProductLot[]
+  productConsumptions ProductConsumption[]
+  productAlerts    ProductAlert[]
+  productPredictions ProductPrediction[]
+  inventorySnapshots ProductInventorySnapshot[]
+  laundryDispatches LaundryDispatch[]
 
   @@unique([name])
 }
@@ -49,6 +56,8 @@ model Room {
   stay             Stay?                @relation(fields: [stayId], references: [id])
   profiles         ConsumptionProfile[]
   events           ConsumptionEvent[] 
+  productConsumptions ProductConsumption[]
+  laundryDispatches LaundryDispatch[]
 
   @@unique([stayId, title])
 }
@@ -74,6 +83,7 @@ model Staff {
   phone        String?
   imageUrl     String?
   updatedAt    DateTime @updatedAt
+  productConsumptions ProductConsumption[]
 }
 
 model CleaningStaff {
@@ -104,6 +114,8 @@ model Reservation {
   cleaningChangeReason String?
   guest        Guest    @relation(fields: [guestId], references: [id])
   room         Room     @relation(fields: [roomId], references: [id])
+  productConsumptions ProductConsumption[]
+  laundryDispatches LaundryDispatch[]
 }
 
 model Maid {
@@ -116,6 +128,8 @@ model Maid {
   available String[]
   tasks     Task[]
   periodicTaskExecutions PeriodicTaskExecution[]
+  productConsumptions ProductConsumption[]
+  laundryDispatches LaundryDispatch[]
 }
 
 model Task {
@@ -225,12 +239,27 @@ model Product {
   packageSizeUnit  String?
   defaultPrice     Decimal?
   active           Boolean  @default(true)
+  sku              String?
+  supplier         String?
+  minimumStock     Float?
+  targetStock      Float?
+  reorderPoint     Float?
+  shelfLifeDays    Int?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   consumptionProfiles       ConsumptionProfile[]
   inventories               Inventory[]
   purchases                 Purchase[]
   consumptionEvents         ConsumptionEvent[]
   dailyCommon      DailyCommonConsumptionLog[]
+  entries          ProductEntry[]
+  lots             ProductLot[]
+  operationalConsumptions ProductConsumption[]
+  alerts           ProductAlert[]
+  predictions      ProductPrediction[]
+  inventorySnapshots ProductInventorySnapshot[]
 
   @@unique([name, category])
   @@index([active])
@@ -314,6 +343,238 @@ model DailyCommonConsumptionLog {
 
   @@unique([stayId, productId, date])
   @@index([date])
+}
+
+model ProductEntry {
+  id            String   @id @default(cuid())
+  stayId        String
+  productId     String
+  lotId         String?
+  quantity      Float
+  unit          String
+  baseQuantity  Float
+  supplier      String?
+  totalCost     Float?
+  unitCost      Float?
+  entryDate     DateTime @default(now())
+  expiresAt     DateTime?
+  invoiceNumber String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  stay    Stay       @relation(fields: [stayId], references: [id])
+  product Product    @relation(fields: [productId], references: [id])
+  lot     ProductLot? @relation(fields: [lotId], references: [id])
+
+  @@index([stayId, entryDate])
+  @@index([productId])
+  @@index([expiresAt])
+}
+
+model ProductLot {
+  id              String           @id @default(cuid())
+  stayId          String
+  productId       String
+  code            String?
+  initialQuantity Float
+  remainingQuantity Float
+  openedQuantity Float?
+  status          ProductLotStatus @default(SEALED)
+  openedAt        DateTime?
+  expiresAt       DateTime?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  stay         Stay                 @relation(fields: [stayId], references: [id])
+  product      Product              @relation(fields: [productId], references: [id])
+  entries      ProductEntry[]
+  consumptions ProductConsumption[]
+
+  @@index([stayId, productId, status])
+  @@index([expiresAt])
+}
+
+model ProductConsumption {
+  id             String               @id @default(cuid())
+  stayId         String
+  productId      String
+  lotId          String?
+  roomId         String?
+  reservationId  String?
+  staffId        String?
+  maidId         Int?
+  operationType  ProductOperationType
+  location       String?
+  quantity       Float
+  unit           String
+  baseQuantity   Float
+  occurredAt     DateTime             @default(now())
+  expectedQuantity Float?
+  anomalyScore   Float?
+  anomalyReason  String?
+  notes          String?
+  createdAt      DateTime             @default(now())
+
+  stay        Stay         @relation(fields: [stayId], references: [id])
+  product     Product      @relation(fields: [productId], references: [id])
+  lot         ProductLot?   @relation(fields: [lotId], references: [id])
+  room        Room?        @relation(fields: [roomId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  staff       Staff?       @relation(fields: [staffId], references: [id])
+  maid        Maid?        @relation(fields: [maidId], references: [id])
+
+  @@index([stayId, occurredAt])
+  @@index([productId, occurredAt])
+  @@index([operationType])
+  @@index([staffId])
+  @@index([maidId])
+  @@index([roomId])
+  @@index([reservationId])
+}
+
+model ProductAlert {
+  id          String        @id @default(cuid())
+  stayId      String?
+  productId   String?
+  type        ProductAlertType
+  severity    ProductAlertSeverity @default(INFO)
+  title       String
+  message     String
+  metric      Float?
+  baseline    Float?
+  status      String        @default("open")
+  metadata    Json?
+  detectedAt  DateTime      @default(now())
+  resolvedAt  DateTime?
+
+  stay    Stay?    @relation(fields: [stayId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([status, severity])
+  @@index([detectedAt])
+  @@index([productId])
+}
+
+model ProductPrediction {
+  id                  String   @id @default(cuid())
+  stayId              String
+  productId           String
+  calculatedAt        DateTime @default(now())
+  horizonDays         Int      @default(30)
+  dailyAverage        Float
+  projectedDemand     Float
+  currentStock        Float
+  daysRemaining       Float?
+  reorderDate         DateTime?
+  recommendedQuantity Float?
+  confidence          Float?
+  metadata            Json?
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([stayId, calculatedAt])
+  @@index([productId])
+}
+
+model ProductInventorySnapshot {
+  id          String   @id @default(cuid())
+  stayId      String
+  productId   String
+  quantity    Float
+  capacity    Float?
+  snapshotAt  DateTime @default(now())
+  source      String   @default("system")
+  notes       String?
+
+  stay    Stay    @relation(fields: [stayId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([stayId, snapshotAt])
+  @@index([productId])
+}
+
+model LaundryDispatch {
+  id            String   @id @default(cuid())
+  stayId        String
+  roomId        String?
+  reservationId String?
+  maidId        Int?
+  dispatchDate  DateTime @default(now())
+  expectedSets  Int      @default(2)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  stay        Stay         @relation(fields: [stayId], references: [id])
+  room        Room?        @relation(fields: [roomId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  maid        Maid?        @relation(fields: [maidId], references: [id])
+  items       LaundryDispatchItem[]
+
+  @@index([stayId, dispatchDate])
+  @@index([roomId])
+  @@index([reservationId])
+}
+
+model LaundryDispatchItem {
+  id         String          @id @default(cuid())
+  dispatchId String
+  itemType   LaundryItemType
+  quantity   Int
+  unitPieces Int
+  notes      String?
+
+  dispatch LaundryDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+
+  @@unique([dispatchId, itemType])
+}
+
+enum ProductOperationType {
+  CHECKOUT_CLEANING
+  DAILY_CLEANING
+  DEEP_CLEANING
+  COMMON_AREA
+  LAUNDRY
+  MAINTENANCE
+  WASTE
+  ADJUSTMENT
+  OTHER
+}
+
+enum ProductLotStatus {
+  SEALED
+  OPEN
+  DEPLETED
+  EXPIRED
+  DISCARDED
+}
+
+enum ProductAlertType {
+  HIGH_CONSUMPTION
+  LOW_STOCK
+  STAFF_OUTLIER
+  LAUNDRY_SPIKE
+  STALE_PRODUCT
+  EXPIRING_PRODUCT
+  NEGATIVE_STOCK
+  REORDER_SUGGESTION
+}
+
+enum ProductAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum LaundryItemType {
+  SHEET_SET
+  PILLOWCASE_SET
+  BLANKET
+  BEDSPREAD
+  FACE_TOWEL
+  BATH_TOWEL
 }
 
 enum PaymentState {

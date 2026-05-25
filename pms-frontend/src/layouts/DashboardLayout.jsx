@@ -33,9 +33,6 @@ import {
   BarChart3,
   ClipboardList,
   Bell,
-  Package,
-  ShoppingCart,
-  Settings2,
   Boxes,
   Sun,
   Moon,
@@ -640,17 +637,8 @@ export default function DashboardLayout() {
                 onToggle={() => toggleGroup("estoque")}
                 showText={showText}
               >
-                <Item to="/products" icon={Package} showText={showText}>
-                  Produtos
-                </Item>
                 <Item to="/inventory" icon={Boxes} showText={showText}>
                   Inventário
-                </Item>
-                <Item to="/purchases" icon={ShoppingCart} showText={showText}>
-                  Compras
-                </Item>
-                <Item to="/consumption" icon={Settings2} showText={showText}>
-                  Perfis de Consumo
                 </Item>
               </NavGroup>
             )}

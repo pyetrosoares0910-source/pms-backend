@@ -69,6 +69,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const productsRoutes = require("./routes/products");
 const inventoryRoutes = require("./routes/inventory");
 const consumptionProfilesRoutes = require("./routes/consumptionProfiles");
+const inventoryIntelligenceRoutes = require("./routes/inventoryIntelligence");
 
 app.use("/auth", authRoutes);
 app.use("/guests", guestsRoutes);
@@ -89,6 +90,7 @@ app.use("/payments", paymentRoutes);
 app.use("/api", productsRoutes);
 app.use("/api", inventoryRoutes);
 app.use("/api", consumptionProfilesRoutes);
+app.use("/api", inventoryIntelligenceRoutes);
 
 // 🔹 Teste
 app.get("/", (req, res) => {
