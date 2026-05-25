@@ -67,7 +67,7 @@ function getGroupRoomNames(items) {
     if (seen.has(roomKey)) return;
 
     seen.add(roomKey);
-    labels.push(reservation.room?.title || "Sem acomodacao");
+    labels.push(reservation.room?.title || "Sem acomodação");
   });
 
   return formatJoinedLabels(labels);
@@ -97,7 +97,7 @@ function getGroupDateSummary(items) {
   return items
     .map(
       (reservation) =>
-        `${reservation.room?.title || "Sem acomodacao"}: ${formatReservationPeriod(reservation)}`
+        `${reservation.room?.title || "Sem acomodação"}: ${formatReservationPeriod(reservation)}`
     )
     .join(" | ");
 }
@@ -406,11 +406,11 @@ export default function ApresentacaoHospedes() {
       }
 
       if (updatedById.size !== items.length) {
-        alert("Erro ao atualizar uma ou mais reservas desta apresentacao.");
+        alert("Erro ao atualizar uma ou mais reservas desta apresenta??o.");
       }
     } catch (err) {
-      console.error("Erro ao atualizar apresentacao:", err);
-      alert("Erro ao atualizar o status da apresentacao.");
+      console.error("Erro ao atualizar apresenta??o:", err);
+      alert("Erro ao atualizar o status da apresenta??o.");
     } finally {
       setSubmittingId(null);
     }
@@ -429,8 +429,8 @@ export default function ApresentacaoHospedes() {
     const isSubmitting = submittingId === presentationGroup.groupKey;
     const accommodationLabel =
       presentationGroup.roomCount === 1
-        ? "1 acomodacao"
-        : `${presentationGroup.roomCount} acomodacoes`;
+        ? "1 acomodação"
+        : `${presentationGroup.roomCount} acomodações`;
     const reservationLabel =
       presentationGroup.items.length === 1
         ? "1 reserva"
@@ -445,11 +445,11 @@ export default function ApresentacaoHospedes() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {reservation.guest?.name || "Hospede sem nome"}
+                {reservation.guest?.name || "Hóspede sem nome"}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {presentationGroup.items.length > 1
-                  ? `Acomodacoes: ${presentationGroup.roomNames}`
+                ? `Acomoda??es: ${presentationGroup.roomNames}`
                   : presentationGroup.roomNames}
               </div>
               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -495,11 +495,11 @@ export default function ApresentacaoHospedes() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {reservation.guest?.name || "Hospede sem nome"}
+              {reservation.guest?.name || "Hóspede sem nome"}
             </div>
             <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {presentationGroup.items.length > 1
-                ? `Acomodacoes: ${presentationGroup.roomNames}`
+                ? `Acomoda??es: ${presentationGroup.roomNames}`
                 : presentationGroup.roomNames}
             </div>
             <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -674,11 +674,11 @@ export default function ApresentacaoHospedes() {
               Apresentações da semana
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Janela de {formatFullDate(normalizedStartDate)} ate {formatFullDate(presentationEndDate)}
+              Janela de {formatFullDate(normalizedStartDate)} até {formatFullDate(presentationEndDate)}
             </p>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {weeklyPresentationSummary.reservations} reserva(s) agrupada(s) em{" "}
-              {weeklyPresentationSummary.total} apresentacao(oes).
+              {weeklyPresentationSummary.total} apresenta??o(oes).
             </p>
           </div>
 
@@ -688,7 +688,7 @@ export default function ApresentacaoHospedes() {
             </div>
           ) : visiblePresentationGroups.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-rose-300 bg-rose-50 px-4 py-10 text-center text-sm text-rose-700 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300">
-              Nao há apresentações pendentes para o filtro atual.
+              Não há apresentações pendentes para o filtro atual.
             </div>
           ) : (
             <div className="space-y-6">
@@ -711,7 +711,7 @@ export default function ApresentacaoHospedes() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="text-sm text-slate-500 dark:text-slate-400">
                             {stayGroup.reservationCount} reserva(s) na janela, agrupada(s) em{" "}
-                            {stayGroup.presentationGroups.length} apresentacao(oes).
+                            {stayGroup.presentationGroups.length} apresenta??o(oes).
                           </div>
                           <div className="rounded-xl bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-900 dark:text-slate-300">
                             {stayGroup.presentationGroups.length} grupo(s)

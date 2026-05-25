@@ -32,19 +32,19 @@ import { useApi } from "../lib/api";
 
 const operationTypes = [
   ["CHECKOUT_CLEANING", "Limpeza checkout"],
-  ["DAILY_CLEANING", "Limpeza diaria"],
+  ["DAILY_CLEANING", "Limpeza diária"],
   ["DEEP_CLEANING", "Limpeza pesada"],
   ["COMMON_AREA", "Area comum"],
   ["LAUNDRY", "Lavanderia"],
-  ["MAINTENANCE", "Manutencao"],
+  ["MAINTENANCE", "Manutenção"],
   ["WASTE", "Perda/desperdicio"],
   ["ADJUSTMENT", "Ajuste"],
   ["OTHER", "Outro"],
 ];
 
 const laundryItems = [
-  ["FITTED_SHEET", "Lencol elastico", 1],
-  ["TOP_SHEET", "Lencol de cobrir", 1],
+  ["FITTED_SHEET", "Lençol elástico", 1],
+  ["TOP_SHEET", "Lençol de cobrir", 1],
   ["PILLOWCASE", "Fronha", 1],
   ["BLANKET", "Manta", 1],
   ["COMFORTER", "Cobertor", 1],
@@ -294,7 +294,7 @@ function TodaySummaryCard({ summary }) {
           <div className="mt-2 flex items-end gap-3">
             <span className="text-5xl font-black leading-none text-slate-950 dark:text-slate-50">{summary?.accommodationCleanings || 0}</span>
             <span className="pb-1 text-sm font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-              acomodacoes a limpar
+              acomodações a limpar
             </span>
           </div>
         </div>
@@ -313,7 +313,7 @@ function TodaySummaryCard({ summary }) {
                 className="group relative min-h-24 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
                 title={[room.title, room.guestName, room.stayName].filter(Boolean).join(" - ")}
               >
-                {room.imageUrl ? (
+                        {room.imageUrl ? (
                   <img
                     src={room.imageUrl}
                     alt={room.title}
@@ -349,7 +349,7 @@ function TodaySummaryCard({ summary }) {
           <Shirt size={18} className="text-cyan-700 dark:text-cyan-200" />
           <div>
             <div className="text-xl font-black text-slate-950 dark:text-slate-50">{bedPieces}</div>
-            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas de cama</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peças de cama</div>
           </div>
         </div>
         <div className="flex items-center gap-3 px-4 py-3">
@@ -463,37 +463,37 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
       ["supplier", "Fornecedor", "text"],
       ["entryDate", "Data", "date"],
       ["expiresAt", "Validade", "date"],
-      ["notes", "Observacoes", "text"],
+      ["notes", "Observações", "text"],
     ],
     consumption: [
       ["quantity", "Quantidade", "number"],
       ["unit", "Unidade", "select-unit"],
-      ["operationType", "Operacao", "select-operation"],
+      ["operationType", "Operação", "select-operation"],
       ["occurredAt", "Data/hora", "datetime-local"],
       ["location", "Local/setor", "text"],
-      ["notes", "Observacoes", "text"],
+      ["notes", "Observações", "text"],
     ],
     cycle: [
       ["consumedQuantity", "Quantidade consumida", "number"],
       ["startedAt", "Inicio", "date"],
       ["endedAt", "Fim/esgotamento", "date"],
-      ["notes", "Observacoes", "text"],
+      ["notes", "Observações", "text"],
     ],
     laundry: [
       ["dispatchDate", "Data envio", "date"],
       ["expectedSets", "Jogos previstos", "number"],
-      ["notes", "Observacoes", "text"],
+      ["notes", "Observações", "text"],
     ],
     product: [
       ["name", "Nome", "text"],
       ["category", "Categoria", "text"],
       ["unitBase", "Unidade base", "select-base"],
-      ["defaultPrice", "Valor padrao", "number"],
+      ["defaultPrice", "Valor padrão", "number"],
       ["packageSizeValue", "Tamanho embalagem", "number"],
       ["packageSizeUnit", "Unidade embalagem", "text"],
       ["packageBaseQuantity", "Qtd base por embalagem", "number"],
       ["unitsPerPackage", "Unidades por pacote", "number"],
-      ["minimumStock", "Estoque minimo", "number"],
+      ["minimumStock", "Estoque mínimo", "number"],
       ["targetStock", "Estoque alvo", "number"],
       ["corridorWeight", "Peso corredor", "number"],
       ["active", "Produto ativo", "checkbox"],
@@ -820,7 +820,7 @@ export default function InventoryIntelligence() {
   async function saveLaundryTemplate() {
     const room = rooms.find((item) => item.id === laundryTemplateRoomId);
     if (!room) {
-      alert("Selecione uma acomodacao para configurar.");
+      alert("Selecione uma acomodação para configurar.");
       return;
     }
     setSaving(true);
@@ -842,7 +842,7 @@ export default function InventoryIntelligence() {
       });
       await load();
     } catch (err) {
-      alert(err.message || "Falha ao salvar padrao de lavanderia.");
+      alert(err.message || "Falha ao salvar padrão de lavanderia.");
     } finally {
       setSaving(false);
     }
@@ -894,7 +894,7 @@ export default function InventoryIntelligence() {
   }
 
   async function closeLotCycle(progress) {
-    const depletedAt = window.prompt("Data de esgotamento/reposicao (YYYY-MM-DD)", dayjs().format("YYYY-MM-DD"));
+    const depletedAt = window.prompt("Data de esgotamento/reposição (YYYY-MM-DD)", dayjs().format("YYYY-MM-DD"));
     if (!depletedAt) return;
     const remainingInput = window.prompt("Quantidade que sobrou no lote (base do produto)", "0");
     if (remainingInput === null) return;
@@ -909,7 +909,7 @@ export default function InventoryIntelligence() {
           depletedAt,
           remainingQuantity,
           consumedQuantity,
-          notes: `Fechado automaticamente: ${progress.accommodationCleanings} acomodacoes + ${progress.corridorCleanings} corredores.`,
+          notes: `Fechado automaticamente: ${progress.accommodationCleanings} acomodações + ${progress.corridorCleanings} corredores.`,
         }),
       });
       await load();
@@ -1005,7 +1005,7 @@ export default function InventoryIntelligence() {
       product: `/api/products/${editModal.row.id}`,
     };
 
-    await updateResource(endpoints[editModal.type], editModal.values, "Falha ao salvar edicao.");
+    await updateResource(endpoints[editModal.type], editModal.values, "Falha ao salvar edição.");
   };
 
   async function toggleProductActive(row) {
@@ -1064,7 +1064,7 @@ export default function InventoryIntelligence() {
             inteligencia operacional
           </div>
           <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50">
-            Consumiveis e Estoque
+            Consumíveis e Estoque
           </h1>
         </div>
 
@@ -1136,11 +1136,11 @@ export default function InventoryIntelligence() {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
             <Kpi icon={Boxes} label="Produtos ativos" value={kpis.activeProducts || 0} />
-            <Kpi icon={AlertTriangle} label="Criticos" value={kpis.criticalProducts || 0} tone="rose" />
-            <Kpi icon={TrendingUp} label="Custo periodo" value={formatMoney(kpis.totalCost)} tone="emerald" />
+            <Kpi icon={AlertTriangle} label="Críticos" value={kpis.criticalProducts || 0} tone="rose" />
+            <Kpi icon={TrendingUp} label="Custo período" value={formatMoney(kpis.totalCost)} tone="emerald" />
             <Kpi icon={ClipboardCheck} label="Custo/reserva" value={formatMoney(kpis.costPerReservation)} tone="amber" />
-            <Kpi icon={Shirt} label="Pecas lavanderia" value={kpis.laundryPieces || 0} />
-            <Kpi icon={CheckCircle2} label="Acomodacoes limpas" value={kpis.accommodationCleanings || 0} tone="emerald" />
+            <Kpi icon={Shirt} label="Peças lavanderia" value={kpis.laundryPieces || 0} />
+            <Kpi icon={CheckCircle2} label="Acomodações limpas" value={kpis.accommodationCleanings || 0} tone="emerald" />
             <Kpi icon={ClipboardCheck} label="Corredores" value={kpis.corridorCleanings || 0} tone="cyan" />
           </div>
 
@@ -1168,7 +1168,7 @@ export default function InventoryIntelligence() {
                   </div>
                 )) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-900">
-                    Nenhum alerta no periodo.
+                    Nenhum alerta no período.
                   </div>
                 )}
               </div>
@@ -1190,7 +1190,7 @@ export default function InventoryIntelligence() {
               </div>
             </Section>
 
-            <Section title="Previsao de reposicao">
+            <Section title="Previsão de reposição">
               <MiniTable
                 empty="Sem previsoes calculadas."
                 columns={[
@@ -1221,14 +1221,14 @@ export default function InventoryIntelligence() {
 
           <Section title="Uso automatico por lote">
             <MiniTable
-              empty="Nenhum lote ativo com limpeza no periodo."
+              empty="Nenhum lote ativo com limpeza no período."
               columns={[
                 { key: "productName", label: "Produto" },
                 { key: "stayName", label: "Empreendimento" },
                 { key: "startedAt", label: "Desde", render: (row) => formatDate(row.startedAt) },
-                { key: "accommodationCleanings", label: "Acomodacoes" },
+                { key: "accommodationCleanings", label: "Acomodações" },
                 { key: "corridorCleanings", label: "Corredores" },
-                { key: "weightedOperations", label: "Operacoes" },
+                { key: "weightedOperations", label: "Operações" },
                 { key: "estimatedConsumed", label: "Estimado", render: (row) => row.estimatedConsumed === null ? "sem historico" : row.estimatedConsumed },
                 {
                   key: "action",
@@ -1286,7 +1286,7 @@ export default function InventoryIntelligence() {
             <Field label="Validade">
               <input type="date" value={entryForm.expiresAt} onChange={(event) => setEntryForm((prev) => ({ ...prev, expiresAt: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observacoes">
+            <Field label="Observações">
               <input value={entryForm.notes} onChange={(event) => setEntryForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass("lg:col-span-3")} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1340,8 +1340,8 @@ export default function InventoryIntelligence() {
           <div className="mb-5 space-y-5 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div className="grid gap-3 md:grid-cols-4">
               <Kpi icon={Boxes} label="Produtos abertos" value={openedUsageLots.length || 0} />
-              <Kpi icon={CheckCircle2} label="Acomodacoes hoje" value={todaySummary.accommodationCleanings || 0} tone="emerald" />
-              <Kpi icon={TrendingUp} label="Com historico" value={learnedUsageLots.length || 0} tone="amber" />
+              <Kpi icon={CheckCircle2} label="Acomodações hoje" value={todaySummary.accommodationCleanings || 0} tone="emerald" />
+              <Kpi icon={TrendingUp} label="Com histórico" value={learnedUsageLots.length || 0} tone="amber" />
               <Kpi icon={DollarSign} label="Custo estimado" value={usageTotalEstimatedCost ? formatMoney(usageTotalEstimatedCost) : "sem historico"} tone="emerald" />
             </div>
 
@@ -1375,7 +1375,7 @@ export default function InventoryIntelligence() {
                     </div>
                     <div>
                       <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.learnedAverage ? lot.learnedAverage : "sem historico"}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">media/op.</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">média/op.</div>
                     </div>
                     <div>
                       <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.estimatedCost ? formatMoney(lot.estimatedCost) : "sem historico"}</div>
@@ -1392,7 +1392,7 @@ export default function InventoryIntelligence() {
             </div>
 
             <div>
-              <div className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Uso por acomodacao de hoje</div>
+              <div className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Uso por acomodação de hoje</div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {(todaySummary.rooms || []).length ? todaySummary.rooms.map((room) => (
                   <div key={room.reservationId} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
@@ -1422,7 +1422,7 @@ export default function InventoryIntelligence() {
                   </div>
                 )) : (
                   <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 md:col-span-2 xl:col-span-3">
-                    Nenhuma acomodacao com limpeza prevista hoje.
+                    Nenhuma acomodação com limpeza prevista hoje.
                   </div>
                 )}
               </div>
@@ -1442,7 +1442,7 @@ export default function InventoryIntelligence() {
                 {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </Field>
-            <Field label="Operacao">
+            <Field label="Operação">
               <select value={consumptionForm.operationType} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, operationType: event.target.value }))} className={inputClass()}>
                 {operationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -1458,7 +1458,7 @@ export default function InventoryIntelligence() {
             <Field label="Data/hora">
               <input type="datetime-local" value={consumptionForm.occurredAt} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, occurredAt: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Acomodacao">
+            <Field label="Acomodação">
               <select value={consumptionForm.roomId} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, roomId: event.target.value }))} className={inputClass()}>
                 <option value="">Opcional</option>
                 {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
@@ -1480,7 +1480,7 @@ export default function InventoryIntelligence() {
                 {maids.map((maid) => <option key={maid.id} value={maid.id}>{maid.name}</option>)}
               </select>
             </Field>
-            <Field label="Funcionario">
+            <Field label="Funcionário">
               <select value={consumptionForm.staffId} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, staffId: event.target.value }))} className={inputClass()}>
                 <option value="">Opcional</option>
                 {staff.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
@@ -1489,7 +1489,7 @@ export default function InventoryIntelligence() {
             <Field label="Local/setor">
               <input value={consumptionForm.location} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, location: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observacoes">
+            <Field label="Observações">
               <input value={consumptionForm.notes} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass()} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1503,13 +1503,13 @@ export default function InventoryIntelligence() {
               columns={[
                 { key: "occurredAt", label: "Data", render: (row) => dayjs(row.occurredAt).format("DD/MM HH:mm") },
                 { key: "product", label: "Produto", render: (row) => row.product?.name },
-                { key: "operationType", label: "Operacao" },
+                { key: "operationType", label: "Operação" },
                 { key: "quantity", label: "Qtd", render: (row) => `${row.quantity} ${row.unit}` },
-                { key: "responsible", label: "Responsavel", render: (row) => row.staff?.name || row.maid?.name || "-" },
-                { key: "anomaly", label: "Analise", render: (row) => row.anomalyReason || "coerente" },
+                { key: "responsible", label: "Responsável", render: (row) => row.staff?.name || row.maid?.name || "-" },
+                { key: "anomaly", label: "Análise", render: (row) => row.anomalyReason || "coerente" },
                 {
                   key: "actions",
-                  label: "Acoes",
+                  label: "Ações",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("consumption", row)}
@@ -1525,7 +1525,7 @@ export default function InventoryIntelligence() {
       ) : null}
 
       {!loading && tab === "cycles" ? (
-        <Section title="Ciclos de consumo por reposicao">
+        <Section title="Ciclos de consumo por reposição">
           <form onSubmit={submitCycle} className="grid gap-3 lg:grid-cols-6">
             <Field label="Empreendimento">
               <select required value={cycleForm.stayId} onChange={(event) => setCycleForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>
@@ -1578,7 +1578,7 @@ export default function InventoryIntelligence() {
             <Field label="Qtd consumida base">
               <input required type="number" step="0.01" value={cycleForm.consumedQuantity} onChange={(event) => setCycleForm((prev) => ({ ...prev, consumedQuantity: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observacoes">
+            <Field label="Observações">
               <input value={cycleForm.notes} onChange={(event) => setCycleForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass("lg:col-span-5")} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1590,7 +1590,7 @@ export default function InventoryIntelligence() {
             <MiniTable
               empty="Sem ciclos calculados."
               columns={[
-                { key: "endedAt", label: "Periodo", render: (row) => `${formatDate(row.startedAt)} ate ${formatDate(row.endedAt)}` },
+                { key: "endedAt", label: "Período", render: (row) => `${formatDate(row.startedAt)} até ${formatDate(row.endedAt)}` },
                 { key: "product", label: "Produto", render: (row) => row.product?.name },
                 { key: "consumedQuantity", label: "Consumido" },
                 { key: "checkoutCount", label: "Check-outs" },
@@ -1599,7 +1599,7 @@ export default function InventoryIntelligence() {
                 { key: "costPerCheckout", label: "Custo/check-out", render: (row) => row.costPerCheckout ? formatMoney(row.costPerCheckout) : "-" },
                 {
                   key: "actions",
-                  label: "Acoes",
+                  label: "Ações",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("cycle", row)}
@@ -1619,7 +1619,7 @@ export default function InventoryIntelligence() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div>
               <div className="text-sm font-black text-slate-950 dark:text-slate-50">Valores atuais da lavanderia</div>
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Usados para estimar custo por acomodacao e por dia.</div>
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Usados para estimar custo por acomodação e por dia.</div>
             </div>
             <button
               type="button"
@@ -1633,9 +1633,9 @@ export default function InventoryIntelligence() {
 
           <div className="mb-5 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <Field label="Padrao da acomodacao">
+              <Field label="Padrão da acomodação">
                 <select value={laundryTemplateRoomId} onChange={(event) => selectLaundryTemplateRoom(event.target.value)} className={inputClass("min-w-72")}>
-                  <option value="">Selecionar acomodacao</option>
+                  <option value="">Selecionar acomodação</option>
                   {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
                 </select>
               </Field>
@@ -1646,7 +1646,7 @@ export default function InventoryIntelligence() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
               >
                 <Save size={16} />
-                Salvar padrao
+                Salvar padrão
               </button>
             </div>
 
@@ -1684,7 +1684,7 @@ export default function InventoryIntelligence() {
                     <span className="font-black text-slate-950 dark:text-slate-50">{item.quantity}</span>
                   </div>
                 )) : (
-                  <div className="col-span-2 py-4 text-sm font-bold text-cyan-800 dark:text-cyan-100">Sem pecas previstas para hoje.</div>
+                  <div className="col-span-2 py-4 text-sm font-bold text-cyan-800 dark:text-cyan-100">Sem peças previstas para hoje.</div>
                 )}
               </div>
             </div>
@@ -1751,7 +1751,7 @@ export default function InventoryIntelligence() {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-black text-slate-950 dark:text-slate-50">{getLaundryTotalPieces(draft.items)}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peças</div>
                       <div className="mt-1 text-sm font-black text-emerald-700 dark:text-emerald-200">{formatMoney(getLaundryCost(draft.items, laundryPriceMap))}</div>
                     </div>
                   </div>
@@ -1766,7 +1766,7 @@ export default function InventoryIntelligence() {
                     <Field label="Data">
                       <input type="date" value={draft.dispatchDate} onChange={(event) => updateLaundryDraft(room.reservationId, { dispatchDate: event.target.value })} className={inputClass()} />
                     </Field>
-                    <Field label="Observacoes">
+                    <Field label="Observações">
                       <input value={draft.notes || ""} onChange={(event) => updateLaundryDraft(room.reservationId, { notes: event.target.value })} className={inputClass()} />
                     </Field>
                     <button
@@ -1805,7 +1805,7 @@ export default function InventoryIntelligence() {
               );
             }) : (
               <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800">
-                Nenhuma acomodacao com check-out para lavanderia hoje.
+                Nenhuma acomodação com check-out para lavanderia hoje.
               </div>
             )}
           </div>
@@ -1814,13 +1814,13 @@ export default function InventoryIntelligence() {
               empty="Sem envios recentes."
               columns={[
                 { key: "dispatchDate", label: "Data", render: (row) => formatDate(row.dispatchDate) },
-                { key: "room", label: "Acomodacao", render: (row) => row.room?.title || "-" },
+                { key: "room", label: "Acomodação", render: (row) => row.room?.title || "-" },
                 { key: "maid", label: "Diarista", render: (row) => row.maid?.name || "-" },
                 { key: "expectedSets", label: "Previsto" },
                 { key: "items", label: "Pecas", render: (row) => row.items?.reduce((total, item) => total + item.quantity * item.unitPieces, 0) || 0 },
                 {
                   key: "actions",
-                  label: "Acoes",
+                  label: "Ações",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("laundry", row)}
@@ -1856,10 +1856,10 @@ export default function InventoryIntelligence() {
               <Field label="Unidade embalagem">
                 <input value={productForm.packageSizeUnit} onChange={(event) => setProductForm((prev) => ({ ...prev, packageSizeUnit: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Fornecedor padrao">
+              <Field label="Fornecedor padrão">
                 <input value={productForm.supplier} onChange={(event) => setProductForm((prev) => ({ ...prev, supplier: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Valor padrao">
+              <Field label="Valor padrão">
                 <input type="number" step="0.01" value={productForm.defaultPrice} onChange={(event) => setProductForm((prev) => ({ ...prev, defaultPrice: event.target.value }))} className={inputClass()} />
               </Field>
               <Field label="Unidades por pacote">
@@ -1868,7 +1868,7 @@ export default function InventoryIntelligence() {
               <Field label="Qtd base por embalagem">
                 <input type="number" step="0.01" value={productForm.packageBaseQuantity} onChange={(event) => setProductForm((prev) => ({ ...prev, packageBaseQuantity: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Estoque minimo">
+              <Field label="Estoque mínimo">
                 <input type="number" value={productForm.minimumStock} onChange={(event) => setProductForm((prev) => ({ ...prev, minimumStock: event.target.value }))} className={inputClass()} />
               </Field>
               <Field label="Estoque alvo">
@@ -1898,7 +1898,7 @@ export default function InventoryIntelligence() {
                 { key: "active", label: "Status", render: (row) => row.active ? "Ativo" : "Inativo" },
                 {
                   key: "actions",
-                  label: "Acoes",
+                  label: "Ações",
                   render: (row) => (
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -1959,7 +1959,7 @@ export default function InventoryIntelligence() {
                   },
                   {
                     key: "notes",
-                    label: "Observacoes",
+                    label: "Observações",
                     render: (row) => (
                       <input
                         value={row.notes || ""}

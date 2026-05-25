@@ -91,7 +91,7 @@ function doneVerbText(count) {
 }
 
 function completedVerbText(count) {
-  return pluralByCount(count, "foi concluida", "foram concluidas");
+  return pluralByCount(count, "foi concluída", "foram concluídas");
 }
 
 function weightedOccupancyPct(rows) {
@@ -111,10 +111,10 @@ function formatMaintenanceStatus(status) {
   const labels = {
     pendente: "Pendente",
     andamento: "Em andamento",
-    concluido: "Concluido",
+    concluido: "Concluído",
     cancelado: "Cancelado",
   };
-  return labels[normalized] || "Status nao informado";
+  return labels[normalized] || "Status não informado";
 }
 
 function EfficiencyBarLabel({ x, y, width, height, value, index, data, isDark, tone = "best" }) {
@@ -1451,9 +1451,9 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: isDark ? "#020617" : "#ffffff",
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
                       borderRadius: "8px",
-                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                  border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
                       color: isDark ? "#e5e7eb" : "#111827",
                     }}
                   />
@@ -1614,9 +1614,9 @@ export default function Dashboard() {
                   <RechartsTooltip
                     formatter={(v) => `${v}%`}
                     contentStyle={{
-                      backgroundColor: isDark ? "#020617" : "#ffffff",
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
                       borderRadius: "8px",
-                      border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
+                  border: `1px solid ${isDark ? "#1f2937" : "#e5e7eb"}`,
                       color: isDark ? "#e5e7eb" : "#111827",
                     }}
                   />
@@ -1689,12 +1689,12 @@ export default function Dashboard() {
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-200">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Subiram</div>
               <div className="mt-1 text-2xl font-black">{occupancy.improved}</div>
-              <div className="mt-1 text-xs font-semibold">vs mes anterior</div>
+              <div className="mt-1 text-xs font-semibold">vs mês anterior</div>
             </div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-rose-800 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Cairam</div>
               <div className="mt-1 text-2xl font-black">{occupancy.reduced}</div>
-              <div className="mt-1 text-xs font-semibold">vs mes anterior</div>
+              <div className="mt-1 text-xs font-semibold">vs mês anterior</div>
             </div>
           </div>
 
@@ -1881,9 +1881,9 @@ export default function Dashboard() {
 
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/60">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Responsavel</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Responsável</p>
                 <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {selectedMaintenanceEvent.extendedProps?.task?.responsible || "Nao definido"}
+                  {selectedMaintenanceEvent.extendedProps?.task?.responsible || "Não definido"}
                 </p>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/60">
@@ -1895,9 +1895,9 @@ export default function Dashboard() {
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950/70">
-              <p className="text-xs text-slate-500 dark:text-slate-400">Descricao</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Descrição</p>
               <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
-                {selectedMaintenanceEvent.extendedProps?.task?.description || "Sem descricao informada."}
+                {selectedMaintenanceEvent.extendedProps?.task?.description || "Sem descrição informada."}
               </p>
             </div>
 

@@ -58,7 +58,7 @@ export default function Staff() {
     payload.append("image", file);
     const res = await api.post(`/staff/${id}/image`, payload);
 
-    if (user?.id === id && res.data?.staff) {
+    if (userá.id === id && res.data?.staff) {
       updateUser(res.data.staff);
     }
 
@@ -125,7 +125,7 @@ export default function Staff() {
       }
 
       const updated = await api.put(`/staff/${id}`, payload);
-      if (user?.id === id) {
+      if (userá.id === id) {
         updateUser(updated.data);
       }
       setEditId(null);

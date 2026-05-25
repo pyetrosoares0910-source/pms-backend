@@ -518,7 +518,7 @@ function formatRoomNamesForMessage(reservations) {
     if (seen.has(roomKey)) return;
 
     seen.add(roomKey);
-    names.push(`*${reservation.room?.title || "sua acomodacao"}*`);
+    names.push(`*${reservation.room?.title || "sua acomodação"}*`);
   });
 
   return formatJoinedList(names);
@@ -539,8 +539,8 @@ function hasSameReservationPeriod(reservations) {
 
 function buildReservationPeriodLines(reservations) {
   return sortPresentationGroupReservations(reservations).map((reservation) => {
-    const roomName = reservation.room?.title || "sua acomodacao";
-    return `*${roomName}*: de *${formatDate(reservation.checkinDate)}* ate *${formatDate(
+    const roomName = reservation.room?.title || "sua acomodação";
+    return `*${roomName}*: de *${formatDate(reservation.checkinDate)}* até *${formatDate(
       reservation.checkoutDate
     )}*.`;
   });
@@ -595,7 +595,7 @@ export function getPresentationMessages(input, settings) {
   if (!reservation) return [];
 
   const stayName = reservation.room?.stay?.name || "seu empreendimento";
-  const roomName = reservation.room?.title || "sua acomodacao";
+  const roomName = reservation.room?.title || "sua acomodação";
   const guestName = reservation.guest?.name || "hospede";
   const gender = settings.genderOverrides[getGenderKey(reservation)] || inferGender(guestName);
   const { welcome, pronoun } = getGreetingTarget(gender);
@@ -635,7 +635,7 @@ export function getPresentationMessages(input, settings) {
           `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
           "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
           "",
-          "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
+          "Se tiver qualquer dúvida ou precisar de algo, não hesite em me procurar.",
           "Até breve!",
         ].join("\n"),
       ];
@@ -652,7 +652,7 @@ export function getPresentationMessages(input, settings) {
         `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
         "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar nas acomodações.",
         "",
-        "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
+        "Se tiver qualquer dúvida ou precisar de algo, não hesite em me procurar.",
         "Até breve!",
       ].join("\n"),
     ];
@@ -670,8 +670,8 @@ export function getPresentationMessages(input, settings) {
       `Meu nome é ${hostName}, e estarei a disposição para ajudá-${pronoun} durante sua estadia.`,
       "No dia do check-in, enviarei as informações de acesso e as instruções necessárias para entrar no studio assim que disponível.",
       "",
-      "Se tiver qualquer duvida ou precisar de algo, nao hesite em me procurar.",
-      "Ate breve!",
+      "Se tiver qualquer dúvida ou precisar de algo, não hesite em me procurar.",
+      "Até breve!",
     ].join("\n"),
   ];
 }

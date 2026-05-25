@@ -35,7 +35,7 @@ function StatusBadge({ status }) {
       : normalized === "agendada"
       ? "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
       : normalized === "ativa"
-      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
       : normalized === "concluida"
       ? "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
       : normalized === "cancelada"

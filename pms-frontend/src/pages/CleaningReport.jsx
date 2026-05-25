@@ -19,7 +19,7 @@ function isWeekendOrHoliday(date) {
   );
 }
 
-export default function RelatorioLimpeza() {
+export default function RelatórioLimpeza() {
   const api = useApi();
   const [tasks, setTasks] = useState([]);
   const [maids, setMaids] = useState([]);
@@ -203,7 +203,7 @@ export default function RelatorioLimpeza() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Relatorio-Limpeza-${month}.csv`;
+    a.download = `Relatório-Limpeza-${month}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -216,10 +216,10 @@ export default function RelatorioLimpeza() {
     const pageH = doc.internal.pageSize.getHeight();
 
     const periodLabel = dayjs(month).format("MMMM/YYYY");
-    const periodoFim = endExtra
+    const períodoFim = endExtra
       ? dayjs(endExtra).format("DD/MM/YYYY")
       : dayjs(month).endOf("month").format("DD/MM/YYYY");
-    const periodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
+    const períodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
 
     const margin = { left: 14, right: 14, top: 38, bottom: 16 };
 
@@ -236,7 +236,7 @@ export default function RelatorioLimpeza() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.text(
-        `${periodLabel} · Período ${periodoIni} até ${periodoFim}`,
+        `${periodLabel} · Período ${períodoIni} até ${períodoFim}`,
         margin.left,
         24
       );
@@ -376,7 +376,7 @@ export default function RelatorioLimpeza() {
       drawFooterPagamento(p);
     }
 
-    doc.save(`Relatorio-Limpeza-${month}.pdf`);
+    doc.save(`Relatório-Limpeza-${month}.pdf`);
   };
 
 
@@ -388,10 +388,10 @@ export default function RelatorioLimpeza() {
     const pageH = doc.internal.pageSize.getHeight();
 
     const periodLabel = dayjs(month).format("MMMM/YYYY");
-    const periodoFim = endExtra
+    const períodoFim = endExtra
       ? dayjs(endExtra).format("DD/MM/YYYY")
       : dayjs(month).endOf("month").format("DD/MM/YYYY");
-    const periodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
+    const períodoIni = dayjs(month).startOf("month").format("DD/MM/YYYY");
 
     // ===== helpers visuais =====
 
@@ -409,7 +409,7 @@ export default function RelatorioLimpeza() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.text(
-        `${periodLabel} · Período ${periodoIni} até ${periodoFim}`,
+        `${periodLabel} · Período ${períodoIni} até ${períodoFim}`,
         14,
         24
       );
@@ -420,7 +420,7 @@ export default function RelatorioLimpeza() {
       doc.setTextColor(234, 88, 12);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9.5);
-      doc.text("NÃO PAGAR", pageW - 43, 17, { align: "center" });
+      doc.text("NÒO PAGAR", pageW - 43, 17, { align: "center" });
 
       doc.setTextColor(0, 0, 0);
 

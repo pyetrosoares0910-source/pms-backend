@@ -103,7 +103,7 @@ export default function PerformanceReport() {
         const roomIdOf = (r) => r?.id || r?.roomId || r?.room?.id;
 
         const filterStayRooms = (stay) => {
-          const rooms = stay?.rooms ?? [];
+      const rooms = stay.rooms ?? [];
           // se o report não trouxer id nenhum, não dá pra filtrar com segurança
           const hasAnyId = rooms.some((rr) => !!roomIdOf(rr));
           if (!hasAnyId) return stay;
@@ -211,10 +211,10 @@ export default function PerformanceReport() {
       const reservas = Number(stay.totalReservas ?? 0) || 0;
       const rooms = stay.rooms ?? [];
       const capacidadeStay =
-        Number(stay.capacidadeTotal ?? 0) ||
+            Number(stay.capacidadeTotal ?? 0) ||
         rooms.reduce((sum, room) => sum + (Number(room.capacidade ?? 0) || 0), 0);
 
-      totalDiarias += diarias;
+      totalDiarias += diárias;
       totalReservas += reservas;
       totalUnidades += rooms.length;
 
@@ -802,7 +802,7 @@ ${html}
             Number(stay.capacidadeTotal ?? 0) ||
             (stay.rooms ?? []).reduce(
               (sum, room) => sum + (Number(room.capacidade ?? 0) || 0),
-              0
+                                  0
             );
           const eficiencia =
             capacidadeTotal > 0
@@ -887,17 +887,17 @@ ${html}
           y += h + 4;
           drawFooter(page);
         } catch (e) {
-          console.warn("⚠️ Falha anual:", stay.stayName, e);
+          console.warn("âš ï¸ Falha anual:", stay.stayName, e);
         }
       }
 
       pdf.save(
-        `Relatorio_Desempenho_${selectedYear}-${String(
+        `Relatório_Desempenho_${selectedYear}-${String(
           selectedMonth
         ).padStart(2, "0")}.pdf`
       );
     } catch (err) {
-      console.error("❌ Erro ao gerar PDF:", err);
+      console.error("âŒ Erro ao gerar PDF:", err);
       alert("Falha ao gerar PDF. Veja o console para detalhes.");
     } finally {
       setGenerating(false);
@@ -1148,8 +1148,8 @@ ${html}
                               stroke="#6b7280"
                               tick={{ fontSize: 12 }}
                               angle={
-                                stay.stayName.includes("Internacional Stay")
-                                  ? 0
+                                  stay.stayName.includes("Internacional Stay")
+                                    ? 0
                                   : (stay.rooms?.length ?? 0) > 8
                                     ? -30
                                     : 0

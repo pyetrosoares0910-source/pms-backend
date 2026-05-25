@@ -31,7 +31,7 @@ const STATUS_OPTIONS = [
   { value: "", label: "Status (todos)" },
   { value: "pendente", label: "Pendente" },
   { value: "andamento", label: "Em andamento" },
-  { value: "concluido", label: "Concluido" },
+  { value: "concluido", label: "Concluído" },
 ];
 
 const TYPE_OPTIONS = [
@@ -42,7 +42,7 @@ const TYPE_OPTIONS = [
 
 const RECURRENCE_MODE_OPTIONS = [
   { value: "monthly_by_day", label: "Mensal (dia fixo)" },
-  { value: "monthly_twice", label: "Mensal (2x no mes)" },
+  { value: "monthly_twice", label: "Mensal (2x no mês)" },
   { value: "biweekly", label: "Quinzenal" },
   { value: "weekly", label: "Semanal" },
   { value: "yearly_firstWeek", label: "Anual (1a semana)" },
@@ -53,9 +53,9 @@ const DATE_PRESET_OPTIONS = [
   { value: "overdue", label: "Atrasadas" },
   { value: "today", label: "Hoje" },
   { value: "next7", label: "Prox. 7 dias" },
-  { value: "thisMonth", label: "Este mes" },
+  { value: "thisMonth", label: "Este mês" },
   { value: "no_date", label: "Sem prazo" },
-  { value: "custom", label: "Periodo" },
+  { value: "custom", label: "Período" },
 ];
 
 const WEEKDAY_OPTIONS = [
@@ -73,7 +73,7 @@ const FOCUS_LABELS = {
   open: "Em aberto",
   overdue: "Atrasadas",
   dueToday: "Vencem hoje",
-  completed: "Concluidas",
+  completed: "Concluídas",
 };
 
 function cx(...classes) {
@@ -170,7 +170,7 @@ function getStatusMeta(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "concluido") {
     return {
-      label: "Concluido",
+      label: "Concluído",
       badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
     };
   }
@@ -201,7 +201,7 @@ function getTypeMeta(type) {
 }
 
 function formatRecurrence(recurrence) {
-  if (!recurrence?.mode) return "Sem configuracao";
+  if (!recurrence?.mode) return "Sem configuração";
 
   const weekdayMap = WEEKDAY_OPTIONS.reduce((acc, item) => {
     acc[item.value] = item.label;
@@ -220,11 +220,11 @@ function formatRecurrence(recurrence) {
     case "monthly_by_day":
       return `Mensal nos dias ${(recurrence.days || []).join(", ") || "-"}`;
     case "monthly_twice":
-      return `Mensal 2x no mes (${(recurrence.days || []).join(", ") || "-"})`;
+      return `Mensal 2x no mês (${(recurrence.days || []).join(", ") || "-"})`;
     case "biweekly":
       return `Quinzenal a partir de ${formatDisplayDate(recurrence.anchor || recurrence.startDate)}`;
     case "weekly":
-      return `Semanal em ${formatWeekdays(recurrence.weekdays) || "dias nao definidos"}`;
+      return `Semanal em ${formatWeekdays(recurrence.weekdays) || "dias não definidos"}`;
     case "yearly_firstWeek":
       return `Anual na 1a semana de ${formatMonths(recurrence.months) || "-"} (${formatWeekdays(
         recurrence.weekdays
@@ -602,7 +602,7 @@ function FilterChip({ active, onClick, children }) {
       className={cx(
         "rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition",
         active
-          ? "border-sky-700 bg-sky-700 text-white dark:border-sky-400 dark:bg-sky-400 dark:text-slate-950"
+                              ? "border-sky-700 bg-sky-700 text-white dark:border-sky-400 dark:bg-sky-400 dark:text-slate-950"
           : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       )}
     >
@@ -638,7 +638,7 @@ function TaskCard({ task, referenceDate, onEdit, onGenerate, generatingId }) {
             <span className={cx("rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", typeMeta.badge)}>
               {typeMeta.label}
             </span>
-            {task.isRecurring ? (
+          {task.isRecurring ? (
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                 Modelo experimental
               </span>
@@ -647,7 +647,7 @@ function TaskCard({ task, referenceDate, onEdit, onGenerate, generatingId }) {
 
           <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-100">{task.title}</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {task.description || "Sem descricao informada."}
+            {task.description || "Sem descrição informada."}
           </p>
         </div>
       </div>
@@ -669,17 +669,17 @@ function TaskCard({ task, referenceDate, onEdit, onGenerate, generatingId }) {
             UH / Local
           </div>
           <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {task.room?.title || "Nao vinculado"}
+            {task.room?.title || "Não vinculado"}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 dark:border-slate-800 dark:bg-slate-900/60">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
             <UserRound className="h-3.5 w-3.5" />
-            Responsavel
+            Responsável
           </div>
           <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-            {task.responsible || "Nao definido"}
+            {task.responsible || "Não definido"}
           </div>
         </div>
 
@@ -710,7 +710,7 @@ function TaskCard({ task, referenceDate, onEdit, onGenerate, generatingId }) {
               disabled={generatingId === task.id}
               className="rounded-2xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
             >
-              {generatingId === task.id ? "Gerando..." : "Gerar proximas"}
+              {generatingId === task.id ? "Gerando..." : "Gerar próximas"}
             </button>
           ) : null}
 
@@ -778,7 +778,7 @@ function TaskFormFields({
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Titulo</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Título</label>
           <input
             value={form.title}
             onChange={(e) => onFieldChange("title", e.target.value)}
@@ -788,7 +788,7 @@ function TaskFormFields({
         </div>
 
         <div className="lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descricao</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descrição</label>
           <textarea
             value={form.description}
             onChange={(e) => onFieldChange("description", e.target.value)}
@@ -820,10 +820,10 @@ function TaskFormFields({
             onChange={(e) => onFieldChange("roomId", e.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
           >
-            <option value="">Nao vincular</option>
+            <option value="">Não vincular</option>
             {rooms.map((room) => (
               <option key={room.id} value={room.id}>
-                {room.stay?.name ? `${room.stay.name} - ` : ""}
+                    {room.stay?.name ? `${room.stay.name} - ` : ""}
                 {room.title}
               </option>
             ))}
@@ -831,7 +831,7 @@ function TaskFormFields({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsavel</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsável</label>
           <input
             value={form.responsible}
             onChange={(e) => onFieldChange("responsible", e.target.value)}
@@ -894,7 +894,7 @@ function TaskFormFields({
                 Criar como modelo recorrente
               </div>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                A recorrencia continua sendo uma area experimental. Mantive suporte, mas agora com configuracao mais completa para reduzir falhas.
+                A recorrência continua sendo uma área experimental. Mantive suporte, mas agora com configuração mais completa para reduzir falhas.
               </p>
             </div>
           </label>
@@ -932,7 +932,7 @@ function TaskFormFields({
                 form.recurrence.mode === "monthly_twice") ? (
                 <div>
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Dia(s) do mes
+                    Dia(s) do mês
                   </label>
                   <input
                     value={(form.recurrence.days || []).join(",")}
@@ -943,7 +943,7 @@ function TaskFormFields({
                     className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   />
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Use numeros separados por virgula. Para o modo 2x ao mes, informe dois dias.
+                    Use números separados por vírgula. Para o modo 2x ao mês, informe dois dias.
                   </p>
                 </div>
               ) : null}
@@ -1035,7 +1035,7 @@ function TaskFormFields({
             {formatRecurrence(form.recurrence)}
           </p>
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            A regra do modelo fica apenas para consulta aqui. Se precisar refazer a recorrencia, o caminho mais seguro continua sendo criar um novo modelo.
+            A regra do modelo fica apenas para consulta aqui. Se precisar refazer a recorrência, o caminho mais seguro continua sendo criar um novo modelo.
           </p>
         </div>
       ) : null}
@@ -1121,7 +1121,7 @@ export default function Maintenance() {
         setRooms(Array.isArray(roomsResponse) ? roomsResponse : []);
         setTasks(Array.isArray(tasksResponse) ? tasksResponse : []);
       } catch (err) {
-        console.error("Erro ao carregar manutencao:", err);
+        console.error("Erro ao carregar manutenção:", err);
         setError(err?.message || "Erro ao carregar as atividades de manutencao.");
       } finally {
         setLoading(false);
@@ -1304,7 +1304,7 @@ export default function Maintenance() {
       event.preventDefault();
 
       if (!form.title.trim()) {
-        alert("Informe um titulo para a atividade.");
+        alert("Informe um título para a atividade.");
         return;
       }
 
@@ -1319,7 +1319,7 @@ export default function Maintenance() {
         setForm(buildEmptyForm());
         await reloadTasks();
       } catch (err) {
-        console.error("Erro ao criar tarefa de manutencao:", err);
+        console.error("Erro ao criar tarefa de manutenção:", err);
         alert(err?.message || "Erro ao criar tarefa.");
       } finally {
         setSavingCreate(false);
@@ -1353,7 +1353,7 @@ export default function Maintenance() {
         closeEditModal();
         await reloadTasks();
       } catch (err) {
-        console.error("Erro ao atualizar tarefa de manutencao:", err);
+        console.error("Erro ao atualizar tarefa de manutenção:", err);
         alert(err?.message || "Erro ao atualizar tarefa.");
       } finally {
         setSavingEdit(false);
@@ -1366,7 +1366,7 @@ export default function Maintenance() {
     if (!selected) return;
 
     const confirmMessage = selected.isRecurring
-      ? "Excluir este modelo recorrente? As ocorrencias ja geradas nao serao removidas automaticamente."
+      ? "Excluir este modelo recorrente? As ocorrências já geradas não serão removidas automaticamente."
       : "Excluir esta atividade de manutencao?";
 
     if (!window.confirm(confirmMessage)) return;
@@ -1377,7 +1377,7 @@ export default function Maintenance() {
       closeEditModal();
       await reloadTasks();
     } catch (err) {
-      console.error("Erro ao excluir tarefa de manutencao:", err);
+      console.error("Erro ao excluir tarefa de manutenção:", err);
       alert(err?.message || "Erro ao excluir tarefa.");
     } finally {
       setDeletingId("");
@@ -1387,7 +1387,7 @@ export default function Maintenance() {
   const handleGenerate = useCallback(
     async (task) => {
       if (!task?.id) return;
-      if (!window.confirm(`Gerar proximas ocorrencias para "${task.title}"?`)) return;
+      if (!window.confirm(`Gerar próximas ocorrências para "${task.title}"?`)) return;
 
       try {
         setGeneratingId(task.id);
@@ -1509,7 +1509,7 @@ export default function Maintenance() {
 
         {!loading && hiddenModelsCount > 0 ? (
           <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
-            {hiddenModelsCount} modelo(s) recorrente(s) estao ocultos da visao operacional. Ative o filtro "Mostrar modelos recorrentes" se quiser audita-los.
+            {hiddenModelsCount} modelo(s) recorrente(s) estão ocultos da visão operacional. Ative o filtro "Mostrar modelos recorrentes" se quiser auditá-los.
           </div>
         ) : null}
 
@@ -1517,7 +1517,7 @@ export default function Maintenance() {
           <SummaryCard
             title="Em aberto"
             value={operationalSummary.active}
-            helper="Atividades ativas na operacao."
+            helper="Atividades ativas na operação."
             tone="sky"
             icon={Clock3}
             active={filters.focus === "open"}
@@ -1542,9 +1542,9 @@ export default function Maintenance() {
             onClick={() => handleSummaryCardClick("dueToday")}
           />
           <SummaryCard
-            title="Concluidas"
+            title="Concluídas"
             value={operationalSummary.completed}
-            helper="Historico operacional concluido."
+            helper="Histórico operacional concluído."
             tone="slate"
             icon={CheckCircle2}
             active={filters.focus === "completed"}
@@ -1560,7 +1560,7 @@ export default function Maintenance() {
                 Filtros e recortes
               </div>
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                Busque por codigo, titulo, descricao, empreendimento, unidade ou responsavel.
+                Busque por código, título, descrição, empreendimento, unidade ou responsável.
               </p>
             </div>
 
@@ -1582,7 +1582,7 @@ export default function Maintenance() {
                 <input
                   value={filters.search}
                   onChange={(e) => setFilters((current) => ({ ...current, search: e.target.value }))}
-                  placeholder="Buscar por codigo, titulo, descricao, local..."
+                  placeholder="Buscar por código, título, descrição, local..."
                   className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
               </div>
@@ -1740,7 +1740,7 @@ export default function Maintenance() {
           <div className="rounded-[32px] border border-slate-200 bg-white/90 p-10 text-center shadow-sm dark:border-slate-700/70 dark:bg-slate-900/80">
             <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-sky-600 dark:text-sky-400" />
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              Carregando atividades de manutencao...
+              Carregando atividades de manutenção...
             </p>
           </div>
         ) : error ? (
@@ -1800,7 +1800,7 @@ export default function Maintenance() {
                   Nenhuma atividade encontrada
                 </h2>
                 <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-                  Ajuste os filtros ou crie uma nova atividade para preencher a operacao.
+                  Ajuste os filtros ou crie uma nova atividade para preencher a operação.
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <button
@@ -1872,7 +1872,7 @@ export default function Maintenance() {
                 {filters.focus === "dueToday" ? (
                   <TaskSection
                     title="Vencem hoje"
-                    subtitle="Demandas que precisam entrar na operacao ainda hoje."
+                    subtitle="Demandas que precisam entrar na operação ainda hoje."
                     icon={CalendarClock}
                     count={dueTodayTasks.length}
                     emptyText="Nenhuma atividade com vencimento hoje neste recorte."
@@ -1895,11 +1895,11 @@ export default function Maintenance() {
 
                 {filters.focus === "all" || filters.focus === "completed" ? (
                   <TaskSection
-                    title="Concluidas"
-                    subtitle="Historico recente de atividades finalizadas."
+                    title="Concluídas"
+                    subtitle="Histórico recente de atividades finalizadas."
                     icon={CheckCircle2}
                     count={completedTasks.length}
-                    emptyText="Nenhuma atividade concluida neste recorte."
+                    emptyText="Nenhuma atividade concluída neste recorte."
                     tone="slate"
                   >
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -1920,7 +1920,7 @@ export default function Maintenance() {
                 {filters.focus === "all" && filters.showRecurringModels ? (
                   <TaskSection
                     title="Modelos recorrentes"
-                    subtitle="Area de auditoria para os templates de recorrencia."
+                    subtitle="Área de auditoria para os templates de recorrência."
                     icon={Repeat}
                     count={filteredRecurringModels.length}
                     emptyText="Nenhum modelo recorrente encontrado com os filtros atuais."
@@ -1949,8 +1949,8 @@ export default function Maintenance() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="Nova atividade de manutencao"
-        subtitle="Crie demandas avulsas ou cadastre um modelo recorrente com a configuracao suportada pela API."
+        title="Nova atividade de manutenção"
+        subtitle="Crie demandas avulsas ou cadastre um modelo recorrente com a configuração suportada pela API."
       >
         <form className="space-y-6" onSubmit={handleSubmit}>
           <TaskFormFields
@@ -1997,7 +1997,7 @@ export default function Maintenance() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Codigo
+                  Código
                 </div>
                 <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {selected.code}
@@ -2024,7 +2024,7 @@ export default function Maintenance() {
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Ultima atualizacao
+                  Última atualização
                 </div>
                 <div className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
                   {formatDisplayDate(selected.updatedAt || selected.createdAt)}
@@ -2060,7 +2060,7 @@ export default function Maintenance() {
                     disabled={generatingId === selected.id}
                     className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
                   >
-                    {generatingId === selected.id ? "Gerando..." : "Gerar ocorrencias"}
+                    {generatingId === selected.id ? "Gerando..." : "Gerar ocorrências"}
                   </button>
                 ) : null}
               </div>

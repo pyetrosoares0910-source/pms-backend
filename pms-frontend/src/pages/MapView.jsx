@@ -433,8 +433,8 @@ function ReservationActionsModal({
       setAssignmentConflict(null);
       await updateStatus(pendingStatus);
     } catch (err) {
-      console.error("Erro ao remover designacao:", err);
-      alert(err?.message || "Erro ao remover designacao da diarista.");
+      console.error("Erro ao remover designação:", err);
+      alert(err?.message || "Erro ao remover designação da diarista.");
     } finally {
       setRemovingAssignment(false);
     }
@@ -458,7 +458,7 @@ function ReservationActionsModal({
           {reservation.guest?.name} • {reservation.room?.title}
         </h2>
         <p className="text-sm mb-4 text-slate-600 dark:text-slate-300">
-          {fmtBR(ci)} → {fmtBR(co)}
+          {fmtBR(ci)} â†’ {fmtBR(co)}
         </p>
         <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
           <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -470,7 +470,7 @@ function ReservationActionsModal({
               <span className="font-medium text-slate-700 dark:text-slate-200">
                 Motivo:
               </span>{" "}
-              {reservation.cleaningChangeReason || "Nao informado"}
+              {reservation.cleaningChangeReason || "Não informado"}
             </div>
           ) : null}
         </div>
@@ -487,7 +487,7 @@ function ReservationActionsModal({
             {updatedAtLabel && (
               <div className="mt-1">
                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                  Ultima alteracao:
+                  Última alteração:
                 </span>{" "}
                 {updatedAtLabel}
               </div>
@@ -503,11 +503,11 @@ function ReservationActionsModal({
               <div className="mt-1">
                 {assignmentConflict.maid?.name || "Diarista"} esta marcada em{" "}
                 {assignmentConflict.date
-                  ? fmtBR(parseDateOnly(assignmentConflict.date))
-                  : "data nao informada"}{" "}
+                ? fmtBR(parseDateOnly(assignmentConflict.date))
+                  : "data não informada"}{" "}
                 para {assignmentConflict.task?.stay} - {assignmentConflict.task?.rooms}.
               </div>
-              {assignmentConflict.isOnlyAssignmentForMaidThatDay ? (
+            {assignmentConflict.isOnlyAssignmentForMaidThatDay ? (
                 <div className="mt-3 rounded-lg border border-amber-300 bg-white/70 px-3 py-2 font-medium dark:border-amber-800 dark:bg-slate-950/40">
                   Desmarcar com {assignmentConflict.maid?.name || "a diarista"}.
                 </div>
@@ -517,7 +517,7 @@ function ReservationActionsModal({
                     Outras reservas designadas para ela neste dia:
                   </div>
                   <div className="mt-2 space-y-1">
-                    {otherAssignments.length > 0 ? (
+                  {otherAssignments.length > 0 ? (
                       otherAssignments.map((item) => (
                         <div
                           key={item.taskId}
@@ -526,7 +526,7 @@ function ReservationActionsModal({
                           <span className="font-medium">
                             {item.stay} - {item.rooms}
                           </span>
-                          {item.guestName ? (
+                        {item.guestName ? (
                             <span className="text-amber-800 dark:text-amber-200">
                               {" "}
                               / {item.guestName}
@@ -549,8 +549,8 @@ function ReservationActionsModal({
                 className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
               >
                 {removingAssignment
-                  ? "Removendo designacao..."
-                  : "Remover designacao desta reserva e continuar"}
+                ? "Removendo designação..."
+                  : "Remover designação desta reserva e continuar"}
               </button>
             </div>
           )}
@@ -696,8 +696,8 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
       setAssignmentConflict(null);
       await saveReservation(form);
     } catch (err) {
-      console.error("Erro ao remover designacao:", err);
-      alert(err?.message || "Erro ao remover designacao da diarista.");
+      console.error("Erro ao remover designação:", err);
+      alert(err?.message || "Erro ao remover designação da diarista.");
     } finally {
       setRemovingAssignment(false);
     }
@@ -722,7 +722,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
             title="Selecionar check-in e check-out"
           >
             {form.checkinDate ? fmtBR(parseDateOnly(form.checkinDate)) : "__/__/__"}{" "}
-            →{" "}
+            â†’{" "}
             {form.checkoutDate ? fmtBR(parseDateOnly(form.checkoutDate)) : "__/__/__"}
           </button>
 
@@ -823,8 +823,8 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
               className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
             >
               {removingAssignment
-                ? "Removendo designacao..."
-                : "Remover designacao desta reserva e salvar"}
+                ? "Removendo designação..."
+                : "Remover designação desta reserva e salvar"}
             </button>
           </div>
         )}
@@ -870,7 +870,7 @@ function ReservationConflictModal({
   const roomTitle =
     conflicts[0]?.room?.title ||
     rooms.find((room) => room.id === conflict.roomId)?.title ||
-    "acomodacao";
+    "acomodação";
 
   async function cancelReservation(reservation) {
     setLoadingId(reservation.id);
@@ -898,18 +898,18 @@ function ReservationConflictModal({
       <Modal
         open={open}
         onClose={onClose}
-        title="Reserva existente no periodo"
+        title="Reserva existente no período"
         maxWidth="max-w-3xl"
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
             <div className="font-semibold">
-              A nova reserva não foi inserida porque {roomTitle} já esta ocupada.
+              A nova reserva não foi inserida porque {roomTitle} já est? ocupada.
             </div>
             <div className="mt-1">
-              Periodo solicitado:{" "}
+              Período solicitado:{" "}
               {requested.checkinDate ? fmtBR(parseDateOnly(requested.checkinDate)) : "__/__/__"}{" "}
-              ate{" "}
+              até{" "}
               {requested.checkoutDate ? fmtBR(parseDateOnly(requested.checkoutDate)) : "__/__/__"}.
             </div>
           </div>
@@ -923,14 +923,14 @@ function ReservationConflictModal({
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="font-semibold text-slate-900 dark:text-slate-50">
-                      {reservation.guest?.name || "Hospede sem nome"}
+                      {reservation.guest?.name || "Hóspede sem nome"}
                     </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       {reservation.room?.stay?.name ? `${reservation.room.stay.name} - ` : ""}
                       {reservation.room?.title || roomTitle}
                     </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      {fmtBR(parseDateOnly(reservation.checkinDate))} ate{" "}
+                      {fmtBR(parseDateOnly(reservation.checkinDate))} até{" "}
                       {fmtBR(parseDateOnly(reservation.checkoutDate))} / {reservation.status}
                     </div>
                     {reservation.notes ? (
@@ -1114,7 +1114,7 @@ function AddReservationModal({ open, onClose, rooms, onCreated, onUpdated }) {
             className="mt-1 w-full border rounded-lg px-3 py-2 text-left bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
             title="Selecionar check-in e check-out"
           >
-            {fmtBR(parseDateOnly(checkin))} → {fmtBR(parseDateOnly(checkout))}
+            {fmtBR(parseDateOnly(checkin))} â†’ {fmtBR(parseDateOnly(checkout))}
           </button>
 
           <DateRangePickerModal
@@ -1275,7 +1275,7 @@ export default function MapView() {
             Mapa de Reservas
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Visao por acomodacao, periodo e status das reservas.
+            Visao por acomodação, período e status das reservas.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1412,22 +1412,22 @@ export default function MapView() {
                   const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                   const isHoliday = isHolidaySP(fmtISO(d));
                   const baseBg = isDark
-                    ? isHoliday
+                        ? isHoliday
                       ? "bg-amber-950/45"
                       : isWeekend
                         ? "bg-slate-900"
                         : "bg-slate-950"
                     : isHoliday
-                      ? "bg-amber-50"
+                          ? "bg-amber-50"
                       : isWeekend
-                        ? "bg-slate-50"
+                            ? "bg-slate-50"
                         : "bg-white";
 
                   return (
                     <div
                       key={i}
                       className={`relative flex h-10 flex-col items-center justify-center border-l border-b border-slate-200/70 dark:border-slate-800 ${baseBg}`}
-                      title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
+                          title={isHoliday ? `${fmtBR(d)} - Feriado` : fmtBR(d)}
                     >
                       {isHoliday && (
                         <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-300" />

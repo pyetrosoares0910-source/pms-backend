@@ -93,6 +93,6 @@ export function buildMaintenanceAlert(summary) {
 
   return {
     isPending: false,
-    message: "Tudo certo: nao ha atividades ativas no momento.",
+    message: "Tudo certo: não há atividades ativas no momento.",
   };
 }

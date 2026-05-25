@@ -102,7 +102,7 @@ const Item = ({ to, children, icon: Icon, showText, highlight, hasNotification =
           </span>
         )}
 
-        {hasNotification ? (
+            {hasNotification ? (
           <span
             aria-hidden="true"
             className={`rounded-full bg-rose-500 shadow-[0_0_0_3px_rgba(255,255,255,0.9)] dark:bg-rose-400 dark:shadow-[0_0_0_3px_rgba(15,23,42,0.58)] ${showText ? "ml-auto h-2.5 w-2.5" : "absolute right-2 top-2 h-2.5 w-2.5"
@@ -314,7 +314,7 @@ export default function DashboardLayout() {
       "/staff",
       "/maids",
       "/cleaning-reminders",
-      "/apresentacao-hospedes",
+      "/apresenta??o-hospedes",
       "/guest-checkins",
       "/guest-checkouts",
     ].includes(path);
@@ -326,14 +326,14 @@ export default function DashboardLayout() {
       "/consumption",
     ].includes(path);
 
-    const inRelatorios = ["/cleaning-report", "/performance-report"].includes(
+    const inRelatórios = ["/cleaning-report", "/performance-report"].includes(
       path
     );
 
     setGroupsOpen((prev) => ({
       cadastros: inCadastros || prev.cadastros,
       estoque: inEstoque || prev.estoque,
-      relatorios: inRelatorios || prev.relatorios,
+      relatorios: inRelatórios || prev.relatorios,
     }));
   }, [location.pathname]);
 
@@ -487,15 +487,15 @@ export default function DashboardLayout() {
         >
           <div className="px-4 py-3">
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 shadow-sm shadow-slate-900/5 dark:border-white/10 dark:bg-white/5">
-              {user?.imageUrl ? (
+              {userá.imageUrl ? (
                 <img
                   src={user.imageUrl}
-                  alt={user?.name || "Usuario"}
+                  alt={userá.name || "Usuario"}
                   className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-md shadow-sky-600/20 ring-1 ring-slate-200/70 dark:ring-white/10"
                 />
               ) : (
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20">
-                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                  {userá.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
               )}
               <div className="min-w-0">
@@ -503,7 +503,7 @@ export default function DashboardLayout() {
                   Olá,
                 </div>
                 <div className="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {user?.name}
+                  {userá.name}
                 </div>
               </div>
             </div>
@@ -555,7 +555,7 @@ export default function DashboardLayout() {
           )}
           {!viewerOnly && (
             <Item
-              to="/apresentacao-hospedes"
+              to="/apresenta??o-hospedes"
               icon={ListCheck}
               showText={showText}
               hasNotification={presentationSummary.pending > 0}
@@ -631,7 +631,7 @@ export default function DashboardLayout() {
             {/* ESTOQUE */}
             {!viewerOnly && (
               <NavGroup
-                label="Estoque"
+                label="Consumo e Estoque"
                 icon={Boxes}
                 isOpen={groupsOpen.estoque}
                 onToggle={() => toggleGroup("estoque")}
@@ -669,19 +669,19 @@ export default function DashboardLayout() {
         <div className="p-3 space-y-2 border-t border-slate-200/70 bg-slate-50/80 shadow-[0_-14px_35px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-slate-950/60 dark:shadow-[0_-14px_35px_rgba(0,0,0,0.22)] shrink-0">
           {collapsed && user ? (
             <div className="flex justify-center pb-1">
-              {user?.imageUrl ? (
+              {userá.imageUrl ? (
                 <img
                   src={user.imageUrl}
-                  alt={user?.name || "Usuario"}
-                  title={user?.name || "Usuario"}
+                  alt={userá.name || "Usuario"}
+                  title={userá.name || "Usuario"}
                   className="h-11 w-11 rounded-full object-cover shadow-lg shadow-sky-600/15 ring-2 ring-white dark:ring-slate-800"
                 />
               ) : (
                 <div
-                  title={user?.name || "Usuario"}
+                  title={userá.name || "Usuario"}
                   className="grid h-11 w-11 place-items-center rounded-full bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-600/20 ring-2 ring-white dark:ring-slate-800"
                 >
-                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                  {userá.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
               )}
             </div>
@@ -777,7 +777,7 @@ export default function DashboardLayout() {
         </div>
       </main>
 
-      {/* BOTÃO VOLTAR AO TOPO */}
+      {/* BOTÒO VOLTAR AO TOPO */}
       {showScrollTop && (
         <button
           onClick={handleScrollTop}

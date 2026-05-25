@@ -263,8 +263,8 @@ export default function Rooms() {
 
         <div className="col-span-2 grid grid-cols-2 gap-2 rounded border border-gray-200 p-3 dark:border-slate-700 md:grid-cols-4">
           {[
-            ["fittedSheets", "Lencol elastico"],
-            ["topSheets", "Lencol cobrir"],
+            ["fittedSheets", "Lençol elástico"],
+            ["topSheets", "Lençol cobrir"],
             ["pillowcases", "Fronhas"],
             ["blankets", "Mantas"],
             ["bedspreads", "Colchas"],

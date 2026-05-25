@@ -30,7 +30,7 @@ const STATUS_OPTIONS = [
   { value: "", label: "Status (todos)" },
   { value: "pendente", label: "Pendente" },
   { value: "andamento", label: "Em andamento" },
-  { value: "concluido", label: "Concluido" },
+  { value: "concluido", label: "Concluído" },
 ];
 
 const TYPE_OPTIONS = [
@@ -296,7 +296,7 @@ function TaskForm({
     <form className="space-y-6" onSubmit={onSubmit}>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Titulo</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Título</label>
           <input
             value={form.title}
             onChange={(e) => onFieldChange("title", e.target.value)}
@@ -306,7 +306,7 @@ function TaskForm({
         </div>
 
         <div className="lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descricao</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descrição</label>
           <textarea
             value={form.description}
             onChange={(e) => onFieldChange("description", e.target.value)}
@@ -338,7 +338,7 @@ function TaskForm({
             onChange={(e) => onFieldChange("roomId", e.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
           >
-            <option value="">Nao vincular</option>
+            <option value="">Não vincular</option>
             {rooms.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.stay?.name ? `${room.stay.name} - ` : ""}
@@ -349,7 +349,7 @@ function TaskForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsavel</label>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsável</label>
           <input
             value={form.responsible}
             onChange={(e) => onFieldChange("responsible", e.target.value)}
@@ -476,7 +476,7 @@ export default function MaintenanceCalendar() {
         setStays(Array.isArray(staysResponse) ? staysResponse : []);
         setRooms(Array.isArray(roomsResponse) ? roomsResponse : []);
       } catch (err) {
-        console.error("Erro ao carregar agenda de manutencao:", err);
+        console.error("Erro ao carregar agenda de manutenção:", err);
         alert(err?.message || "Erro ao carregar agenda de manutencao.");
       } finally {
         setLoading(false);
@@ -570,7 +570,7 @@ export default function MaintenanceCalendar() {
       event.preventDefault();
 
       if (!createForm.title.trim()) {
-        alert("Informe um titulo para a atividade.");
+        alert("Informe um título para a atividade.");
         return;
       }
 
@@ -661,7 +661,7 @@ export default function MaintenanceCalendar() {
         await reloadData();
       } catch (err) {
         info.revert();
-        console.error("Erro ao mover tarefa no calendario:", err);
+        console.error("Erro ao mover tarefa no calendário:", err);
         alert(err?.message || "Erro ao atualizar a data da atividade.");
       }
     },
@@ -708,7 +708,7 @@ export default function MaintenanceCalendar() {
             icon={CalendarClock}
           />
           <StatCard
-            title="Concluidas"
+            title="Concluídas"
             value={overallSummary.completed}
             helper="Já finalizadas neste recorte."
             tone="slate"
@@ -833,7 +833,7 @@ export default function MaintenanceCalendar() {
                 }}
                 buttonText={{
                   today: "Hoje",
-                  month: "Mes",
+                  month: "Mês",
                   week: "Semana",
                   day: "Dia",
                 }}
@@ -889,7 +889,7 @@ export default function MaintenanceCalendar() {
         open={unscheduledOpen}
         onClose={() => setUnscheduledOpen(false)}
         title="Atividades sem prazo"
-        subtitle="Itens que ainda nao entraram no calendario porque nao possuem data definida."
+        subtitle="Itens que ainda não entraram no calendário porque não possuem data definida."
       >
         <div className="space-y-4">
           {unscheduledTasks.length === 0 ? (
@@ -905,13 +905,13 @@ export default function MaintenanceCalendar() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                      {task.code || "Sem codigo"}
+                      {task.code || "Sem código"}
                     </div>
                     <h3 className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">
                       {task.title}
                     </h3>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      {task.description || "Sem descricao informada."}
+                      {task.description || "Sem descrição informada."}
                     </p>
                   </div>
 
@@ -941,10 +941,10 @@ export default function MaintenanceCalendar() {
                   <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/60">
                     <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       <UserRound className="h-3.5 w-3.5" />
-                      Responsavel
+                      Responsável
                     </div>
                     <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                      {task.responsible || "Nao definido"}
+                      {task.responsible || "Não definido"}
                     </div>
                   </div>
 
@@ -968,7 +968,7 @@ export default function MaintenanceCalendar() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Nova atividade simples"
-        subtitle="Cadastro rapido, sem configuracao de recorrencia."
+        subtitle="Cadastro rápido, sem configuração de recorrência."
       >
         <TaskForm
           form={createForm}
@@ -993,7 +993,7 @@ export default function MaintenanceCalendar() {
         open={Boolean(selected)}
         onClose={closeEditModal}
         title="Editar atividade"
-        subtitle="Atualize prazo, status, local, responsavel e demais campos direto pela agenda."
+        subtitle="Atualize prazo, status, local, responsável e demais campos direto pela agenda."
       >
         {selected ? (
           <TaskForm
@@ -1008,7 +1008,7 @@ export default function MaintenanceCalendar() {
             footerLeft={
               <>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
-                  Codigo: {selected.code}
+                  Código: {selected.code}
                 </div>
                 <button
                   type="button"
