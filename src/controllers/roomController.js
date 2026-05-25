@@ -54,6 +54,18 @@ function normalizeRoomPayload(payload = {}) {
     }
   }
 
+  [
+    "fittedSheets",
+    "topSheets",
+    "pillowcases",
+    "blankets",
+    "bedspreads",
+    "faceTowels",
+    "bathTowels",
+  ].forEach((field) => {
+    delete normalized[field];
+  });
+
   return normalized;
 }
 

@@ -9,7 +9,6 @@ function normalizeRoomPayload(data) {
     typeof data.description === "string" ? data.description.trim() : "";
 
   return {
-    ...data,
     title,
     category: category || null,
     description: description || null,
