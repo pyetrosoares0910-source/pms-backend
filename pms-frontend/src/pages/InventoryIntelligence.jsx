@@ -98,6 +98,23 @@ function normalizeLaundryItems(items = []) {
   return [...map.values()];
 }
 
+function getLaundryTotalPieces(items = []) {
+  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(item.unitPieces || 1), 0);
+}
+
+function getLaundryCost(items = [], priceMap = new Map()) {
+  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(priceMap.get(item.itemType) || 0), 0);
+}
+
+function dateInputValue(value) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  return dayjs(value).format("YYYY-MM-DD");
+}
+
 function buildLaundryDraft(roomSummary) {
   const expectedItems = normalizeLaundryItems(roomSummary.expectedItems || []);
   const savedItems = roomSummary.dispatch?.items?.length ? normalizeLaundryItems(roomSummary.dispatch.items) : null;
@@ -109,25 +126,17 @@ function buildLaundryDraft(roomSummary) {
     roomId: roomSummary.roomId || roomSummary.id || "",
     reservationId: roomSummary.reservationId || "",
     maidId: roomSummary.dispatch?.maidId || "",
-    dispatchDate: dayjs(roomSummary.dispatch?.dispatchDate || roomSummary.cleaningDate || new Date()).format("YYYY-MM-DD"),
+    dispatchDate: dateInputValue(roomSummary.dispatch?.dispatchDate || roomSummary.cleaningDate || new Date()),
     expectedSets: roomSummary.dispatch?.expectedSets || fittedSheets,
     notes: roomSummary.dispatch?.notes || "",
     items: savedItems || expectedItems,
   };
 }
 
-function getLaundryTotalPieces(items = []) {
-  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(item.unitPieces || 1), 0);
-}
-
-function getLaundryCost(items = [], priceMap = new Map()) {
-  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(priceMap.get(item.itemType) || 0), 0);
-}
-
 function groupEntriesByStayDay(entries = []) {
   const groups = new Map();
   entries.forEach((entry) => {
-    const dateKey = dayjs(entry.entryDate).format("YYYY-MM-DD");
+    const dateKey = dateInputValue(entry.entryDate);
     const stayName = entry.stay?.name || "Sem empreendimento";
     const key = `${dateKey}-${stayName}`;
     const group = groups.get(key) || {
@@ -227,7 +236,8 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-  return value ? dayjs(value).format("DD/MM/YYYY") : "-";
+  const date = dateInputValue(value);
+  return date ? dayjs(date).format("DD/MM/YYYY") : "-";
 }
 
 function shortDate(value) {
@@ -953,8 +963,8 @@ export default function InventoryIntelligence() {
         unit: row.unit || "un",
         totalCost: row.totalCost ?? "",
         supplier: row.supplier || "",
-        entryDate: row.entryDate ? dayjs(row.entryDate).format("YYYY-MM-DD") : "",
-        expiresAt: row.expiresAt ? dayjs(row.expiresAt).format("YYYY-MM-DD") : "",
+        entryDate: dateInputValue(row.entryDate),
+        expiresAt: dateInputValue(row.expiresAt),
         notes: row.notes || "",
       },
       consumption: {
@@ -967,12 +977,12 @@ export default function InventoryIntelligence() {
       },
       cycle: {
         consumedQuantity: row.consumedQuantity ?? "",
-        startedAt: row.startedAt ? dayjs(row.startedAt).format("YYYY-MM-DD") : "",
-        endedAt: row.endedAt ? dayjs(row.endedAt).format("YYYY-MM-DD") : "",
+        startedAt: dateInputValue(row.startedAt),
+        endedAt: dateInputValue(row.endedAt),
         notes: row.notes || "",
       },
       laundry: {
-        dispatchDate: row.dispatchDate ? dayjs(row.dispatchDate).format("YYYY-MM-DD") : "",
+        dispatchDate: dateInputValue(row.dispatchDate),
         expectedSets: row.expectedSets ?? 0,
         notes: row.notes || "",
       },
@@ -1592,8 +1602,8 @@ export default function InventoryIntelligence() {
                   ...prev,
                   lotId: event.target.value,
                   consumedQuantity: lot?.initialQuantity || prev.consumedQuantity,
-                  startedAt: lot?.openedAt ? dayjs(lot.openedAt).format("YYYY-MM-DD") : lot?.createdAt ? dayjs(lot.createdAt).format("YYYY-MM-DD") : prev.startedAt,
-                  endedAt: lot?.depletedAt ? dayjs(lot.depletedAt).format("YYYY-MM-DD") : prev.endedAt,
+                  startedAt: lot?.openedAt ? dateInputValue(lot.openedAt) : lot?.createdAt ? dateInputValue(lot.createdAt) : prev.startedAt,
+                  endedAt: lot?.depletedAt ? dateInputValue(lot.depletedAt) : prev.endedAt,
                 }));
               }} className={inputClass()}>
                 <option value="">Sem lote específico</option>

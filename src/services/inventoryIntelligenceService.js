@@ -110,6 +110,19 @@ function getDateRange(query = {}) {
   return { from: from.toDate(), to: to.toDate(), days: Math.max(1, to.diff(from, "day") + 1) };
 }
 
+function parseCalendarDate(value, fallback = new Date()) {
+  if (!value) return fallback;
+  if (value instanceof Date) return value;
+
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0, 0);
+  }
+
+  return new Date(value);
+}
+
 function normalizeStayName(name) {
   return String(name || "").trim().toLowerCase();
 }
@@ -529,8 +542,8 @@ async function registerProductEntry(data) {
     : normalizeQuantity(data.quantity, data.unit);
   const totalCost = data.totalCost !== undefined && data.totalCost !== "" ? Number(data.totalCost) : null;
   const unitCost = totalCost && normalized.baseValue > 0 ? totalCost / normalized.baseValue : null;
-  const entryDate = data.entryDate ? new Date(data.entryDate) : new Date();
-  const expiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+  const entryDate = data.entryDate ? parseCalendarDate(data.entryDate) : new Date();
+  const expiresAt = data.expiresAt ? parseCalendarDate(data.expiresAt) : null;
 
   return prisma.$transaction(async (tx) => {
     const lot = await tx.productLot.create({
@@ -717,8 +730,8 @@ async function updateProductEntry(id, data) {
         baseQuantity: normalized.baseValue,
         ...(data.supplier !== undefined ? { supplier: data.supplier || null } : {}),
         ...(data.totalCost !== undefined ? { totalCost, unitCost } : {}),
-        ...(data.entryDate ? { entryDate: new Date(data.entryDate) } : {}),
-        ...(data.expiresAt !== undefined ? { expiresAt: data.expiresAt ? new Date(data.expiresAt) : null } : {}),
+        ...(data.entryDate ? { entryDate: parseCalendarDate(data.entryDate) } : {}),
+        ...(data.expiresAt !== undefined ? { expiresAt: data.expiresAt ? parseCalendarDate(data.expiresAt) : null } : {}),
         ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
       },
       include: { product: true, stay: true, lot: true },
@@ -848,7 +861,7 @@ async function deleteProductConsumption(id) {
 
 async function registerLaundryDispatch(data) {
   assertRequired(data, ["stayId"]);
-  const dispatchDate = data.dispatchDate ? new Date(data.dispatchDate) : new Date();
+  const dispatchDate = data.dispatchDate ? parseCalendarDate(data.dispatchDate) : new Date();
   const room = data.roomId
     ? await prisma.room.findUnique({ where: { id: data.roomId } })
     : null;
@@ -904,8 +917,8 @@ async function calculateUsageCycle(data) {
     throw error;
   }
 
-  const startedAt = new Date(data.startedAt);
-  const endedAt = new Date(data.endedAt);
+  const startedAt = parseCalendarDate(data.startedAt);
+  const endedAt = parseCalendarDate(data.endedAt);
   const consumedQuantity = parsePositiveNumber(data.consumedQuantity, "consumedQuantity");
   const stats = await getCheckoutStats({
     stayId: data.stayId,
@@ -1017,9 +1030,9 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
   const consumedQuantity = data.consumedQuantity !== undefined
     ? parsePositiveNumber(data.consumedQuantity, "consumedQuantity")
     : Math.max(0, Number(lot.initialQuantity || 0) - remainingQuantity);
-  const endedAt = data.depletedAt ? new Date(data.depletedAt) : new Date();
+  const endedAt = data.depletedAt ? parseCalendarDate(data.depletedAt) : new Date();
   const startedAt = data.startedAt
-    ? new Date(data.startedAt)
+    ? parseCalendarDate(data.startedAt)
     : lot.openedAt || lot.createdAt;
   const cycle = await calculateUsageCycle({
     stayId: lot.stayId,
@@ -1222,7 +1235,7 @@ async function updateLaundryDispatch(id, data) {
         ...(data.roomId !== undefined ? { roomId: data.roomId || null } : {}),
         ...(data.reservationId !== undefined ? { reservationId: data.reservationId || null } : {}),
         ...(data.maidId !== undefined ? { maidId: data.maidId ? Number(data.maidId) : null } : {}),
-        ...(data.dispatchDate ? { dispatchDate: new Date(data.dispatchDate) } : {}),
+        ...(data.dispatchDate ? { dispatchDate: parseCalendarDate(data.dispatchDate) } : {}),
         ...(data.expectedSets !== undefined ? { expectedSets: Number(data.expectedSets || 0) } : {}),
         ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
         ...(items
