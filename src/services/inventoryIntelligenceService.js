@@ -1488,6 +1488,50 @@ async function buildInventoryDashboard(query = {}) {
     (item) => Number(item.quantity || 0) * Number(laundryPriceByType.get(item.itemType) || 0),
   );
   const totalCost = productConsumptionCost + laundryCost;
+  const laundryMonthlySummary = [...periodLaundryDispatches.reduce((map, dispatch) => {
+    const month = dayjs(dispatch.dispatchDate).format("YYYY-MM");
+    const current = map.get(month) || {
+      id: month,
+      month,
+      monthLabel: dayjs(dispatch.dispatchDate).format("MM/YYYY"),
+      dispatches: 0,
+      pieces: 0,
+      items: 0,
+      cost: 0,
+      roomIds: new Set(),
+      maidIds: new Set(),
+    };
+
+    const dispatchPieces = sum(dispatch.items || [], (item) => Number(item.quantity || 0) * Number(item.unitPieces || 1));
+    const dispatchItems = sum(dispatch.items || [], (item) => item.quantity);
+    const dispatchCost = sum(
+      dispatch.items || [],
+      (item) => Number(item.quantity || 0) * Number(laundryPriceByType.get(item.itemType) || 0),
+    );
+
+    current.dispatches += 1;
+    current.pieces += dispatchPieces;
+    current.items += dispatchItems;
+    current.cost += dispatchCost;
+    if (dispatch.roomId) current.roomIds.add(dispatch.roomId);
+    if (dispatch.maidId) current.maidIds.add(dispatch.maidId);
+    map.set(month, current);
+    return map;
+  }, new Map()).values()]
+    .map((item) => ({
+      id: item.id,
+      month: item.month,
+      monthLabel: item.monthLabel,
+      dispatches: item.dispatches,
+      rooms: item.roomIds.size,
+      maids: item.maidIds.size,
+      items: round(item.items, 2),
+      pieces: round(item.pieces, 2),
+      cost: round(item.cost, 2),
+      avgPiecesPerDispatch: round(item.pieces / Math.max(1, item.dispatches), 1),
+      avgCostPerDispatch: round(item.cost / Math.max(1, item.dispatches), 2),
+    }))
+    .sort((a, b) => b.month.localeCompare(a.month));
   const reservationsInPeriod = reservations.filter((item) => dayjs(item.checkoutDate).isBefore(dayjs(to).add(1, "millisecond")));
   const guestCapacity = sum(reservationsInPeriod, (item) => item.room?.capacity || 1) || reservationsInPeriod.length || 1;
   const [cleaningUsage, todaySummary] = await Promise.all([
@@ -1578,6 +1622,7 @@ async function buildInventoryDashboard(query = {}) {
       availability: item.capacity > 0 ? round((item.quantity / item.capacity) * 100, 1) : null,
     })),
     todaySummary,
+    laundryMonthlySummary,
     predictions,
     cleaningUsage,
     activeLotProgress,

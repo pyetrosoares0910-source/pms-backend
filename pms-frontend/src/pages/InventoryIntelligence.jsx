@@ -1016,6 +1016,10 @@ export default function InventoryIntelligence() {
 
   const kpis = dashboard?.kpis || {};
   const recent = dashboard?.recent || { entries: [], consumptions: [], laundryDispatches: [], usageCycles: [], activeLotProgress: [] };
+  const laundryMonthlySummary = useMemo(
+    () => dashboard?.laundryMonthlySummary || [],
+    [dashboard?.laundryMonthlySummary],
+  );
   const charts = dashboard?.charts || {};
   const todaySummary = useMemo(() => dashboard?.todaySummary || {
     accommodationCleanings: 0,
@@ -1051,6 +1055,13 @@ export default function InventoryIntelligence() {
     () => new Map(laundryPrices.map((item) => [item.itemType, Number(item.price || 0)])),
     [laundryPrices],
   );
+  const laundryMonthlyTotals = useMemo(() => laundryMonthlySummary.reduce((totals, row) => ({
+    dispatches: totals.dispatches + Number(row.dispatches || 0),
+    rooms: totals.rooms + Number(row.rooms || 0),
+    items: totals.items + Number(row.items || 0),
+    pieces: totals.pieces + Number(row.pieces || 0),
+    cost: totals.cost + Number(row.cost || 0),
+  }), { dispatches: 0, rooms: 0, items: 0, pieces: 0, cost: 0 }), [laundryMonthlySummary]);
 
   return (
     <div className="min-h-screen space-y-5 text-slate-900 dark:text-slate-100">
@@ -1827,6 +1838,42 @@ export default function InventoryIntelligence() {
                 },
               ]}
               rows={recent.laundryDispatches || []}
+            />
+          </div>
+          <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <div className="text-sm font-black text-slate-950 dark:text-slate-50">Total mensal da lavanderia</div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Agrupado pelo mês de envio dentro do período filtrado.</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-emerald-700 dark:text-emerald-200">{formatMoney(laundryMonthlyTotals.cost)}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo no período</div>
+              </div>
+            </div>
+
+            <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <Kpi icon={BarChart3} label="Meses" value={laundryMonthlySummary.length} />
+              <Kpi icon={ClipboardCheck} label="Envios" value={laundryMonthlyTotals.dispatches} tone="emerald" />
+              <Kpi icon={Shirt} label="Peças" value={laundryMonthlyTotals.pieces} />
+              <Kpi icon={Boxes} label="Itens" value={laundryMonthlyTotals.items} tone="amber" />
+              <Kpi icon={CheckCircle2} label="Acomodações" value={laundryMonthlyTotals.rooms} tone="emerald" />
+            </div>
+
+            <MiniTable
+              empty="Sem envios de lavanderia no período filtrado."
+              columns={[
+                { key: "monthLabel", label: "Mês" },
+                { key: "dispatches", label: "Envios" },
+                { key: "rooms", label: "Acomodações" },
+                { key: "maids", label: "Diaristas" },
+                { key: "items", label: "Itens" },
+                { key: "pieces", label: "Peças" },
+                { key: "avgPiecesPerDispatch", label: "Peças/envio" },
+                { key: "cost", label: "Custo", render: (row) => formatMoney(row.cost) },
+                { key: "avgCostPerDispatch", label: "Custo/envio", render: (row) => formatMoney(row.avgCostPerDispatch) },
+              ]}
+              rows={laundryMonthlySummary}
             />
           </div>
         </Section>
