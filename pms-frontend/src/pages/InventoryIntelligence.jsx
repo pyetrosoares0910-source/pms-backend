@@ -14,6 +14,7 @@ import {
   Sparkles,
   TrendingUp,
   Trash2,
+  X,
 } from "lucide-react";
 import {
   Area,
@@ -240,6 +241,153 @@ function RowActions({ onEdit, onDelete }) {
   );
 }
 
+function EditModal({ modal, onClose, onChange, onSubmit, products }) {
+  if (!modal) return null;
+
+  const fieldSets = {
+    entry: [
+      ["quantity", "Quantidade", "number"],
+      ["unit", "Unidade", "select-unit"],
+      ["totalCost", "Valor total", "number"],
+      ["supplier", "Fornecedor", "text"],
+      ["entryDate", "Data", "date"],
+      ["expiresAt", "Validade", "date"],
+      ["notes", "Observacoes", "text"],
+    ],
+    consumption: [
+      ["quantity", "Quantidade", "number"],
+      ["unit", "Unidade", "select-unit"],
+      ["operationType", "Operacao", "select-operation"],
+      ["occurredAt", "Data/hora", "datetime-local"],
+      ["location", "Local/setor", "text"],
+      ["notes", "Observacoes", "text"],
+    ],
+    cycle: [
+      ["consumedQuantity", "Quantidade consumida", "number"],
+      ["startedAt", "Inicio", "date"],
+      ["endedAt", "Fim/esgotamento", "date"],
+      ["notes", "Observacoes", "text"],
+    ],
+    laundry: [
+      ["dispatchDate", "Data envio", "date"],
+      ["expectedSets", "Jogos previstos", "number"],
+      ["notes", "Observacoes", "text"],
+    ],
+    product: [
+      ["name", "Nome", "text"],
+      ["category", "Categoria", "text"],
+      ["unitBase", "Unidade base", "select-base"],
+      ["packageSizeValue", "Tamanho embalagem", "number"],
+      ["packageSizeUnit", "Unidade embalagem", "text"],
+      ["packageBaseQuantity", "Qtd base por embalagem", "number"],
+      ["unitsPerPackage", "Unidades por pacote", "number"],
+      ["minimumStock", "Estoque minimo", "number"],
+      ["targetStock", "Estoque alvo", "number"],
+      ["corridorWeight", "Peso corredor", "number"],
+      ["active", "Produto ativo", "checkbox"],
+    ],
+  };
+
+  const fields = fieldSets[modal.type] || [];
+  const titleByType = {
+    entry: "Editar entrada",
+    consumption: "Editar uso",
+    cycle: "Editar ciclo",
+    laundry: "Editar lavanderia",
+    product: "Editar produto",
+  };
+
+  const renderField = ([key, label, type]) => {
+    const value = modal.values[key] ?? "";
+    if (type === "checkbox") {
+      return (
+        <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(event) => onChange(key, event.target.checked)}
+          />
+          {label}
+        </label>
+      );
+    }
+
+    if (type === "select-unit") {
+      return (
+        <Field key={key} label={label}>
+          <select value={value} onChange={(event) => onChange(key, event.target.value)} className={inputClass()}>
+            <option>ml</option><option>L</option><option>g</option><option>kg</option><option>un</option><option>pacote</option><option>galao</option><option>caixa</option>
+          </select>
+        </Field>
+      );
+    }
+
+    if (type === "select-operation") {
+      return (
+        <Field key={key} label={label}>
+          <select value={value} onChange={(event) => onChange(key, event.target.value)} className={inputClass()}>
+            {operationTypes.map(([operationValue, operationLabel]) => (
+              <option key={operationValue} value={operationValue}>{operationLabel}</option>
+            ))}
+          </select>
+        </Field>
+      );
+    }
+
+    if (type === "select-base") {
+      return (
+        <Field key={key} label={label}>
+          <select value={value} onChange={(event) => onChange(key, event.target.value)} className={inputClass()}>
+            <option>ML</option><option>G</option><option>UNIT</option>
+          </select>
+        </Field>
+      );
+    }
+
+    return (
+      <Field key={key} label={label}>
+        <input
+          type={type}
+          step={type === "number" ? "0.01" : undefined}
+          value={value}
+          onChange={(event) => onChange(key, event.target.value)}
+          className={inputClass()}
+        />
+      </Field>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+      <form onSubmit={onSubmit} className="w-full max-w-3xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 dark:border-slate-800 dark:bg-slate-950">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          <div>
+            <h2 className="text-lg font-black text-slate-950 dark:text-slate-50">{titleByType[modal.type]}</h2>
+            {modal.type === "product" && products?.length ? (
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Alteracoes afetam novos calculos do estoque.</p>
+            ) : null}
+          </div>
+          <button type="button" onClick={onClose} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="grid gap-3 p-4 md:grid-cols-2">
+          {fields.map(renderField)}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900">
+            Cancelar
+          </button>
+          <button type="submit" className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800">
+            <Save size={16} />
+            Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function InventoryIntelligence() {
   const api = useApi();
   const [tab, setTab] = useState("dashboard");
@@ -261,6 +409,7 @@ export default function InventoryIntelligence() {
   const [lots, setLots] = useState([]);
   const [cycleForm, setCycleForm] = useState(emptyCycle);
   const [closingLotId, setClosingLotId] = useState("");
+  const [editModal, setEditModal] = useState(null);
   const [entryForm, setEntryForm] = useState(emptyEntry);
   const [consumptionForm, setConsumptionForm] = useState(emptyConsumption);
   const [productForm, setProductForm] = useState(emptyProduct);
@@ -472,6 +621,7 @@ export default function InventoryIntelligence() {
   async function updateResource(path, payload, fallback) {
     try {
       await api(path, { method: "PUT", body: JSON.stringify(payload) });
+      setEditModal(null);
       await load();
     } catch (err) {
       alert(err.message || fallback || "Falha ao atualizar.");
@@ -488,73 +638,80 @@ export default function InventoryIntelligence() {
     }
   }
 
-  function promptValue(label, currentValue) {
-    return window.prompt(label, currentValue ?? "");
-  }
+  const openEditModal = (type, row) => {
+    const valuesByType = {
+      entry: {
+        quantity: row.quantity ?? "",
+        unit: row.unit || "un",
+        totalCost: row.totalCost ?? "",
+        supplier: row.supplier || "",
+        entryDate: row.entryDate ? dayjs(row.entryDate).format("YYYY-MM-DD") : "",
+        expiresAt: row.expiresAt ? dayjs(row.expiresAt).format("YYYY-MM-DD") : "",
+        notes: row.notes || "",
+      },
+      consumption: {
+        quantity: row.quantity ?? "",
+        unit: row.unit || "un",
+        operationType: row.operationType || "OTHER",
+        occurredAt: row.occurredAt ? dayjs(row.occurredAt).format("YYYY-MM-DDTHH:mm") : "",
+        location: row.location || "",
+        notes: row.notes || "",
+      },
+      cycle: {
+        consumedQuantity: row.consumedQuantity ?? "",
+        startedAt: row.startedAt ? dayjs(row.startedAt).format("YYYY-MM-DD") : "",
+        endedAt: row.endedAt ? dayjs(row.endedAt).format("YYYY-MM-DD") : "",
+        notes: row.notes || "",
+      },
+      laundry: {
+        dispatchDate: row.dispatchDate ? dayjs(row.dispatchDate).format("YYYY-MM-DD") : "",
+        expectedSets: row.expectedSets ?? 0,
+        notes: row.notes || "",
+      },
+      product: {
+        name: row.name || "",
+        category: row.category || "",
+        unitBase: row.unitBase || "UNIT",
+        packageSizeValue: row.packageSizeValue ?? "",
+        packageSizeUnit: row.packageSizeUnit || "",
+        packageBaseQuantity: row.packageBaseQuantity ?? "",
+        unitsPerPackage: row.unitsPerPackage ?? "",
+        minimumStock: row.minimumStock ?? "",
+        targetStock: row.targetStock ?? "",
+        corridorWeight: row.corridorWeight ?? 1,
+        active: Boolean(row.active),
+      },
+    };
 
-  async function editEntry(row) {
-    const quantity = promptValue("Quantidade", row.quantity);
-    if (quantity === null) return;
-    const totalCost = promptValue("Valor total", row.totalCost || "");
-    if (totalCost === null) return;
-    const notes = promptValue("Observacoes", row.notes || "");
-    if (notes === null) return;
-    await updateResource(`/api/inventory-intelligence/entries/${row.id}`, {
-      quantity,
-      unit: row.unit,
-      totalCost,
-      notes,
-    }, "Falha ao editar entrada.");
-  }
+    setEditModal({ type, row, values: valuesByType[type] || {} });
+  };
 
-  async function editConsumption(row) {
-    const quantity = promptValue("Quantidade", row.quantity);
-    if (quantity === null) return;
-    const notes = promptValue("Observacoes", row.notes || "");
-    if (notes === null) return;
-    await updateResource(`/api/inventory-intelligence/consumptions/${row.id}`, {
-      quantity,
-      unit: row.unit,
-      notes,
-    }, "Falha ao editar consumo.");
-  }
+  const handleEditModalChange = (key, value) => {
+    setEditModal((prev) => prev ? { ...prev, values: { ...prev.values, [key]: value } } : prev);
+  };
 
-  async function editCycle(row) {
-    const consumedQuantity = promptValue("Quantidade consumida", row.consumedQuantity);
-    if (consumedQuantity === null) return;
-    const endedAt = promptValue("Fim/esgotamento (YYYY-MM-DD)", dayjs(row.endedAt).format("YYYY-MM-DD"));
-    if (endedAt === null) return;
-    await updateResource(`/api/inventory-intelligence/cycles/${row.id}`, {
-      consumedQuantity,
-      endedAt,
-      notes: row.notes || "",
-    }, "Falha ao editar ciclo.");
-  }
+  const submitEditModal = async (event) => {
+    event.preventDefault();
+    if (!editModal) return;
 
-  async function editLaundry(row) {
-    const dispatchDate = promptValue("Data de envio (YYYY-MM-DD)", dayjs(row.dispatchDate).format("YYYY-MM-DD"));
-    if (dispatchDate === null) return;
-    const notes = promptValue("Observacoes", row.notes || "");
-    if (notes === null) return;
-    await updateResource(`/api/inventory-intelligence/laundry/${row.id}`, {
-      dispatchDate,
-      notes,
-    }, "Falha ao editar lavanderia.");
-  }
+    const endpoints = {
+      entry: `/api/inventory-intelligence/entries/${editModal.row.id}`,
+      consumption: `/api/inventory-intelligence/consumptions/${editModal.row.id}`,
+      cycle: `/api/inventory-intelligence/cycles/${editModal.row.id}`,
+      laundry: `/api/inventory-intelligence/laundry/${editModal.row.id}`,
+      product: `/api/products/${editModal.row.id}`,
+    };
 
-  async function editProduct(row) {
-    const name = promptValue("Nome do produto", row.name);
-    if (name === null) return;
-    const category = promptValue("Categoria", row.category);
-    if (category === null) return;
-    const packageBaseQuantity = promptValue("Quantidade base por embalagem", row.packageBaseQuantity || "");
-    if (packageBaseQuantity === null) return;
-    await updateResource(`/api/products/${row.id}`, {
-      ...row,
-      name,
-      category,
-      packageBaseQuantity,
-    }, "Falha ao editar produto.");
+    await updateResource(endpoints[editModal.type], editModal.values, "Falha ao salvar edicao.");
+  };
+
+  async function toggleProductActive(row) {
+    try {
+      await api(`/api/products/${row.id}/toggle`, { method: "PATCH" });
+      await load();
+    } catch (err) {
+      alert(err.message || "Falha ao alterar status do produto.");
+    }
   }
 
   const kpis = dashboard?.kpis || {};
@@ -812,7 +969,7 @@ export default function InventoryIntelligence() {
                   label: "Acoes",
                   render: (row) => (
                     <RowActions
-                      onEdit={() => editEntry(row)}
+                      onEdit={() => openEditModal("entry", row)}
                       onDelete={() => deleteResource(`/api/inventory-intelligence/entries/${row.id}`, "Excluir esta entrada e reverter o saldo?")}
                     />
                   ),
@@ -909,7 +1066,7 @@ export default function InventoryIntelligence() {
                   label: "Acoes",
                   render: (row) => (
                     <RowActions
-                      onEdit={() => editConsumption(row)}
+                      onEdit={() => openEditModal("consumption", row)}
                       onDelete={() => deleteResource(`/api/inventory-intelligence/consumptions/${row.id}`, "Excluir este uso e devolver ao estoque?")}
                     />
                   ),
@@ -999,7 +1156,7 @@ export default function InventoryIntelligence() {
                   label: "Acoes",
                   render: (row) => (
                     <RowActions
-                      onEdit={() => editCycle(row)}
+                      onEdit={() => openEditModal("cycle", row)}
                       onDelete={() => deleteResource(`/api/inventory-intelligence/cycles/${row.id}`, "Excluir este ciclo de aprendizado?")}
                     />
                   ),
@@ -1096,7 +1253,7 @@ export default function InventoryIntelligence() {
                   label: "Acoes",
                   render: (row) => (
                     <RowActions
-                      onEdit={() => editLaundry(row)}
+                      onEdit={() => openEditModal("laundry", row)}
                       onDelete={() => deleteResource(`/api/inventory-intelligence/laundry/${row.id}`, "Excluir este envio para lavanderia?")}
                     />
                   ),
@@ -1169,10 +1326,24 @@ export default function InventoryIntelligence() {
                   key: "actions",
                   label: "Acoes",
                   render: (row) => (
-                    <RowActions
-                      onEdit={() => editProduct(row)}
-                      onDelete={() => deleteResource(`/api/products/${row.id}`, "Excluir este produto do catalogo?")}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleProductActive(row)}
+                        className={classNames(
+                          "rounded-lg px-2.5 py-1.5 text-xs font-black transition",
+                          row.active
+                            ? "bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/35 dark:text-amber-200"
+                            : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/35 dark:text-emerald-200"
+                        )}
+                      >
+                        {row.active ? "Inativar" : "Ativar"}
+                      </button>
+                      <RowActions
+                        onEdit={() => openEditModal("product", row)}
+                        onDelete={() => deleteResource(`/api/products/${row.id}`, "Excluir este produto e os vinculos antigos dele?")}
+                      />
+                    </div>
                   ),
                 },
               ]}
@@ -1181,6 +1352,13 @@ export default function InventoryIntelligence() {
           </Section>
         </div>
       ) : null}
+      <EditModal
+        modal={editModal}
+        products={products}
+        onClose={() => setEditModal(null)}
+        onChange={handleEditModalChange}
+        onSubmit={submitEditModal}
+      />
     </div>
   );
 }

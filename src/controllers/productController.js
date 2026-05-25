@@ -110,13 +110,30 @@ async function toggleProduct(req, res) {
 }
 
 async function deleteProduct(req, res) {
+  const id = String(req.params.id);
   try {
-    await prisma.product.delete({ where: { id: String(req.params.id) } });
-    res.json({ deleted: true, id: String(req.params.id) });
+    const deleted = await prisma.$transaction(async (tx) => {
+      const counts = {};
+      counts.productAlert = (await tx.productAlert.deleteMany({ where: { productId: id } })).count;
+      counts.productPrediction = (await tx.productPrediction.deleteMany({ where: { productId: id } })).count;
+      counts.productInventorySnapshot = (await tx.productInventorySnapshot.deleteMany({ where: { productId: id } })).count;
+      counts.productUsageCycle = (await tx.productUsageCycle.deleteMany({ where: { productId: id } })).count;
+      counts.productConsumption = (await tx.productConsumption.deleteMany({ where: { productId: id } })).count;
+      counts.productEntry = (await tx.productEntry.deleteMany({ where: { productId: id } })).count;
+      counts.productLot = (await tx.productLot.deleteMany({ where: { productId: id } })).count;
+      counts.dailyCommonConsumptionLog = (await tx.dailyCommonConsumptionLog.deleteMany({ where: { productId: id } })).count;
+      counts.consumptionEvent = (await tx.consumptionEvent.deleteMany({ where: { productId: id } })).count;
+      counts.consumptionProfile = (await tx.consumptionProfile.deleteMany({ where: { productId: id } })).count;
+      counts.inventory = (await tx.inventory.deleteMany({ where: { productId: id } })).count;
+      counts.purchase = (await tx.purchase.deleteMany({ where: { productId: id } })).count;
+      await tx.product.delete({ where: { id } });
+      return counts;
+    });
+    res.json({ deleted: true, id, relatedDeleted: deleted });
   } catch (error) {
     if (error?.code === "P2003") {
       return res.status(409).json({
-        error: "Produto possui registros vinculados. Exclua entradas/saldos/consumos antes ou desative o produto.",
+        error: "Produto ainda possui registros vinculados que nao puderam ser removidos automaticamente.",
       });
     }
     console.error("Erro ao excluir produto:", error);
