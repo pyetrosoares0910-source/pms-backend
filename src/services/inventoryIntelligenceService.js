@@ -116,6 +116,176 @@ function getReservationCleaningDate(reservation) {
   return reservation.cleaningDateOverride || reservation.checkoutDate;
 }
 
+function getLaundryItemLabel(itemType) {
+  const labels = {
+    FITTED_SHEET: "Lencol elastico",
+    TOP_SHEET: "Lencol de cobrir",
+    PILLOWCASE: "Fronha",
+    BLANKET: "Manta",
+    BEDSPREAD: "Colcha",
+    FACE_TOWEL: "Toalha rosto",
+    BATH_TOWEL: "Toalha banho",
+    SHEET_SET: "Jogo de lencol",
+    PILLOWCASE_SET: "Jogo de fronhas",
+  };
+  return labels[itemType] || itemType;
+}
+
+function addLaundryTotals(map, items) {
+  items.forEach((item) => {
+    if (!item.itemType) return;
+    const current = map.get(item.itemType) || {
+      itemType: item.itemType,
+      label: getLaundryItemLabel(item.itemType),
+      quantity: 0,
+      pieces: 0,
+    };
+    const quantity = Number(item.quantity || 0);
+    const unitPieces = Number(item.unitPieces || laundryPieces[item.itemType] || 1);
+    current.quantity += quantity;
+    current.pieces += quantity * unitPieces;
+    map.set(item.itemType, current);
+  });
+}
+
+async function getDailyOperationalSummary(query = {}) {
+  const day = query.date ? dayjs(query.date) : dayjs();
+  const from = day.startOf("day").toDate();
+  const to = day.endOf("day").toDate();
+  const stayId = query.stayId ? String(query.stayId) : null;
+
+  const [reservations, laundryDispatches, consumptions, alerts] = await Promise.all([
+    prisma.reservation.findMany({
+      where: {
+        status: { not: "cancelada" },
+        OR: [
+          { cleaningDateOverride: { gte: from, lte: to } },
+          {
+            cleaningDateOverride: null,
+            checkoutDate: { gte: from, lte: to },
+          },
+        ],
+        ...(stayId ? { room: { stayId } } : {}),
+      },
+      include: { guest: true, room: { include: { stay: true } } },
+      orderBy: { checkoutDate: "asc" },
+    }),
+    prisma.laundryDispatch.findMany({
+      where: {
+        dispatchDate: { gte: from, lte: to },
+        ...(stayId ? { stayId } : {}),
+      },
+      include: { items: true, room: true, maid: true, stay: true },
+      orderBy: { dispatchDate: "asc" },
+    }),
+    prisma.productConsumption.findMany({
+      where: {
+        occurredAt: { gte: from, lte: to },
+        ...(stayId ? { stayId } : {}),
+      },
+      include: { product: true },
+    }),
+    prisma.productAlert.findMany({
+      where: {
+        status: "open",
+        detectedAt: { lte: to },
+        ...(stayId ? { stayId } : {}),
+      },
+      orderBy: { detectedAt: "desc" },
+      take: 10,
+    }),
+  ]);
+
+  const expectedLaundryMap = new Map();
+  reservations.forEach((reservation) => {
+    addLaundryTotals(expectedLaundryMap, buildDefaultLaundryItems(reservation.room));
+  });
+
+  const sentLaundryMap = new Map();
+  laundryDispatches.forEach((dispatch) => {
+    addLaundryTotals(sentLaundryMap, dispatch.items || []);
+  });
+
+  const byStay = new Map();
+  reservations.forEach((reservation) => {
+    const stay = reservation.room?.stay;
+    const key = stay?.id || "none";
+    if (!byStay.has(key)) {
+      byStay.set(key, {
+        stayId: stay?.id || null,
+        stayName: stay?.name || "Sem empreendimento",
+        accommodationCleanings: 0,
+        corridorCleanings: 0,
+        corridorDates: new Set(),
+        rooms: [],
+      });
+    }
+    const bucket = byStay.get(key);
+    const cleaningDate = dayjs(getReservationCleaningDate(reservation)).format("YYYY-MM-DD");
+    bucket.accommodationCleanings += 1;
+    bucket.corridorDates.add(cleaningDate);
+    bucket.rooms.push({
+      id: reservation.roomId,
+      title: reservation.room?.title || "Acomodacao",
+      guestName: reservation.guest?.name || "",
+      checkoutDate: reservation.checkoutDate,
+      cleaningDate: getReservationCleaningDate(reservation),
+    });
+  });
+
+  const stays = [...byStay.values()].map((item) => ({
+    ...item,
+    corridorCleanings: item.corridorDates.size,
+    corridorDates: undefined,
+  }));
+
+  const productUsage = [...new Map(consumptions.map((item) => [item.productId, {
+    productId: item.productId,
+    productName: item.product?.name || "Produto",
+    unitBase: item.product?.unitBase || "UNIT",
+    quantity: 0,
+  }])).values()];
+  productUsage.forEach((product) => {
+    product.quantity = sum(
+      consumptions.filter((item) => item.productId === product.productId),
+      (item) => item.baseQuantity,
+    );
+    product.quantityLabel = formatBaseQuantity(product.quantity, product.unitBase);
+  });
+
+  const expectedLaundry = [...expectedLaundryMap.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  const sentLaundry = [...sentLaundryMap.values()].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+
+  return {
+    date: day.format("YYYY-MM-DD"),
+    accommodationCleanings: reservations.length,
+    corridorCleanings: stays.reduce((total, item) => total + item.corridorCleanings, 0),
+    rooms: reservations.map((reservation) => ({
+      id: reservation.roomId,
+      title: reservation.room?.title || "Acomodacao",
+      stayName: reservation.room?.stay?.name || "",
+      guestName: reservation.guest?.name || "",
+      cleaningDate: getReservationCleaningDate(reservation),
+    })),
+    stays,
+    laundry: {
+      expected: expectedLaundry,
+      sent: sentLaundry,
+      expectedPieces: sum(expectedLaundry, (item) => item.pieces),
+      sentPieces: sum(sentLaundry, (item) => item.pieces),
+      dispatches: laundryDispatches.length,
+    },
+    alerts: alerts.map((alert) => ({
+      id: alert.id,
+      type: alert.type,
+      severity: alert.severity,
+      title: alert.title,
+      message: alert.message,
+    })),
+    productUsage,
+  };
+}
+
 async function getAutomatedCleaningUsage(query = {}) {
   const { from, to } = getDateRange(query);
   const reservations = await prisma.reservation.findMany({
@@ -1056,7 +1226,10 @@ async function buildInventoryDashboard(query = {}) {
   const totalCost = sum(costByProduct, (item) => item.value);
   const reservationsInPeriod = reservations.filter((item) => dayjs(item.checkoutDate).isBefore(dayjs(to).add(1, "millisecond")));
   const guestCapacity = sum(reservationsInPeriod, (item) => item.room?.capacity || 1) || reservationsInPeriod.length || 1;
-  const cleaningUsage = await getAutomatedCleaningUsage({ ...query, from, to });
+  const [cleaningUsage, todaySummary] = await Promise.all([
+    getAutomatedCleaningUsage({ ...query, from, to }),
+    getDailyOperationalSummary({ stayId: query.stayId }),
+  ]);
   const activeLotProgress = await Promise.all(
     activeLots.map(async (lot) => {
       const startedAt = lot.openedAt || lot.createdAt;
@@ -1122,6 +1295,7 @@ async function buildInventoryDashboard(query = {}) {
       quantityLabel: formatBaseQuantity(item.quantity, item.product?.unitBase),
       availability: item.capacity > 0 ? round((item.quantity / item.capacity) * 100, 1) : null,
     })),
+    todaySummary,
     predictions,
     cleaningUsage,
     activeLotProgress,
@@ -1180,6 +1354,7 @@ module.exports = {
   depleteLotAndCreateCycle,
   formatBaseQuantity,
   getAutomatedCleaningUsage,
+  getDailyOperationalSummary,
   laundryPieces,
   listLaundryDispatches,
   listProductConsumptions,

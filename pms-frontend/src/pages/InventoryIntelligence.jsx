@@ -51,6 +51,20 @@ const laundryItems = [
   ["BATH_TOWEL", "Toalha banho", 1],
 ];
 
+function buildRoomLaundryItems(room, fallbackItems = []) {
+  const beds = Math.max(0, Number(room?.preparedBeds || 1));
+  const template = room?.laundryTemplate || {};
+  const baseItems = fallbackItems.length ? fallbackItems : laundryItems.map(([itemType, , unitPieces]) => ({ itemType, unitPieces }));
+
+  return baseItems.map((item) => ({
+    ...item,
+    quantity: template[item.itemType] ?? (
+      item.itemType === "PILLOWCASE" ? beds * 2 :
+        item.itemType === "FITTED_SHEET" || item.itemType === "TOP_SHEET" || item.itemType === "FACE_TOWEL" || item.itemType === "BATH_TOWEL" ? beds : 0
+    ),
+  }));
+}
+
 const emptyEntry = {
   stayId: "",
   productId: "",
@@ -164,6 +178,82 @@ function Kpi({ icon: Icon, label, value, tone = "cyan" }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function TodaySummaryCard({ summary }) {
+  const rooms = summary?.rooms || [];
+  const visibleRooms = rooms.slice(0, 8);
+  const hiddenRooms = Math.max(0, rooms.length - visibleRooms.length);
+  const laundry = summary?.laundry || {};
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950">
+      <div className="flex flex-wrap items-start justify-between gap-4 p-4">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-200">Hoje</div>
+          <div className="mt-2 flex items-end gap-3">
+            <span className="text-5xl font-black leading-none text-slate-950 dark:text-slate-50">{summary?.accommodationCleanings || 0}</span>
+            <span className="pb-1 text-sm font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+              acomodacoes a limpar
+            </span>
+          </div>
+        </div>
+        <div className="rounded-lg bg-cyan-50 px-3 py-2 text-right dark:bg-cyan-950/35">
+          <div className="text-2xl font-black text-cyan-800 dark:text-cyan-100">{summary?.corridorCleanings || 0}</div>
+          <div className="text-[11px] font-black uppercase tracking-[0.12em] text-cyan-700 dark:text-cyan-200">corredores</div>
+        </div>
+      </div>
+
+      <div className="min-h-28 px-4 pb-4">
+        {visibleRooms.length ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {visibleRooms.map((room) => (
+              <div
+                key={`${room.id}-${room.cleaningDate}`}
+                className="flex min-h-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-xs font-black text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                title={[room.title, room.guestName, room.stayName].filter(Boolean).join(" - ")}
+              >
+                {room.title}
+              </div>
+            ))}
+            {hiddenRooms ? (
+              <div className="flex min-h-14 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2 text-center text-sm font-black text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                +{hiddenRooms}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm font-bold text-slate-400 dark:border-slate-800">
+            Nenhuma limpeza prevista para hoje.
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Shirt size={18} className="text-cyan-700 dark:text-cyan-200" />
+          <div>
+            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{laundry.expectedPieces || 0}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas previstas</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <AlertTriangle size={18} className="text-amber-600 dark:text-amber-200" />
+          <div>
+            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{summary?.alerts?.length || 0}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">alertas</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Boxes size={18} className="text-emerald-700 dark:text-emerald-200" />
+          <div>
+            <div className="text-xl font-black text-slate-950 dark:text-slate-50">{summary?.productUsage?.length || 0}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">produtos usados</div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -437,6 +527,13 @@ export default function InventoryIntelligence() {
     const roomIds = new Set(selectedStayRooms.map((room) => room.id));
     return reservations.filter((reservation) => !filters.stayId || roomIds.has(reservation.roomId));
   }, [reservations, selectedStayRooms, filters.stayId]);
+
+  const todayCheckoutOptions = useMemo(() => (
+    reservationOptions.filter((reservation) => {
+      const cleaningDate = reservation.cleaningDateOverride || reservation.checkoutDate;
+      return cleaningDate && dayjs(cleaningDate).isSame(dayjs(), "day");
+    })
+  ), [reservationOptions]);
 
   async function load() {
     setLoading(true);
@@ -717,6 +814,14 @@ export default function InventoryIntelligence() {
   const kpis = dashboard?.kpis || {};
   const recent = dashboard?.recent || { entries: [], consumptions: [], laundryDispatches: [], usageCycles: [], activeLotProgress: [] };
   const charts = dashboard?.charts || {};
+  const todaySummary = dashboard?.todaySummary || {
+    accommodationCleanings: 0,
+    corridorCleanings: 0,
+    rooms: [],
+    laundry: { expected: [], sent: [], expectedPieces: 0, sentPieces: 0, dispatches: 0 },
+    alerts: [],
+    productUsage: [],
+  };
 
   return (
     <div className="min-h-screen space-y-5 text-slate-900 dark:text-slate-100">
@@ -795,6 +900,8 @@ export default function InventoryIntelligence() {
 
       {!loading && tab === "dashboard" ? (
         <div className="space-y-5">
+          <TodaySummaryCard summary={todaySummary} />
+
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
             <Kpi icon={Boxes} label="Produtos ativos" value={kpis.activeProducts || 0} />
             <Kpi icon={AlertTriangle} label="Criticos" value={kpis.criticalProducts || 0} tone="rose" />
@@ -1170,29 +1277,92 @@ export default function InventoryIntelligence() {
 
       {!loading && tab === "laundry" ? (
         <Section title="Envios para lavanderia">
+          <div className="mb-5 grid gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 lg:grid-cols-[1fr_1fr_0.75fr]">
+            <div className="lg:border-r lg:border-slate-200 lg:pr-4 lg:dark:border-slate-800">
+              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-200">Previsto pelos check-outs de hoje</div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                {(todaySummary.laundry?.expected || []).length ? todaySummary.laundry.expected.map((item) => (
+                  <div key={item.itemType} className="flex items-center justify-between gap-2 border-b border-cyan-200/70 py-1 last:border-b-0 dark:border-cyan-900/60">
+                    <span className="font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
+                    <span className="font-black text-slate-950 dark:text-slate-50">{item.quantity}</span>
+                  </div>
+                )) : (
+                  <div className="col-span-2 py-4 text-sm font-bold text-cyan-800 dark:text-cyan-100">Sem pecas previstas para hoje.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="lg:border-r lg:border-slate-200 lg:pr-4 lg:dark:border-slate-800">
+              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Registrado como enviado hoje</div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                {(todaySummary.laundry?.sent || []).length ? todaySummary.laundry.sent.map((item) => (
+                  <div key={item.itemType} className="flex items-center justify-between gap-2 border-b border-slate-200 py-1 last:border-b-0 dark:border-slate-800">
+                    <span className="font-bold text-slate-700 dark:text-slate-200">{item.label}</span>
+                    <span className="font-black text-slate-950 dark:text-slate-50">{item.quantity}</span>
+                  </div>
+                )) : (
+                  <div className="col-span-2 py-4 text-sm font-bold text-slate-500 dark:text-slate-300">Nenhum envio registrado hoje.</div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">Totais do dia</div>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Previstas</span>
+                  <span className="text-3xl font-black text-slate-950 dark:text-slate-50">{todaySummary.laundry?.expectedPieces || 0}</span>
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Enviadas</span>
+                  <span className="text-3xl font-black text-slate-950 dark:text-slate-50">{todaySummary.laundry?.sentPieces || 0}</span>
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Registros</span>
+                  <span className="text-3xl font-black text-slate-950 dark:text-slate-50">{todaySummary.laundry?.dispatches || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={submitLaundry} className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-5">
+            <div className="grid gap-3 lg:grid-cols-6">
               <Field label="Empreendimento">
                 <select required value={laundryForm.stayId} onChange={(event) => setLaundryForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>
                   <option value="">Selecione</option>
                   {stays.map((stay) => <option key={stay.id} value={stay.id}>{stay.name}</option>)}
                 </select>
               </Field>
+              <Field label="Check-out hoje">
+                <select value={laundryForm.reservationId} onChange={(event) => {
+                  const reservation = reservations.find((item) => item.id === event.target.value);
+                  const room = rooms.find((item) => item.id === reservation?.roomId);
+                  setLaundryForm((prev) => ({
+                    ...prev,
+                    reservationId: event.target.value,
+                    stayId: room?.stayId || prev.stayId,
+                    roomId: room?.id || prev.roomId,
+                    items: room ? buildRoomLaundryItems(room, prev.items) : prev.items,
+                  }));
+                }} className={inputClass()}>
+                  <option value="">Opcional</option>
+                  {todayCheckoutOptions.map((reservation) => {
+                    const room = rooms.find((item) => item.id === reservation.roomId);
+                    return (
+                      <option key={reservation.id} value={reservation.id}>
+                        {room?.title || "Acomodacao"} - {reservation.guest?.name || "check-out"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </Field>
               <Field label="Acomodacao">
                 <select value={laundryForm.roomId} onChange={(event) => {
                   const room = rooms.find((item) => item.id === event.target.value);
-                  const beds = Math.max(0, Number(room?.preparedBeds || 1));
-                  const template = room?.laundryTemplate || {};
                   setLaundryForm((prev) => ({
                     ...prev,
                     roomId: event.target.value,
-                    items: prev.items.map((item) => ({
-                      ...item,
-                      quantity: template[item.itemType] ?? (
-                        item.itemType === "PILLOWCASE" ? beds * 2 :
-                          item.itemType === "FITTED_SHEET" || item.itemType === "TOP_SHEET" || item.itemType === "FACE_TOWEL" || item.itemType === "BATH_TOWEL" ? beds : 0
-                      ),
-                    })),
+                    items: buildRoomLaundryItems(room, prev.items),
                   }));
                 }} className={inputClass()}>
                   <option value="">Opcional</option>
