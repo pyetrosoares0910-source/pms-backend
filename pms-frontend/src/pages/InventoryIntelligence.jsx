@@ -56,6 +56,15 @@ const laundryItems = [
 
 const defaultVisibleLaundryTypes = new Set(["FITTED_SHEET", "TOP_SHEET", "PILLOWCASE", "FACE_TOWEL", "BATH_TOWEL"]);
 
+function getYearDateRange(year) {
+  const normalizedYear = Number(year) || dayjs().year();
+  return {
+    year: String(normalizedYear),
+    from: `${normalizedYear}-01-01`,
+    to: `${normalizedYear}-12-31`,
+  };
+}
+
 function getLaundryItemMeta(itemType) {
   const item = laundryItems.find(([value]) => value === itemType);
   return {
@@ -602,14 +611,14 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
 
 export default function InventoryIntelligence() {
   const api = useApi();
+  const currentYearRange = getYearDateRange(dayjs().year());
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({
     stayId: "",
-    from: dayjs().subtract(29, "day").format("YYYY-MM-DD"),
-    to: dayjs().format("YYYY-MM-DD"),
+    ...currentYearRange,
   });
   const [dashboard, setDashboard] = useState(null);
   const [products, setProducts] = useState([]);
@@ -1056,12 +1065,12 @@ export default function InventoryIntelligence() {
     [laundryPrices],
   );
   const laundryMonthlyTotals = useMemo(() => laundryMonthlySummary.reduce((totals, row) => ({
-    dispatches: totals.dispatches + Number(row.dispatches || 0),
     rooms: totals.rooms + Number(row.rooms || 0),
-    items: totals.items + Number(row.items || 0),
+    bedLinen: totals.bedLinen + Number(row.bedLinen || 0),
+    bathLinen: totals.bathLinen + Number(row.bathLinen || 0),
     pieces: totals.pieces + Number(row.pieces || 0),
     cost: totals.cost + Number(row.cost || 0),
-  }), { dispatches: 0, rooms: 0, items: 0, pieces: 0, cost: 0 }), [laundryMonthlySummary]);
+  }), { rooms: 0, bedLinen: 0, bathLinen: 0, pieces: 0, cost: 0 }), [laundryMonthlySummary]);
 
   return (
     <div className="min-h-screen space-y-5 text-slate-900 dark:text-slate-100">
@@ -1087,12 +1096,32 @@ export default function InventoryIntelligence() {
               <option key={stay.id} value={stay.id}>{stay.name}</option>
             ))}
           </select>
-          <input type="date" value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} className={inputClass()} />
-          <input type="date" value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} className={inputClass()} />
+          <button
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, ...getYearDateRange(Number(prev.year || dayjs().year()) - 1) }))}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+          >
+            Ano anterior
+          </button>
+          <input
+            type="number"
+            min="2000"
+            max="2100"
+            value={filters.year}
+            onChange={(event) => setFilters((prev) => ({ ...prev, ...getYearDateRange(event.target.value) }))}
+            className={inputClass()}
+          />
+          <button
+            type="button"
+            onClick={() => setFilters((prev) => ({ ...prev, ...getYearDateRange(Number(prev.year || dayjs().year()) + 1) }))}
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+          >
+            Próximo ano
+          </button>
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-lg shadow-cyan-700/15 transition hover:bg-cyan-800"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-lg shadow-cyan-700/15 transition hover:bg-cyan-800 sm:col-span-4"
           >
             <RefreshCw size={16} />
             Atualizar
@@ -1853,25 +1882,25 @@ export default function InventoryIntelligence() {
             </div>
 
             <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <Kpi icon={BarChart3} label="Meses" value={laundryMonthlySummary.length} />
-              <Kpi icon={ClipboardCheck} label="Envios" value={laundryMonthlyTotals.dispatches} tone="emerald" />
+              <Kpi icon={Shirt} label="Roupas de cama" value={laundryMonthlyTotals.bedLinen} />
+              <Kpi icon={Shirt} label="Roupas de banho" value={laundryMonthlyTotals.bathLinen} tone="cyan" />
               <Kpi icon={Shirt} label="Peças" value={laundryMonthlyTotals.pieces} />
-              <Kpi icon={Boxes} label="Itens" value={laundryMonthlyTotals.items} tone="amber" />
               <Kpi icon={CheckCircle2} label="Acomodações" value={laundryMonthlyTotals.rooms} tone="emerald" />
+              <Kpi icon={DollarSign} label="Custo" value={formatMoney(laundryMonthlyTotals.cost)} tone="emerald" />
             </div>
 
             <MiniTable
               empty="Sem envios de lavanderia no período filtrado."
               columns={[
                 { key: "monthLabel", label: "Mês" },
-                { key: "dispatches", label: "Envios" },
                 { key: "rooms", label: "Acomodações" },
-                { key: "maids", label: "Diaristas" },
-                { key: "items", label: "Itens" },
+                { key: "bedLinen", label: "Roupas de cama" },
+                { key: "bathLinen", label: "Roupas de banho" },
                 { key: "pieces", label: "Peças" },
-                { key: "avgPiecesPerDispatch", label: "Peças/envio" },
+                { key: "maids", label: "Diaristas" },
+                { key: "avgPiecesPerDispatch", label: "Peças/acomod." },
                 { key: "cost", label: "Custo", render: (row) => formatMoney(row.cost) },
-                { key: "avgCostPerDispatch", label: "Custo/envio", render: (row) => formatMoney(row.avgCostPerDispatch) },
+                { key: "avgCostPerDispatch", label: "Custo/acomod.", render: (row) => formatMoney(row.avgCostPerDispatch) },
               ]}
               rows={laundryMonthlySummary}
             />

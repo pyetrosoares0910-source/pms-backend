@@ -1488,6 +1488,8 @@ async function buildInventoryDashboard(query = {}) {
     (item) => Number(item.quantity || 0) * Number(laundryPriceByType.get(item.itemType) || 0),
   );
   const totalCost = productConsumptionCost + laundryCost;
+  const bedLinenTypes = new Set(["FITTED_SHEET", "TOP_SHEET"]);
+  const bathLinenTypes = new Set(["FACE_TOWEL", "BATH_TOWEL"]);
   const laundryMonthlySummary = [...periodLaundryDispatches.reduce((map, dispatch) => {
     const month = dayjs(dispatch.dispatchDate).format("YYYY-MM");
     const current = map.get(month) || {
@@ -1496,14 +1498,22 @@ async function buildInventoryDashboard(query = {}) {
       monthLabel: dayjs(dispatch.dispatchDate).format("MM/YYYY"),
       dispatches: 0,
       pieces: 0,
-      items: 0,
+      bedLinen: 0,
+      bathLinen: 0,
       cost: 0,
-      roomIds: new Set(),
+      accommodations: 0,
       maidIds: new Set(),
     };
 
     const dispatchPieces = sum(dispatch.items || [], (item) => Number(item.quantity || 0) * Number(item.unitPieces || 1));
-    const dispatchItems = sum(dispatch.items || [], (item) => item.quantity);
+    const dispatchBedLinen = sum(
+      (dispatch.items || []).filter((item) => bedLinenTypes.has(item.itemType)),
+      (item) => Number(item.quantity || 0) * Number(item.unitPieces || 1),
+    );
+    const dispatchBathLinen = sum(
+      (dispatch.items || []).filter((item) => bathLinenTypes.has(item.itemType)),
+      (item) => Number(item.quantity || 0) * Number(item.unitPieces || 1),
+    );
     const dispatchCost = sum(
       dispatch.items || [],
       (item) => Number(item.quantity || 0) * Number(laundryPriceByType.get(item.itemType) || 0),
@@ -1511,9 +1521,10 @@ async function buildInventoryDashboard(query = {}) {
 
     current.dispatches += 1;
     current.pieces += dispatchPieces;
-    current.items += dispatchItems;
+    current.bedLinen += dispatchBedLinen;
+    current.bathLinen += dispatchBathLinen;
     current.cost += dispatchCost;
-    if (dispatch.roomId) current.roomIds.add(dispatch.roomId);
+    current.accommodations += 1;
     if (dispatch.maidId) current.maidIds.add(dispatch.maidId);
     map.set(month, current);
     return map;
@@ -1523,9 +1534,10 @@ async function buildInventoryDashboard(query = {}) {
       month: item.month,
       monthLabel: item.monthLabel,
       dispatches: item.dispatches,
-      rooms: item.roomIds.size,
+      rooms: item.accommodations,
       maids: item.maidIds.size,
-      items: round(item.items, 2),
+      bedLinen: round(item.bedLinen, 2),
+      bathLinen: round(item.bathLinen, 2),
       pieces: round(item.pieces, 2),
       cost: round(item.cost, 2),
       avgPiecesPerDispatch: round(item.pieces / Math.max(1, item.dispatches), 1),
