@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   BarChart3,
   Boxes,
+  CheckCircle2,
   ClipboardCheck,
   PackagePlus,
   RefreshCw,
@@ -230,6 +231,7 @@ export default function InventoryIntelligence() {
   const [reservations, setReservations] = useState([]);
   const [lots, setLots] = useState([]);
   const [cycleForm, setCycleForm] = useState(emptyCycle);
+  const [closingLotId, setClosingLotId] = useState("");
   const [entryForm, setEntryForm] = useState(emptyEntry);
   const [consumptionForm, setConsumptionForm] = useState(emptyConsumption);
   const [productForm, setProductForm] = useState(emptyProduct);
@@ -411,8 +413,35 @@ export default function InventoryIntelligence() {
     }
   }
 
+  async function closeLotCycle(progress) {
+    const depletedAt = window.prompt("Data de esgotamento/reposicao (YYYY-MM-DD)", dayjs().format("YYYY-MM-DD"));
+    if (!depletedAt) return;
+    const remainingInput = window.prompt("Quantidade que sobrou no lote (base do produto)", "0");
+    if (remainingInput === null) return;
+    const remainingQuantity = Number(remainingInput || 0);
+    const consumedQuantity = Math.max(0, Number(progress.initialQuantity || 0) - remainingQuantity);
+
+    setClosingLotId(progress.lotId);
+    try {
+      await api(`/api/inventory-intelligence/lots/${progress.lotId}/deplete-cycle`, {
+        method: "POST",
+        body: JSON.stringify({
+          depletedAt,
+          remainingQuantity,
+          consumedQuantity,
+          notes: `Fechado automaticamente: ${progress.accommodationCleanings} acomodacoes + ${progress.corridorCleanings} corredores.`,
+        }),
+      });
+      await load();
+    } catch (err) {
+      alert(err.message || "Falha ao fechar ciclo do lote.");
+    } finally {
+      setClosingLotId("");
+    }
+  }
+
   const kpis = dashboard?.kpis || {};
-  const recent = dashboard?.recent || { entries: [], consumptions: [], laundryDispatches: [] };
+  const recent = dashboard?.recent || { entries: [], consumptions: [], laundryDispatches: [], usageCycles: [], activeLotProgress: [] };
   const charts = dashboard?.charts || {};
 
   return (
@@ -492,12 +521,14 @@ export default function InventoryIntelligence() {
 
       {!loading && tab === "dashboard" ? (
         <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
             <Kpi icon={Boxes} label="Produtos ativos" value={kpis.activeProducts || 0} />
             <Kpi icon={AlertTriangle} label="Criticos" value={kpis.criticalProducts || 0} tone="rose" />
             <Kpi icon={TrendingUp} label="Custo periodo" value={formatMoney(kpis.totalCost)} tone="emerald" />
             <Kpi icon={ClipboardCheck} label="Custo/reserva" value={formatMoney(kpis.costPerReservation)} tone="amber" />
             <Kpi icon={Shirt} label="Pecas lavanderia" value={kpis.laundryPieces || 0} />
+            <Kpi icon={CheckCircle2} label="Acomodacoes limpas" value={kpis.accommodationCleanings || 0} tone="emerald" />
+            <Kpi icon={ClipboardCheck} label="Corredores" value={kpis.corridorCleanings || 0} tone="cyan" />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
@@ -572,6 +603,36 @@ export default function InventoryIntelligence() {
                 { key: "availability", label: "Disponivel", render: (row) => row.availability === null ? "-" : `${row.availability}%` },
               ]}
               rows={dashboard?.inventory || []}
+            />
+          </Section>
+
+          <Section title="Uso automatico por lote">
+            <MiniTable
+              empty="Nenhum lote ativo com limpeza no periodo."
+              columns={[
+                { key: "productName", label: "Produto" },
+                { key: "stayName", label: "Empreendimento" },
+                { key: "startedAt", label: "Desde", render: (row) => formatDate(row.startedAt) },
+                { key: "accommodationCleanings", label: "Acomodacoes" },
+                { key: "corridorCleanings", label: "Corredores" },
+                { key: "weightedOperations", label: "Operacoes" },
+                { key: "estimatedConsumed", label: "Estimado", render: (row) => row.estimatedConsumed === null ? "sem historico" : row.estimatedConsumed },
+                {
+                  key: "action",
+                  label: "Fechar",
+                  render: (row) => (
+                    <button
+                      type="button"
+                      onClick={() => closeLotCycle(row)}
+                      disabled={closingLotId === row.lotId}
+                      className="rounded-lg bg-cyan-700 px-3 py-1.5 text-xs font-black text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                    >
+                      {closingLotId === row.lotId ? "Fechando..." : "Fechar ciclo"}
+                    </button>
+                  ),
+                },
+              ]}
+              rows={dashboard?.activeLotProgress || []}
             />
           </Section>
         </div>
@@ -791,6 +852,7 @@ export default function InventoryIntelligence() {
               columns={[
                 { key: "endedAt", label: "Periodo", render: (row) => `${formatDate(row.startedAt)} ate ${formatDate(row.endedAt)}` },
                 { key: "product", label: "Produto", render: (row) => row.product?.name },
+                { key: "consumedQuantity", label: "Consumido" },
                 { key: "checkoutCount", label: "Check-outs" },
                 { key: "corridorDays", label: "Dias corredor" },
                 { key: "avgPerWeightedOperation", label: "Media operacional", render: (row) => row.avgPerWeightedOperation ? Number(row.avgPerWeightedOperation).toFixed(2) : "-" },

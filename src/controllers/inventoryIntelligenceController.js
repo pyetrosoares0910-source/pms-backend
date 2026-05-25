@@ -2,6 +2,8 @@ const { prisma } = require("../prisma.js");
 const {
   buildInventoryDashboard,
   createUsageCycle,
+  depleteLotAndCreateCycle,
+  getAutomatedCleaningUsage,
   listLaundryDispatches,
   listProductConsumptions,
   listProductEntries,
@@ -119,6 +121,24 @@ async function updateCycle(req, res) {
   }
 }
 
+async function cleaningUsage(req, res) {
+  try {
+    const usage = await getAutomatedCleaningUsage(req.query);
+    res.json(usage);
+  } catch (error) {
+    handleError(res, error, "Erro ao contar limpezas automaticas.");
+  }
+}
+
+async function depleteLot(req, res) {
+  try {
+    const result = await depleteLotAndCreateCycle(String(req.params.id), req.body);
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, "Erro ao fechar lote e gerar ciclo.");
+  }
+}
+
 async function listLots(req, res) {
   try {
     const lots = await prisma.productLot.findMany({
@@ -163,6 +183,8 @@ module.exports = {
   createCycle,
   createEntry,
   createLaundry,
+  cleaningUsage,
+  depleteLot,
   dashboard,
   listConsumptions,
   listCycles,

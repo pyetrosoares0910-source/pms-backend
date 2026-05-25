@@ -112,6 +112,58 @@ function formatBaseQuantity(value, unitBase) {
   return `${round(qty, 0)} un`;
 }
 
+function getReservationCleaningDate(reservation) {
+  return reservation.cleaningDateOverride || reservation.checkoutDate;
+}
+
+async function getAutomatedCleaningUsage(query = {}) {
+  const { from, to } = getDateRange(query);
+  const reservations = await prisma.reservation.findMany({
+    where: {
+      status: { not: "cancelada" },
+      OR: [
+        { cleaningDateOverride: { gte: from, lte: to } },
+        {
+          cleaningDateOverride: null,
+          checkoutDate: { gte: from, lte: to },
+        },
+      ],
+      ...(query.stayId ? { room: { stayId: String(query.stayId) } } : {}),
+    },
+    include: { room: { include: { stay: true } } },
+    orderBy: { checkoutDate: "asc" },
+  });
+
+  const byStay = new Map();
+  reservations.forEach((reservation) => {
+    const stayId = reservation.room?.stayId;
+    if (!stayId) return;
+    const dateKey = dayjs(getReservationCleaningDate(reservation)).format("YYYY-MM-DD");
+    if (!byStay.has(stayId)) {
+      byStay.set(stayId, {
+        stayId,
+        stayName: reservation.room?.stay?.name || "Empreendimento",
+        accommodationCleanings: 0,
+        corridorDaysSet: new Set(),
+        rooms: new Map(),
+      });
+    }
+    const bucket = byStay.get(stayId);
+    bucket.accommodationCleanings += 1;
+    bucket.corridorDaysSet.add(dateKey);
+    bucket.rooms.set(reservation.roomId, reservation.room?.title || "Acomodacao");
+  });
+
+  return [...byStay.values()].map((item) => ({
+    stayId: item.stayId,
+    stayName: item.stayName,
+    accommodationCleanings: item.accommodationCleanings,
+    corridorCleanings: item.corridorDaysSet.size,
+    operationDays: item.corridorDaysSet.size,
+    roomCount: item.rooms.size,
+  }));
+}
+
 async function getConsumptionBaseline({ stayId, productId, operationType, before = new Date(), tx = prisma }) {
   const historyFrom = dayjs(before).subtract(HISTORY_DAYS, "day").toDate();
   const rows = await tx.productConsumption.findMany({
@@ -396,16 +448,11 @@ async function registerLaundryDispatch(data) {
 }
 
 async function getCheckoutStats({ stayId, startedAt, endedAt }) {
-  const reservations = await prisma.reservation.findMany({
-    where: {
-      status: { not: "cancelada" },
-      checkoutDate: { gte: startedAt, lte: endedAt },
-      room: { stayId },
-    },
-    include: { room: true },
-  });
-  const corridorDays = new Set(reservations.map((item) => dayjs(item.checkoutDate).format("YYYY-MM-DD"))).size;
-  return { checkoutCount: reservations.length, corridorDays };
+  const [usage] = await getAutomatedCleaningUsage({ stayId, from: startedAt, to: endedAt });
+  return {
+    checkoutCount: usage?.accommodationCleanings || 0,
+    corridorDays: usage?.corridorCleanings || 0,
+  };
 }
 
 async function calculateUsageCycle(data) {
@@ -499,6 +546,86 @@ async function listUsageCycles(query = {}) {
     },
     include: { stay: true, product: true, lot: true },
     orderBy: { endedAt: "desc" },
+  });
+}
+
+async function depleteLotAndCreateCycle(lotId, data = {}) {
+  const lot = await prisma.productLot.findUnique({
+    where: { id: lotId },
+    include: { product: true, stay: true },
+  });
+  if (!lot) {
+    const error = new Error("Lote nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  const remainingQuantity = data.remainingQuantity !== undefined
+    ? Math.max(0, Number(data.remainingQuantity || 0))
+    : 0;
+  const consumedQuantity = data.consumedQuantity !== undefined
+    ? parsePositiveNumber(data.consumedQuantity, "consumedQuantity")
+    : Math.max(0, Number(lot.initialQuantity || 0) - remainingQuantity);
+  const endedAt = data.depletedAt ? new Date(data.depletedAt) : new Date();
+  const startedAt = data.startedAt
+    ? new Date(data.startedAt)
+    : lot.openedAt || lot.createdAt;
+  const cycle = await calculateUsageCycle({
+    stayId: lot.stayId,
+    productId: lot.productId,
+    lotId: lot.id,
+    startedAt,
+    endedAt,
+    consumedQuantity,
+    notes: data.notes || "Ciclo gerado ao fechar lote.",
+  });
+
+  return prisma.$transaction(async (tx) => {
+    const existingCycle = await tx.productUsageCycle.findFirst({ where: { lotId: lot.id } });
+    const savedCycle = existingCycle
+      ? await tx.productUsageCycle.update({
+          where: { id: existingCycle.id },
+          data: cycle,
+          include: { stay: true, product: true, lot: true },
+        })
+      : await tx.productUsageCycle.create({
+          data: cycle,
+          include: { stay: true, product: true, lot: true },
+        });
+
+    const updatedLot = await tx.productLot.update({
+      where: { id: lot.id },
+      data: {
+        remainingQuantity,
+        status: remainingQuantity > 0 ? "OPEN" : "DEPLETED",
+        depletedAt: remainingQuantity > 0 ? null : endedAt,
+        openedAt: lot.openedAt || startedAt,
+      },
+      include: { product: true, stay: true },
+    });
+
+    await tx.inventory.upsert({
+      where: { stayId_productId: { stayId: lot.stayId, productId: lot.productId } },
+      update: { quantity: { decrement: consumedQuantity } },
+      create: {
+        stayId: lot.stayId,
+        productId: lot.productId,
+        quantity: -consumedQuantity,
+        capacity: Number(lot.initialQuantity || 0),
+      },
+    });
+
+    await tx.productInventorySnapshot.create({
+      data: {
+        stayId: lot.stayId,
+        productId: lot.productId,
+        quantity: remainingQuantity,
+        source: "usage_cycle",
+        notes: data.notes || null,
+      },
+    });
+
+    return { lot: updatedLot, cycle: savedCycle };
   });
 }
 
@@ -682,7 +809,7 @@ async function buildInventoryDashboard(query = {}) {
   const stayWhere = query.stayId ? { stayId: String(query.stayId) } : {};
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
 
-  const [products, inventory, consumptions, entries, reservations, laundryDispatches, usageCycles, persistedAlerts] = await Promise.all([
+  const [products, inventory, consumptions, entries, reservations, laundryDispatches, usageCycles, activeLots, persistedAlerts] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.inventory.findMany({ where: stayWhere, include: { product: true, stay: true } }),
     prisma.productConsumption.findMany({
@@ -716,6 +843,15 @@ async function buildInventoryDashboard(query = {}) {
       },
       include: { product: true, stay: true, lot: true },
       orderBy: { endedAt: "desc" },
+    }),
+    prisma.productLot.findMany({
+      where: {
+        ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+        status: { in: ["SEALED", "OPEN"] },
+        remainingQuantity: { gt: 0 },
+      },
+      include: { product: true, stay: true },
+      orderBy: [{ createdAt: "asc" }],
     }),
     prisma.productAlert.findMany({
       where: { status: "open", ...(query.stayId ? { stayId: String(query.stayId) } : {}) },
@@ -770,6 +906,45 @@ async function buildInventoryDashboard(query = {}) {
   const totalCost = sum(costByProduct, (item) => item.value);
   const reservationsInPeriod = reservations.filter((item) => dayjs(item.checkoutDate).isBefore(dayjs(to).add(1, "millisecond")));
   const guestCapacity = sum(reservationsInPeriod, (item) => item.room?.capacity || 1) || reservationsInPeriod.length || 1;
+  const cleaningUsage = await getAutomatedCleaningUsage({ ...query, from, to });
+  const activeLotProgress = await Promise.all(
+    activeLots.map(async (lot) => {
+      const startedAt = lot.openedAt || lot.createdAt;
+      const [usage] = await getAutomatedCleaningUsage({
+        stayId: lot.stayId,
+        from: startedAt,
+        to: new Date(),
+      });
+      const corridorWeight = Number(lot.product?.corridorWeight ?? 1);
+      const weightedOperations =
+        Number(usage?.accommodationCleanings || 0) +
+        Number(usage?.corridorCleanings || 0) * corridorWeight;
+      const learnedCycles = usageCycles.filter((cycle) => cycle.productId === lot.productId);
+      const learnedAverage = mean(
+        learnedCycles
+          .map((cycle) => Number(cycle.avgPerWeightedOperation))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      );
+      const estimatedConsumed = learnedAverage > 0 ? learnedAverage * weightedOperations : null;
+      return {
+        lotId: lot.id,
+        stayId: lot.stayId,
+        stayName: lot.stay?.name,
+        productId: lot.productId,
+        productName: lot.product?.name,
+        unitBase: lot.product?.unitBase,
+        startedAt,
+        initialQuantity: round(lot.initialQuantity, 2),
+        remainingQuantity: round(lot.remainingQuantity, 2),
+        accommodationCleanings: usage?.accommodationCleanings || 0,
+        corridorCleanings: usage?.corridorCleanings || 0,
+        weightedOperations: round(weightedOperations, 2),
+        learnedAverage: learnedAverage ? round(learnedAverage, 2) : null,
+        estimatedConsumed: estimatedConsumed === null ? null : round(estimatedConsumed, 2),
+        estimatedRemaining: estimatedConsumed === null ? null : round(Number(lot.initialQuantity || 0) - estimatedConsumed, 2),
+      };
+    })
+  );
 
   const dashboard = {
     period: { from, to, days },
@@ -781,6 +956,8 @@ async function buildInventoryDashboard(query = {}) {
       costPerGuest: round(totalCost / Math.max(1, guestCapacity), 2),
       consumptionEvents: periodConsumptions.length,
       laundryPieces: sum(laundryDispatches.flatMap((item) => item.items), (item) => item.quantity * item.unitPieces),
+      accommodationCleanings: sum(cleaningUsage, (item) => item.accommodationCleanings),
+      corridorCleanings: sum(cleaningUsage, (item) => item.corridorCleanings),
     },
     inventory: inventory.map((item) => ({
       id: item.id,
@@ -796,6 +973,8 @@ async function buildInventoryDashboard(query = {}) {
       availability: item.capacity > 0 ? round((item.quantity / item.capacity) * 100, 1) : null,
     })),
     predictions,
+    cleaningUsage,
+    activeLotProgress,
     alerts: [
       ...buildDynamicAlerts({
         inventory,
@@ -833,6 +1012,7 @@ async function buildInventoryDashboard(query = {}) {
       consumptions: periodConsumptions.slice(0, 12),
       laundryDispatches: laundryDispatches.slice(0, 12),
       usageCycles: usageCycles.slice(0, 12),
+      activeLotProgress: activeLotProgress.slice(0, 12),
     },
   };
 
@@ -843,7 +1023,9 @@ module.exports = {
   buildInventoryDashboard,
   buildDefaultLaundryItems,
   createUsageCycle,
+  depleteLotAndCreateCycle,
   formatBaseQuantity,
+  getAutomatedCleaningUsage,
   laundryPieces,
   listLaundryDispatches,
   listProductConsumptions,
