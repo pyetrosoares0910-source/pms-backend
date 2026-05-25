@@ -613,9 +613,11 @@ enum LaundryItemType {
   SHEET_SET
   PILLOWCASE_SET
   BLANKET
+  COMFORTER
   BEDSPREAD
   FACE_TOWEL
   BATH_TOWEL
+  RUG
 }
 
 enum PaymentState {

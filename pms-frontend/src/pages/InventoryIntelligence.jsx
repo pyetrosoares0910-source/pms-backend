@@ -46,23 +46,68 @@ const laundryItems = [
   ["TOP_SHEET", "Lencol de cobrir", 1],
   ["PILLOWCASE", "Fronha", 1],
   ["BLANKET", "Manta", 1],
+  ["COMFORTER", "Cobertor", 1],
   ["BEDSPREAD", "Colcha", 1],
   ["FACE_TOWEL", "Toalha rosto", 1],
   ["BATH_TOWEL", "Toalha banho", 1],
+  ["RUG", "Tapete", 1],
 ];
 
-function buildRoomLaundryItems(room, fallbackItems = []) {
-  const beds = Math.max(0, Number(room?.preparedBeds || 1));
-  const template = room?.laundryTemplate || {};
-  const baseItems = fallbackItems.length ? fallbackItems : laundryItems.map(([itemType, , unitPieces]) => ({ itemType, unitPieces }));
+const defaultVisibleLaundryTypes = new Set(["FITTED_SHEET", "TOP_SHEET", "PILLOWCASE", "FACE_TOWEL", "BATH_TOWEL"]);
 
-  return baseItems.map((item) => ({
-    ...item,
-    quantity: template[item.itemType] ?? (
-      item.itemType === "PILLOWCASE" ? beds * 2 :
-        item.itemType === "FITTED_SHEET" || item.itemType === "TOP_SHEET" || item.itemType === "FACE_TOWEL" || item.itemType === "BATH_TOWEL" ? beds : 0
-    ),
-  }));
+function getLaundryItemMeta(itemType) {
+  const item = laundryItems.find(([value]) => value === itemType);
+  return {
+    itemType,
+    label: item?.[1] || itemType,
+    unitPieces: item?.[2] || 1,
+  };
+}
+
+function normalizeLaundryItems(items = []) {
+  const map = new Map(laundryItems.map(([itemType, label, unitPieces]) => [itemType, {
+    itemType,
+    label,
+    unitPieces,
+    quantity: 0,
+    notes: "",
+  }]));
+
+  items.forEach((item) => {
+    if (!item?.itemType) return;
+    const meta = getLaundryItemMeta(item.itemType);
+    map.set(item.itemType, {
+      itemType: item.itemType,
+      label: item.label || meta.label,
+      unitPieces: Number(item.unitPieces || meta.unitPieces || 1),
+      quantity: Number(item.quantity || 0),
+      notes: item.notes || "",
+    });
+  });
+
+  return [...map.values()];
+}
+
+function buildLaundryDraft(roomSummary) {
+  const expectedItems = normalizeLaundryItems(roomSummary.expectedItems || []);
+  const savedItems = roomSummary.dispatch?.items?.length ? normalizeLaundryItems(roomSummary.dispatch.items) : null;
+  const fittedSheets = expectedItems.find((item) => item.itemType === "FITTED_SHEET")?.quantity || 1;
+
+  return {
+    id: roomSummary.dispatch?.id || "",
+    stayId: roomSummary.stayId || "",
+    roomId: roomSummary.roomId || roomSummary.id || "",
+    reservationId: roomSummary.reservationId || "",
+    maidId: roomSummary.dispatch?.maidId || "",
+    dispatchDate: dayjs(roomSummary.dispatch?.dispatchDate || roomSummary.cleaningDate || new Date()).format("YYYY-MM-DD"),
+    expectedSets: roomSummary.dispatch?.expectedSets || fittedSheets,
+    notes: roomSummary.dispatch?.notes || "",
+    items: savedItems || expectedItems,
+  };
+}
+
+function getLaundryTotalPieces(items = []) {
+  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(item.unitPieces || 1), 0);
 }
 
 const emptyEntry = {
@@ -534,20 +579,7 @@ export default function InventoryIntelligence() {
   const [entryForm, setEntryForm] = useState(emptyEntry);
   const [consumptionForm, setConsumptionForm] = useState(emptyConsumption);
   const [productForm, setProductForm] = useState(emptyProduct);
-  const [laundryForm, setLaundryForm] = useState({
-    stayId: "",
-    roomId: "",
-    reservationId: "",
-    maidId: "",
-    dispatchDate: dayjs().format("YYYY-MM-DD"),
-    expectedSets: 2,
-    notes: "",
-    items: laundryItems.map(([itemType, , unitPieces]) => ({
-      itemType,
-      quantity: itemType === "BLANKET" || itemType === "BEDSPREAD" ? 0 : itemType === "PILLOWCASE" ? 2 : 1,
-      unitPieces,
-    })),
-  });
+  const [laundryDrafts, setLaundryDrafts] = useState({});
 
   const selectedStayRooms = useMemo(
     () => rooms.filter((room) => !filters.stayId || room.stayId === filters.stayId),
@@ -558,13 +590,6 @@ export default function InventoryIntelligence() {
     const roomIds = new Set(selectedStayRooms.map((room) => room.id));
     return reservations.filter((reservation) => !filters.stayId || roomIds.has(reservation.roomId));
   }, [reservations, selectedStayRooms, filters.stayId]);
-
-  const todayCheckoutOptions = useMemo(() => (
-    reservationOptions.filter((reservation) => {
-      const cleaningDate = reservation.cleaningDateOverride || reservation.checkoutDate;
-      return cleaningDate && dayjs(cleaningDate).isSame(dayjs(), "day");
-    })
-  ), [reservationOptions]);
 
   async function load() {
     setLoading(true);
@@ -609,7 +634,6 @@ export default function InventoryIntelligence() {
   useEffect(() => {
     setEntryForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
     setConsumptionForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
-    setLaundryForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
     setCycleForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
   }, [filters.stayId]);
 
@@ -676,26 +700,54 @@ export default function InventoryIntelligence() {
     }
   }
 
-  async function submitLaundry(event) {
-    event.preventDefault();
+  function updateLaundryDraft(reservationId, updater) {
+    setLaundryDrafts((prev) => {
+      const current = prev[reservationId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [reservationId]: typeof updater === "function" ? updater(current) : { ...current, ...updater },
+      };
+    });
+  }
+
+  function updateLaundryDraftItem(reservationId, itemType, value) {
+    updateLaundryDraft(reservationId, (current) => ({
+      ...current,
+      items: current.items.map((item) => item.itemType === itemType ? { ...item, quantity: value } : item),
+    }));
+  }
+
+  function addLaundryDraftItem(reservationId, itemType) {
+    if (!itemType) return;
+    updateLaundryDraft(reservationId, (current) => ({
+      ...current,
+      items: current.items.map((item) => item.itemType === itemType ? { ...item, quantity: item.quantity > 0 ? item.quantity : 1 } : item),
+    }));
+  }
+
+  async function saveLaundryDraft(reservationId) {
+    const draft = laundryDrafts[reservationId];
+    if (!draft) return;
     setSaving(true);
     try {
-      await api("/api/inventory-intelligence/laundry", {
-        method: "POST",
-        body: JSON.stringify(laundryForm),
+      const payload = {
+        ...draft,
+        items: draft.items
+          .map((item) => ({
+            itemType: item.itemType,
+            quantity: Number(item.quantity || 0),
+            unitPieces: Number(item.unitPieces || 1),
+            notes: item.notes || null,
+          })),
+      };
+      await api(draft.id ? `/api/inventory-intelligence/laundry/${draft.id}` : "/api/inventory-intelligence/laundry", {
+        method: draft.id ? "PUT" : "POST",
+        body: JSON.stringify(payload),
       });
-      setLaundryForm((prev) => ({
-        ...prev,
-        roomId: "",
-        reservationId: "",
-        maidId: "",
-        notes: "",
-        dispatchDate: dayjs().format("YYYY-MM-DD"),
-      }));
       await load();
-      setTab("dashboard");
     } catch (err) {
-      alert(err.message || "Falha ao registrar lavanderia.");
+      alert(err.message || "Falha ao salvar lavanderia.");
     } finally {
       setSaving(false);
     }
@@ -845,14 +897,24 @@ export default function InventoryIntelligence() {
   const kpis = dashboard?.kpis || {};
   const recent = dashboard?.recent || { entries: [], consumptions: [], laundryDispatches: [], usageCycles: [], activeLotProgress: [] };
   const charts = dashboard?.charts || {};
-  const todaySummary = dashboard?.todaySummary || {
+  const todaySummary = useMemo(() => dashboard?.todaySummary || {
     accommodationCleanings: 0,
     corridorCleanings: 0,
     rooms: [],
     laundry: { expected: [], sent: [], expectedPieces: 0, sentPieces: 0, dispatches: 0 },
     alerts: [],
     productUsage: [],
-  };
+  }, [dashboard?.todaySummary]);
+
+  useEffect(() => {
+    setLaundryDrafts((prev) => {
+      const next = {};
+      (todaySummary.rooms || []).forEach((room) => {
+        next[room.reservationId] = prev[room.reservationId] || buildLaundryDraft(room);
+      });
+      return next;
+    });
+  }, [todaySummary.date, todaySummary.rooms]);
 
   return (
     <div className="min-h-screen space-y-5 text-slate-900 dark:text-slate-100">
@@ -1356,90 +1418,86 @@ export default function InventoryIntelligence() {
             </div>
           </div>
 
-          <form onSubmit={submitLaundry} className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-6">
-              <Field label="Empreendimento">
-                <select required value={laundryForm.stayId} onChange={(event) => setLaundryForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>
-                  <option value="">Selecione</option>
-                  {stays.map((stay) => <option key={stay.id} value={stay.id}>{stay.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Check-out hoje">
-                <select value={laundryForm.reservationId} onChange={(event) => {
-                  const reservation = reservations.find((item) => item.id === event.target.value);
-                  const room = rooms.find((item) => item.id === reservation?.roomId);
-                  setLaundryForm((prev) => ({
-                    ...prev,
-                    reservationId: event.target.value,
-                    stayId: room?.stayId || prev.stayId,
-                    roomId: room?.id || prev.roomId,
-                    items: room ? buildRoomLaundryItems(room, prev.items) : prev.items,
-                  }));
-                }} className={inputClass()}>
-                  <option value="">Opcional</option>
-                  {todayCheckoutOptions.map((reservation) => {
-                    const room = rooms.find((item) => item.id === reservation.roomId);
-                    return (
-                      <option key={reservation.id} value={reservation.id}>
-                        {room?.title || "Acomodacao"} - {reservation.guest?.name || "check-out"}
-                      </option>
-                    );
-                  })}
-                </select>
-              </Field>
-              <Field label="Acomodacao">
-                <select value={laundryForm.roomId} onChange={(event) => {
-                  const room = rooms.find((item) => item.id === event.target.value);
-                  setLaundryForm((prev) => ({
-                    ...prev,
-                    roomId: event.target.value,
-                    items: buildRoomLaundryItems(room, prev.items),
-                  }));
-                }} className={inputClass()}>
-                  <option value="">Opcional</option>
-                  {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
-                </select>
-              </Field>
-              <Field label="Diarista">
-                <select value={laundryForm.maidId} onChange={(event) => setLaundryForm((prev) => ({ ...prev, maidId: event.target.value }))} className={inputClass()}>
-                  <option value="">Opcional</option>
-                  {maids.map((maid) => <option key={maid.id} value={maid.id}>{maid.name}</option>)}
-                </select>
-              </Field>
-              <Field label="Data">
-                <input type="date" value={laundryForm.dispatchDate} onChange={(event) => setLaundryForm((prev) => ({ ...prev, dispatchDate: event.target.value }))} className={inputClass()} />
-              </Field>
-              <Field label="Jogos previstos">
-                <input type="number" value={laundryForm.expectedSets} onChange={(event) => setLaundryForm((prev) => ({ ...prev, expectedSets: event.target.value }))} className={inputClass()} />
-              </Field>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {laundryItems.map(([itemType, label, unitPieces]) => {
-                const item = laundryForm.items.find((row) => row.itemType === itemType) || { quantity: 0, unitPieces };
-                return (
-                  <Field key={itemType} label={label}>
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.quantity}
-                      onChange={(event) => setLaundryForm((prev) => ({
-                        ...prev,
-                        items: prev.items.map((row) => row.itemType === itemType ? { ...row, quantity: event.target.value } : row),
-                      }))}
-                      className={inputClass()}
-                    />
-                  </Field>
-                );
-              })}
-            </div>
-            <Field label="Observacoes">
-              <input value={laundryForm.notes} onChange={(event) => setLaundryForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass()} />
-            </Field>
-            <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60">
-              <Save size={16} />
-              Registrar lavanderia
-            </button>
-          </form>
+          <div className="space-y-3">
+            {(todaySummary.rooms || []).length ? todaySummary.rooms.map((room) => {
+              const draft = laundryDrafts[room.reservationId] || buildLaundryDraft(room);
+              const activeItems = draft.items.filter((item) => Number(item.quantity || 0) > 0 || defaultVisibleLaundryTypes.has(item.itemType));
+              const extraItems = draft.items.filter((item) => Number(item.quantity || 0) <= 0 && !defaultVisibleLaundryTypes.has(item.itemType));
+              return (
+                <div key={room.reservationId} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="h-14 w-20 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
+                        {room.imageUrl ? (
+                          <img src={room.imageUrl} alt={room.title} className="h-full w-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="grid h-full w-full place-items-center text-sm font-black text-slate-400">{String(room.title || "UH").slice(0, 2).toUpperCase()}</div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-base font-black text-slate-950 dark:text-slate-50">{room.title}</div>
+                        <div className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{room.guestName || room.stayName || "Check-out do dia"}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-black text-slate-950 dark:text-slate-50">{getLaundryTotalPieces(draft.items)}</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                    <Field label="Diarista">
+                      <select value={draft.maidId || ""} onChange={(event) => updateLaundryDraft(room.reservationId, { maidId: event.target.value })} className={inputClass()}>
+                        <option value="">Opcional</option>
+                        {maids.map((maid) => <option key={maid.id} value={maid.id}>{maid.name}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Data">
+                      <input type="date" value={draft.dispatchDate} onChange={(event) => updateLaundryDraft(room.reservationId, { dispatchDate: event.target.value })} className={inputClass()} />
+                    </Field>
+                    <Field label="Observacoes">
+                      <input value={draft.notes || ""} onChange={(event) => updateLaundryDraft(room.reservationId, { notes: event.target.value })} className={inputClass()} />
+                    </Field>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => saveLaundryDraft(room.reservationId)}
+                      className="inline-flex items-center justify-center gap-2 self-end rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                    >
+                      <Save size={16} />
+                      {draft.id ? "Atualizar" : "Salvar"}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {activeItems.map((item) => (
+                      <Field key={item.itemType} label={item.label}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.quantity}
+                          onChange={(event) => updateLaundryDraftItem(room.reservationId, item.itemType, event.target.value)}
+                          className={inputClass()}
+                        />
+                      </Field>
+                    ))}
+                    {extraItems.length ? (
+                      <Field label="Adicionar item">
+                        <select value="" onChange={(event) => addLaundryDraftItem(room.reservationId, event.target.value)} className={inputClass()}>
+                          <option value="">Selecionar</option>
+                          {extraItems.map((item) => <option key={item.itemType} value={item.itemType}>{item.label}</option>)}
+                        </select>
+                      </Field>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800">
+                Nenhuma acomodacao com check-out para lavanderia hoje.
+              </div>
+            )}
+          </div>
           <div className="mt-5">
             <MiniTable
               empty="Sem envios recentes."

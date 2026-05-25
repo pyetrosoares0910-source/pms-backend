@@ -14,9 +14,11 @@ const laundryPieces = {
   SHEET_SET: 2,
   PILLOWCASE_SET: 2,
   BLANKET: 1,
+  COMFORTER: 1,
   BEDSPREAD: 1,
   FACE_TOWEL: 1,
   BATH_TOWEL: 1,
+  RUG: 1,
 };
 
 function buildDefaultLaundryItems(room, overrides = []) {
@@ -29,9 +31,11 @@ function buildDefaultLaundryItems(room, overrides = []) {
     TOP_SHEET: Number(template.TOP_SHEET ?? preparedBeds),
     PILLOWCASE: Number(template.PILLOWCASE ?? preparedBeds * 2),
     BLANKET: Number(template.BLANKET ?? 0),
+    COMFORTER: Number(template.COMFORTER ?? 0),
     BEDSPREAD: Number(template.BEDSPREAD ?? 0),
     FACE_TOWEL: Number(template.FACE_TOWEL ?? preparedBeds),
     BATH_TOWEL: Number(template.BATH_TOWEL ?? preparedBeds),
+    RUG: Number(template.RUG ?? 0),
   };
 
   overrides.forEach((item) => {
@@ -122,9 +126,11 @@ function getLaundryItemLabel(itemType) {
     TOP_SHEET: "Lencol de cobrir",
     PILLOWCASE: "Fronha",
     BLANKET: "Manta",
+    COMFORTER: "Cobertor",
     BEDSPREAD: "Colcha",
     FACE_TOWEL: "Toalha rosto",
     BATH_TOWEL: "Toalha banho",
+    RUG: "Tapete",
     SHEET_SET: "Jogo de lencol",
     PILLOWCASE_SET: "Jogo de fronhas",
   };
@@ -205,6 +211,47 @@ async function getDailyOperationalSummary(query = {}) {
   laundryDispatches.forEach((dispatch) => {
     addLaundryTotals(sentLaundryMap, dispatch.items || []);
   });
+  const dispatchByReservation = new Map();
+  const dispatchByRoom = new Map();
+  laundryDispatches.forEach((dispatch) => {
+    if (dispatch.reservationId) dispatchByReservation.set(dispatch.reservationId, dispatch);
+    if (dispatch.roomId && !dispatchByRoom.has(dispatch.roomId)) dispatchByRoom.set(dispatch.roomId, dispatch);
+  });
+
+  const mapReservationRoom = (reservation) => {
+    const defaultItems = buildDefaultLaundryItems(reservation.room);
+    const dispatch = dispatchByReservation.get(reservation.id) || dispatchByRoom.get(reservation.roomId) || null;
+    return {
+      reservationId: reservation.id,
+      id: reservation.roomId,
+      roomId: reservation.roomId,
+      title: reservation.room?.title || "Acomodacao",
+      imageUrl: reservation.room?.imageUrl || null,
+      stayId: reservation.room?.stayId || null,
+      stayName: reservation.room?.stay?.name || "",
+      guestName: reservation.guest?.name || "",
+      checkoutDate: reservation.checkoutDate,
+      cleaningDate: getReservationCleaningDate(reservation),
+      expectedItems: defaultItems.map((item) => ({
+        ...item,
+        label: getLaundryItemLabel(item.itemType),
+      })),
+      dispatch: dispatch ? {
+        id: dispatch.id,
+        maidId: dispatch.maidId,
+        notes: dispatch.notes || "",
+        dispatchDate: dispatch.dispatchDate,
+        expectedSets: dispatch.expectedSets,
+        items: (dispatch.items || []).map((item) => ({
+          itemType: item.itemType,
+          label: getLaundryItemLabel(item.itemType),
+          quantity: item.quantity,
+          unitPieces: item.unitPieces,
+          notes: item.notes || "",
+        })),
+      } : null,
+    };
+  };
 
   const byStay = new Map();
   reservations.forEach((reservation) => {
@@ -224,15 +271,7 @@ async function getDailyOperationalSummary(query = {}) {
     const cleaningDate = dayjs(getReservationCleaningDate(reservation)).format("YYYY-MM-DD");
     bucket.accommodationCleanings += 1;
     bucket.corridorDates.add(cleaningDate);
-    bucket.rooms.push({
-      reservationId: reservation.id,
-      id: reservation.roomId,
-      title: reservation.room?.title || "Acomodacao",
-      imageUrl: reservation.room?.imageUrl || null,
-      guestName: reservation.guest?.name || "",
-      checkoutDate: reservation.checkoutDate,
-      cleaningDate: getReservationCleaningDate(reservation),
-    });
+    bucket.rooms.push(mapReservationRoom(reservation));
   });
 
   const stays = [...byStay.values()].map((item) => ({
@@ -262,15 +301,7 @@ async function getDailyOperationalSummary(query = {}) {
     date: day.format("YYYY-MM-DD"),
     accommodationCleanings: reservations.length,
     corridorCleanings: stays.reduce((total, item) => total + item.corridorCleanings, 0),
-    rooms: reservations.map((reservation) => ({
-      reservationId: reservation.id,
-      id: reservation.roomId,
-      title: reservation.room?.title || "Acomodacao",
-      imageUrl: reservation.room?.imageUrl || null,
-      stayName: reservation.room?.stay?.name || "",
-      guestName: reservation.guest?.name || "",
-      cleaningDate: getReservationCleaningDate(reservation),
-    })),
+    rooms: reservations.map(mapReservationRoom),
     stays,
     laundry: {
       expected: expectedLaundry,
