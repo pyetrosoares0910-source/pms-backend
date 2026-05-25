@@ -6,6 +6,7 @@ const DEFAULT_WINDOW_DAYS = 30;
 const HISTORY_DAYS = 180;
 const CRITICAL_DAYS = 7;
 const WARNING_DAYS = 14;
+const SHARED_INVENTORY_STAY_NAMES = new Set(["iguatemi", "a", "b", "at", "bt", "c"]);
 
 const laundryPieces = {
   FITTED_SHEET: 1,
@@ -109,6 +110,84 @@ function getDateRange(query = {}) {
   return { from: from.toDate(), to: to.toDate(), days: Math.max(1, to.diff(from, "day") + 1) };
 }
 
+function normalizeStayName(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
+async function getInventoryStayScope(stayId) {
+  const stays = await prisma.stay.findMany({ select: { id: true, name: true } });
+  const sharedStays = stays.filter((stay) => SHARED_INVENTORY_STAY_NAMES.has(normalizeStayName(stay.name)));
+  const primaryStay = sharedStays.find((stay) => normalizeStayName(stay.name) === "iguatemi") || sharedStays[0] || null;
+  const sharedStayIds = sharedStays.map((stay) => stay.id);
+
+  if (!stayId) {
+    return {
+      isShared: false,
+      aggregateSharedInAll: true,
+      stockStayIds: null,
+      stockWriteStayId: null,
+      stockWhere: {},
+      sharedStayIds,
+      primarySharedStayId: primaryStay?.id || null,
+      sharedLabel: "Estoque compartilhado",
+    };
+  }
+
+  const selectedIsShared = sharedStays.some((stay) => stay.id === String(stayId));
+
+  if (!selectedIsShared) {
+    return {
+      isShared: false,
+      aggregateSharedInAll: false,
+      stockStayIds: [String(stayId)],
+      stockWriteStayId: String(stayId),
+      stockWhere: { stayId: String(stayId) },
+      sharedStayIds,
+      primarySharedStayId: primaryStay?.id || null,
+      sharedLabel: "Estoque compartilhado",
+    };
+  }
+
+  return {
+    isShared: true,
+    aggregateSharedInAll: false,
+    stockStayIds: sharedStayIds,
+    stockWriteStayId: primaryStay.id,
+    stockWhere: { stayId: { in: sharedStayIds } },
+    sharedStayIds,
+    primarySharedStayId: primaryStay.id,
+    sharedLabel: "Iguatemi - estoque compartilhado",
+  };
+}
+
+function aggregateSharedInventoryRows(rows, scope) {
+  if (!scope.isShared && !scope.aggregateSharedInAll) return rows;
+  const sharedSet = new Set(scope.sharedStayIds || []);
+  const rowsToAggregate = scope.isShared ? rows : rows.filter((row) => sharedSet.has(row.stayId));
+  const passthroughRows = scope.isShared ? [] : rows.filter((row) => !sharedSet.has(row.stayId));
+  const byProduct = new Map();
+
+  rowsToAggregate.forEach((row) => {
+    const current = byProduct.get(row.productId);
+    if (!current) {
+      byProduct.set(row.productId, {
+        ...row,
+        id: `${scope.primarySharedStayId || row.stayId}:${row.productId}`,
+        stayId: scope.primarySharedStayId || row.stayId,
+        stay: { id: scope.primarySharedStayId || row.stayId, name: scope.sharedLabel },
+        quantity: Number(row.quantity || 0),
+        capacity: Number(row.capacity || 0),
+      });
+      return;
+    }
+
+    current.quantity += Number(row.quantity || 0);
+    current.capacity += Number(row.capacity || 0);
+  });
+
+  return [...passthroughRows, ...byProduct.values()];
+}
+
 function formatBaseQuantity(value, unitBase) {
   const qty = Number(value || 0);
   if (unitBase === "ML") return qty >= 1000 ? `${round(qty / 1000, 1)} L` : `${round(qty, 0)} ml`;
@@ -159,6 +238,7 @@ async function getDailyOperationalSummary(query = {}) {
   const from = day.startOf("day").toDate();
   const to = day.endOf("day").toDate();
   const stayId = query.stayId ? String(query.stayId) : null;
+  const inventoryScope = await getInventoryStayScope(stayId);
 
   const [reservations, laundryDispatches, consumptions, alerts] = await Promise.all([
     prisma.reservation.findMany({
@@ -187,7 +267,7 @@ async function getDailyOperationalSummary(query = {}) {
     prisma.productConsumption.findMany({
       where: {
         occurredAt: { gte: from, lte: to },
-        ...(stayId ? { stayId } : {}),
+        ...inventoryScope.stockWhere,
       },
       include: { product: true },
     }),
@@ -195,7 +275,7 @@ async function getDailyOperationalSummary(query = {}) {
       where: {
         status: "open",
         detectedAt: { lte: to },
-        ...(stayId ? { stayId } : {}),
+        ...inventoryScope.stockWhere,
       },
       orderBy: { detectedAt: "desc" },
       take: 10,
@@ -323,6 +403,9 @@ async function getDailyOperationalSummary(query = {}) {
 
 async function getAutomatedCleaningUsage(query = {}) {
   const { from, to } = getDateRange(query);
+  const stayFilter = Array.isArray(query.stayIds) && query.stayIds.length
+    ? { room: { stayId: { in: query.stayIds.map(String) } } }
+    : query.stayId ? { room: { stayId: String(query.stayId) } } : {};
   const reservations = await prisma.reservation.findMany({
     where: {
       status: { not: "cancelada" },
@@ -333,7 +416,7 @@ async function getAutomatedCleaningUsage(query = {}) {
           checkoutDate: { gte: from, lte: to },
         },
       ],
-      ...(query.stayId ? { room: { stayId: String(query.stayId) } } : {}),
+      ...stayFilter,
     },
     include: { room: { include: { stay: true } } },
     orderBy: { checkoutDate: "asc" },
@@ -431,6 +514,8 @@ async function decrementLots(tx, { stayId, productId, baseQuantity, lotId }) {
 
 async function registerProductEntry(data) {
   assertRequired(data, ["stayId", "productId", "quantity", "unit"]);
+  const scope = await getInventoryStayScope(data.stayId);
+  const stockStayId = scope.stockWriteStayId || data.stayId;
   const product = await prisma.product.findUnique({ where: { id: data.productId } });
   if (!product) {
     const error = new Error("Produto nao encontrado.");
@@ -450,7 +535,7 @@ async function registerProductEntry(data) {
   return prisma.$transaction(async (tx) => {
     const lot = await tx.productLot.create({
       data: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         code: data.lotCode || null,
         initialQuantity: normalized.baseValue,
@@ -462,7 +547,7 @@ async function registerProductEntry(data) {
 
     const entry = await tx.productEntry.create({
       data: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         lotId: lot.id,
         quantity: Number(data.quantity),
@@ -480,13 +565,13 @@ async function registerProductEntry(data) {
     });
 
     await tx.inventory.upsert({
-      where: { stayId_productId: { stayId: data.stayId, productId: data.productId } },
+      where: { stayId_productId: { stayId: stockStayId, productId: data.productId } },
       update: {
         quantity: { increment: normalized.baseValue },
         capacity: { increment: normalized.baseValue },
       },
       create: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         quantity: normalized.baseValue,
         capacity: normalized.baseValue,
@@ -495,7 +580,7 @@ async function registerProductEntry(data) {
 
     await tx.productInventorySnapshot.create({
       data: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         quantity: normalized.baseValue,
         source: "entry",
@@ -509,10 +594,12 @@ async function registerProductEntry(data) {
 
 async function registerProductConsumption(data) {
   assertRequired(data, ["stayId", "productId", "quantity", "unit", "operationType"]);
+  const scope = await getInventoryStayScope(data.stayId);
+  const stockStayId = scope.stockWriteStayId || data.stayId;
   const normalized = normalizeQuantity(data.quantity, data.unit);
   const occurredAt = data.occurredAt ? new Date(data.occurredAt) : new Date();
   const baseline = await getConsumptionBaseline({
-    stayId: data.stayId,
+    stayId: stockStayId,
     productId: data.productId,
     operationType: data.operationType,
     before: occurredAt,
@@ -526,7 +613,7 @@ async function registerProductConsumption(data) {
 
   return prisma.$transaction(async (tx) => {
     const lotResult = await decrementLots(tx, {
-      stayId: data.stayId,
+      stayId: stockStayId,
       productId: data.productId,
       baseQuantity: normalized.baseValue,
       lotId: data.lotId || null,
@@ -534,7 +621,7 @@ async function registerProductConsumption(data) {
 
     const consumption = await tx.productConsumption.create({
       data: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         lotId: lotResult.lotId,
         roomId: data.roomId || null,
@@ -556,10 +643,10 @@ async function registerProductConsumption(data) {
     });
 
     await tx.inventory.upsert({
-      where: { stayId_productId: { stayId: data.stayId, productId: data.productId } },
+      where: { stayId_productId: { stayId: stockStayId, productId: data.productId } },
       update: { quantity: { decrement: normalized.baseValue } },
       create: {
-        stayId: data.stayId,
+        stayId: stockStayId,
         productId: data.productId,
         quantity: -normalized.baseValue,
         capacity: 0,
@@ -569,7 +656,7 @@ async function registerProductConsumption(data) {
     if (isAnomaly) {
       await tx.productAlert.create({
         data: {
-          stayId: data.stayId,
+          stayId: stockStayId,
           productId: data.productId,
           type: "HIGH_CONSUMPTION",
           severity: anomalyScore >= 2 ? "CRITICAL" : "WARNING",
@@ -592,9 +679,10 @@ async function registerProductConsumption(data) {
 
 async function listProductEntries(query = {}) {
   const { from, to } = getDateRange(query);
+  const scope = await getInventoryStayScope(query.stayId);
   return prisma.productEntry.findMany({
     where: {
-      ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+      ...scope.stockWhere,
       ...(query.productId ? { productId: String(query.productId) } : {}),
       entryDate: { gte: from, lte: to },
     },
@@ -674,9 +762,10 @@ async function deleteProductEntry(id) {
 
 async function listProductConsumptions(query = {}) {
   const { from, to } = getDateRange(query);
+  const scope = await getInventoryStayScope(query.stayId);
   return prisma.productConsumption.findMany({
     where: {
-      ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+      ...scope.stockWhere,
       ...(query.productId ? { productId: String(query.productId) } : {}),
       ...(query.operationType ? { operationType: String(query.operationType) } : {}),
       occurredAt: { gte: from, lte: to },
@@ -792,16 +881,22 @@ async function registerLaundryDispatch(data) {
   });
 }
 
-async function getCheckoutStats({ stayId, startedAt, endedAt }) {
-  const [usage] = await getAutomatedCleaningUsage({ stayId, from: startedAt, to: endedAt });
+async function getCheckoutStats({ stayId, stayIds, startedAt, endedAt }) {
+  const usageRows = await getAutomatedCleaningUsage({ stayId, stayIds, from: startedAt, to: endedAt });
+  const usage = {
+    accommodationCleanings: sum(usageRows, (item) => item.accommodationCleanings),
+    corridorCleanings: sum(usageRows, (item) => item.corridorCleanings),
+  };
   return {
-    checkoutCount: usage?.accommodationCleanings || 0,
-    corridorDays: usage?.corridorCleanings || 0,
+    checkoutCount: usage.accommodationCleanings || 0,
+    corridorDays: usage.corridorCleanings || 0,
   };
 }
 
 async function calculateUsageCycle(data) {
   assertRequired(data, ["stayId", "productId", "startedAt", "endedAt", "consumedQuantity"]);
+  const scope = await getInventoryStayScope(data.stayId);
+  const stockStayId = scope.stockWriteStayId || data.stayId;
   const product = await prisma.product.findUnique({ where: { id: data.productId } });
   if (!product) {
     const error = new Error("Produto nao encontrado.");
@@ -812,7 +907,12 @@ async function calculateUsageCycle(data) {
   const startedAt = new Date(data.startedAt);
   const endedAt = new Date(data.endedAt);
   const consumedQuantity = parsePositiveNumber(data.consumedQuantity, "consumedQuantity");
-  const stats = await getCheckoutStats({ stayId: data.stayId, startedAt, endedAt });
+  const stats = await getCheckoutStats({
+    stayId: data.stayId,
+    stayIds: scope.isShared ? scope.stockStayIds : null,
+    startedAt,
+    endedAt,
+  });
   const corridorWeight = Number(product.corridorWeight ?? 1);
   const weightedOperations = stats.checkoutCount + stats.corridorDays * corridorWeight;
   const avgPerWeightedOperation = weightedOperations > 0 ? consumedQuantity / weightedOperations : null;
@@ -823,7 +923,7 @@ async function calculateUsageCycle(data) {
     ? await prisma.productEntry.findFirst({ where: { lotId: data.lotId } })
     : await prisma.productEntry.findFirst({
         where: {
-          stayId: data.stayId,
+          ...(scope.isShared ? { stayId: { in: scope.stockStayIds } } : { stayId: stockStayId }),
           productId: data.productId,
           entryDate: { gte: dayjs(startedAt).subtract(3, "day").toDate(), lte: endedAt },
         },
@@ -832,7 +932,7 @@ async function calculateUsageCycle(data) {
   const costPerBase = entry?.unitCost ? Number(entry.unitCost) : null;
 
   return {
-    stayId: data.stayId,
+    stayId: stockStayId,
     productId: data.productId,
     lotId: data.lotId || null,
     startedAt,
@@ -887,9 +987,10 @@ async function deleteUsageCycle(id) {
 
 async function listUsageCycles(query = {}) {
   const { from, to } = getDateRange(query);
+  const scope = await getInventoryStayScope(query.stayId);
   return prisma.productUsageCycle.findMany({
     where: {
-      ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+      ...scope.stockWhere,
       ...(query.productId ? { productId: String(query.productId) } : {}),
       startedAt: { lte: to },
       endedAt: { gte: from },
@@ -989,6 +1090,59 @@ async function listLaundryDispatches(query = {}) {
     include: { stay: true, room: true, maid: true, reservation: true, items: true },
     orderBy: { dispatchDate: "desc" },
   });
+}
+
+async function listLaundryItemPrices() {
+  const prices = await prisma.laundryItemPrice.findMany({ orderBy: { itemType: "asc" } });
+  const byType = new Map(prices.map((item) => [item.itemType, item]));
+
+  return Object.keys(laundryPieces).map((itemType) => {
+    const price = byType.get(itemType);
+    return {
+      id: price?.id || null,
+      itemType,
+      label: getLaundryItemLabel(itemType),
+      price: price ? Number(price.price || 0) : 0,
+      notes: price?.notes || "",
+    };
+  });
+}
+
+async function upsertLaundryItemPrices(items = []) {
+  if (!Array.isArray(items)) {
+    const error = new Error("Lista de valores invalida.");
+    error.status = 400;
+    throw error;
+  }
+
+  const saved = await prisma.$transaction(
+    items
+      .filter((item) => item?.itemType && Object.prototype.hasOwnProperty.call(laundryPieces, item.itemType))
+      .map((item) => prisma.laundryItemPrice.upsert({
+        where: { itemType: item.itemType },
+        update: {
+          price: Number(item.price || 0),
+          notes: item.notes || null,
+        },
+        create: {
+          itemType: item.itemType,
+          price: Number(item.price || 0),
+          notes: item.notes || null,
+        },
+      })),
+  );
+
+  const savedTypes = new Set(saved.map((item) => item.itemType));
+  const missingTypes = Object.keys(laundryPieces).filter((itemType) => !savedTypes.has(itemType));
+  if (missingTypes.length) {
+    await prisma.$transaction(missingTypes.map((itemType) => prisma.laundryItemPrice.upsert({
+      where: { itemType },
+      update: {},
+      create: { itemType, price: 0 },
+    })));
+  }
+
+  return listLaundryItemPrices();
 }
 
 async function updateLaundryDispatch(id, data) {
@@ -1161,7 +1315,8 @@ function buildDynamicAlerts({ inventory, products, consumptions, entries, predic
 
 async function buildInventoryDashboard(query = {}) {
   const { from, to, days } = getDateRange(query);
-  const stayWhere = query.stayId ? { stayId: String(query.stayId) } : {};
+  const inventoryScope = await getInventoryStayScope(query.stayId);
+  const stayWhere = inventoryScope.stockWhere;
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
 
   const [products, inventory, consumptions, entries, reservations, laundryDispatches, usageCycles, activeLots, persistedAlerts] = await Promise.all([
@@ -1192,7 +1347,7 @@ async function buildInventoryDashboard(query = {}) {
     }),
     prisma.productUsageCycle.findMany({
       where: {
-        ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+        ...stayWhere,
         startedAt: { lte: to },
         endedAt: { gte: dayjs(from).subtract(150, "day").toDate() },
       },
@@ -1201,7 +1356,7 @@ async function buildInventoryDashboard(query = {}) {
     }),
     prisma.productLot.findMany({
       where: {
-        ...(query.stayId ? { stayId: String(query.stayId) } : {}),
+        ...stayWhere,
         status: { in: ["SEALED", "OPEN"] },
         remainingQuantity: { gt: 0 },
       },
@@ -1209,19 +1364,20 @@ async function buildInventoryDashboard(query = {}) {
       orderBy: [{ createdAt: "asc" }],
     }),
     prisma.productAlert.findMany({
-      where: { status: "open", ...(query.stayId ? { stayId: String(query.stayId) } : {}) },
+      where: { status: "open", ...stayWhere },
       orderBy: { detectedAt: "desc" },
       take: 20,
     }),
   ]);
 
+  const inventoryRows = aggregateSharedInventoryRows(inventory, inventoryScope);
   const periodConsumptions = consumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs(from).subtract(1, "millisecond")));
   const periodEntries = entries.filter((item) => dayjs(item.entryDate).isAfter(dayjs(from).subtract(1, "millisecond")));
-  const productIds = new Set([...inventory.map((item) => item.productId), ...periodConsumptions.map((item) => item.productId)]);
+  const productIds = new Set([...inventoryRows.map((item) => item.productId), ...periodConsumptions.map((item) => item.productId)]);
 
   const predictions = [...productIds].map((productId) => {
-    const product = products.find((item) => item.id === productId) || inventory.find((item) => item.productId === productId)?.product;
-    const inv = inventory.find((item) => item.productId === productId);
+    const product = products.find((item) => item.id === productId) || inventoryRows.find((item) => item.productId === productId)?.product;
+    const inv = inventoryRows.find((item) => item.productId === productId);
     const productConsumptions = consumptions.filter((item) => item.productId === productId);
     const last30 = productConsumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs().subtract(30, "day")));
     const last90 = productConsumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs().subtract(90, "day")));
@@ -1268,11 +1424,16 @@ async function buildInventoryDashboard(query = {}) {
   const activeLotProgress = await Promise.all(
     activeLots.map(async (lot) => {
       const startedAt = lot.openedAt || lot.createdAt;
-      const [usage] = await getAutomatedCleaningUsage({
+      const usageRows = await getAutomatedCleaningUsage({
         stayId: lot.stayId,
+        stayIds: inventoryScope.isShared ? inventoryScope.stockStayIds : null,
         from: startedAt,
         to: new Date(),
       });
+      const usage = {
+        accommodationCleanings: sum(usageRows, (item) => item.accommodationCleanings),
+        corridorCleanings: sum(usageRows, (item) => item.corridorCleanings),
+      };
       const corridorWeight = Number(lot.product?.corridorWeight ?? 1);
       const weightedOperations =
         Number(usage?.accommodationCleanings || 0) +
@@ -1317,7 +1478,7 @@ async function buildInventoryDashboard(query = {}) {
       accommodationCleanings: sum(cleaningUsage, (item) => item.accommodationCleanings),
       corridorCleanings: sum(cleaningUsage, (item) => item.corridorCleanings),
     },
-    inventory: inventory.map((item) => ({
+    inventory: inventoryRows.map((item) => ({
       id: item.id,
       stayId: item.stayId,
       stayName: item.stay?.name,
@@ -1336,7 +1497,7 @@ async function buildInventoryDashboard(query = {}) {
     activeLotProgress,
     alerts: [
       ...buildDynamicAlerts({
-        inventory,
+        inventory: inventoryRows,
         products,
         consumptions: periodConsumptions,
         entries,
@@ -1390,8 +1551,10 @@ module.exports = {
   formatBaseQuantity,
   getAutomatedCleaningUsage,
   getDailyOperationalSummary,
+  getInventoryStayScope,
   laundryPieces,
   listLaundryDispatches,
+  listLaundryItemPrices,
   listProductConsumptions,
   listProductEntries,
   listUsageCycles,
@@ -1402,4 +1565,5 @@ module.exports = {
   updateProductEntry,
   updateUsageCycle,
   updateLaundryDispatch,
+  upsertLaundryItemPrices,
 };

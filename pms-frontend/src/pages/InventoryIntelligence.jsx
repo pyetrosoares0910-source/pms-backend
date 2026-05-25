@@ -6,6 +6,7 @@ import {
   Boxes,
   CheckCircle2,
   ClipboardCheck,
+  DollarSign,
   PackagePlus,
   Pencil,
   RefreshCw,
@@ -108,6 +109,27 @@ function buildLaundryDraft(roomSummary) {
 
 function getLaundryTotalPieces(items = []) {
   return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(item.unitPieces || 1), 0);
+}
+
+function getLaundryCost(items = [], priceMap = new Map()) {
+  return items.reduce((total, item) => total + Number(item.quantity || 0) * Number(priceMap.get(item.itemType) || 0), 0);
+}
+
+function getRoomLaundryTemplateValues(room) {
+  const beds = Math.max(0, Number(room?.preparedBeds ?? 1));
+  const template = room?.laundryTemplate || {};
+  return {
+    preparedBeds: String(beds),
+    items: laundryItems.map(([itemType, label, unitPieces]) => ({
+      itemType,
+      label,
+      unitPieces,
+      quantity: String(template[itemType] ?? (
+        itemType === "PILLOWCASE" ? beds * 2 :
+          itemType === "FITTED_SHEET" || itemType === "TOP_SHEET" || itemType === "FACE_TOWEL" || itemType === "BATH_TOWEL" ? beds : 0
+      )),
+    })),
+  };
 }
 
 const emptyEntry = {
@@ -443,6 +465,7 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
       ["name", "Nome", "text"],
       ["category", "Categoria", "text"],
       ["unitBase", "Unidade base", "select-base"],
+      ["defaultPrice", "Valor padrao", "number"],
       ["packageSizeValue", "Tamanho embalagem", "number"],
       ["packageSizeUnit", "Unidade embalagem", "text"],
       ["packageBaseQuantity", "Qtd base por embalagem", "number"],
@@ -573,6 +596,8 @@ export default function InventoryIntelligence() {
   const [staff, setStaff] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [lots, setLots] = useState([]);
+  const [laundryPrices, setLaundryPrices] = useState([]);
+  const [laundryPricesOpen, setLaundryPricesOpen] = useState(false);
   const [cycleForm, setCycleForm] = useState(emptyCycle);
   const [closingLotId, setClosingLotId] = useState("");
   const [editModal, setEditModal] = useState(null);
@@ -580,6 +605,8 @@ export default function InventoryIntelligence() {
   const [consumptionForm, setConsumptionForm] = useState(emptyConsumption);
   const [productForm, setProductForm] = useState(emptyProduct);
   const [laundryDrafts, setLaundryDrafts] = useState({});
+  const [laundryTemplateRoomId, setLaundryTemplateRoomId] = useState("");
+  const [laundryTemplateForm, setLaundryTemplateForm] = useState(getRoomLaundryTemplateValues(null));
 
   const selectedStayRooms = useMemo(
     () => rooms.filter((room) => !filters.stayId || room.stayId === filters.stayId),
@@ -600,7 +627,7 @@ export default function InventoryIntelligence() {
       if (filters.from) qs.set("from", filters.from);
       if (filters.to) qs.set("to", filters.to);
 
-      const [dash, productRows, stayRows, roomRows, maidRows, staffRows, reservationRows, lotRows] = await Promise.all([
+      const [dash, productRows, stayRows, roomRows, maidRows, staffRows, reservationRows, lotRows, laundryPriceRows] = await Promise.all([
         api(`/api/inventory-intelligence/dashboard?${qs.toString()}`),
         api("/api/products"),
         api("/stays"),
@@ -609,6 +636,7 @@ export default function InventoryIntelligence() {
         api("/staff"),
         api("/reservations"),
         api(`/api/inventory-intelligence/lots?${qs.toString()}`),
+        api("/api/inventory-intelligence/laundry-prices"),
       ]);
       setDashboard(dash);
       setProducts(Array.isArray(productRows) ? productRows : []);
@@ -618,6 +646,7 @@ export default function InventoryIntelligence() {
       setStaff(Array.isArray(staffRows) ? staffRows : []);
       setReservations(Array.isArray(reservationRows) ? reservationRows : []);
       setLots(Array.isArray(lotRows) ? lotRows : []);
+      setLaundryPrices(Array.isArray(laundryPriceRows) ? laundryPriceRows : []);
     } catch (err) {
       console.error("Erro ao carregar estoque inteligente:", err);
       setError(err.message || "Erro ao carregar dados.");
@@ -724,6 +753,76 @@ export default function InventoryIntelligence() {
       ...current,
       items: current.items.map((item) => item.itemType === itemType ? { ...item, quantity: item.quantity > 0 ? item.quantity : 1 } : item),
     }));
+  }
+
+  function selectLaundryTemplateRoom(roomId) {
+    setLaundryTemplateRoomId(roomId);
+    const room = rooms.find((item) => item.id === roomId);
+    setLaundryTemplateForm(getRoomLaundryTemplateValues(room || null));
+  }
+
+  function updateLaundryTemplateQuantity(itemType, quantity) {
+    setLaundryTemplateForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => item.itemType === itemType ? { ...item, quantity } : item),
+    }));
+  }
+
+  function updateLaundryPrice(itemType, field, value) {
+    setLaundryPrices((prev) => prev.map((item) => item.itemType === itemType ? { ...item, [field]: value } : item));
+  }
+
+  async function saveLaundryPrices() {
+    setSaving(true);
+    try {
+      const saved = await api("/api/inventory-intelligence/laundry-prices", {
+        method: "PUT",
+        body: JSON.stringify({
+          items: laundryPrices.map((item) => ({
+            itemType: item.itemType,
+            price: Number(item.price || 0),
+            notes: item.notes || "",
+          })),
+        }),
+      });
+      setLaundryPrices(Array.isArray(saved) ? saved : []);
+      setLaundryPricesOpen(false);
+    } catch (err) {
+      alert(err.message || "Falha ao salvar valores da lavanderia.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveLaundryTemplate() {
+    const room = rooms.find((item) => item.id === laundryTemplateRoomId);
+    if (!room) {
+      alert("Selecione uma acomodacao para configurar.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api(`/rooms/${room.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          title: room.title,
+          category: room.category || null,
+          description: room.description || null,
+          stayId: room.stayId || null,
+          position: room.position ?? null,
+          active: room.active,
+          preparedBeds: Number(laundryTemplateForm.preparedBeds || 0),
+          laundryTemplate: Object.fromEntries(
+            laundryTemplateForm.items.map((item) => [item.itemType, Math.max(0, Math.round(Number(item.quantity || 0)))]),
+          ),
+        }),
+      });
+      await load();
+    } catch (err) {
+      alert(err.message || "Falha ao salvar padrao de lavanderia.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function saveLaundryDraft(reservationId) {
@@ -852,6 +951,7 @@ export default function InventoryIntelligence() {
         name: row.name || "",
         category: row.category || "",
         unitBase: row.unitBase || "UNIT",
+        defaultPrice: row.defaultPrice ?? "",
         packageSizeValue: row.packageSizeValue ?? "",
         packageSizeUnit: row.packageSizeUnit || "",
         packageBaseQuantity: row.packageBaseQuantity ?? "",
@@ -915,6 +1015,17 @@ export default function InventoryIntelligence() {
       return next;
     });
   }, [todaySummary.date, todaySummary.rooms]);
+
+  useEffect(() => {
+    if (!laundryTemplateRoomId) return;
+    const room = rooms.find((item) => item.id === laundryTemplateRoomId);
+    if (room) setLaundryTemplateForm(getRoomLaundryTemplateValues(room));
+  }, [rooms, laundryTemplateRoomId]);
+
+  const laundryPriceMap = useMemo(
+    () => new Map(laundryPrices.map((item) => [item.itemType, Number(item.price || 0)])),
+    [laundryPrices],
+  );
 
   return (
     <div className="min-h-screen space-y-5 text-slate-900 dark:text-slate-100">
@@ -1370,6 +1481,64 @@ export default function InventoryIntelligence() {
 
       {!loading && tab === "laundry" ? (
         <Section title="Envios para lavanderia">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5 dark:border-slate-800">
+            <div>
+              <div className="text-sm font-black text-slate-950 dark:text-slate-50">Valores atuais da lavanderia</div>
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Usados para estimar custo por acomodacao e por dia.</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLaundryPricesOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              <DollarSign size={16} />
+              Definir valores
+            </button>
+          </div>
+
+          <div className="mb-5 border-b border-slate-200 pb-5 dark:border-slate-800">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <Field label="Padrao da acomodacao">
+                <select value={laundryTemplateRoomId} onChange={(event) => selectLaundryTemplateRoom(event.target.value)} className={inputClass("min-w-72")}>
+                  <option value="">Selecionar acomodacao</option>
+                  {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
+                </select>
+              </Field>
+              <button
+                type="button"
+                disabled={saving || !laundryTemplateRoomId}
+                onClick={saveLaundryTemplate}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
+              >
+                <Save size={16} />
+                Salvar padrao
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <Field label="Camas feitas">
+                <input
+                  type="number"
+                  min="0"
+                  value={laundryTemplateForm.preparedBeds}
+                  onChange={(event) => setLaundryTemplateForm((prev) => ({ ...prev, preparedBeds: event.target.value }))}
+                  className={inputClass()}
+                />
+              </Field>
+              {laundryTemplateForm.items.map((item) => (
+                <Field key={item.itemType} label={item.label}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.quantity}
+                    onChange={(event) => updateLaundryTemplateQuantity(item.itemType, event.target.value)}
+                    className={inputClass()}
+                  />
+                </Field>
+              ))}
+            </div>
+          </div>
+
           <div className="mb-5 grid gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 lg:grid-cols-[1fr_1fr_0.75fr]">
             <div className="lg:border-r lg:border-slate-200 lg:pr-4 lg:dark:border-slate-800">
               <div className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-200">Previsto pelos check-outs de hoje</div>
@@ -1411,6 +1580,12 @@ export default function InventoryIntelligence() {
                   <span className="text-3xl font-black text-slate-950 dark:text-slate-50">{todaySummary.laundry?.sentPieces || 0}</span>
                 </div>
                 <div className="flex items-end justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Custo previsto</span>
+                  <span className="text-3xl font-black text-slate-950 dark:text-slate-50">
+                    {formatMoney((todaySummary.laundry?.expected || []).reduce((total, item) => total + Number(item.quantity || 0) * Number(laundryPriceMap.get(item.itemType) || 0), 0))}
+                  </span>
+                </div>
+                <div className="flex items-end justify-between gap-3">
                   <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Registros</span>
                   <span className="text-3xl font-black text-slate-950 dark:text-slate-50">{todaySummary.laundry?.dispatches || 0}</span>
                 </div>
@@ -1442,6 +1617,7 @@ export default function InventoryIntelligence() {
                     <div className="text-right">
                       <div className="text-2xl font-black text-slate-950 dark:text-slate-50">{getLaundryTotalPieces(draft.items)}</div>
                       <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">pecas</div>
+                      <div className="mt-1 text-sm font-black text-emerald-700 dark:text-emerald-200">{formatMoney(getLaundryCost(draft.items, laundryPriceMap))}</div>
                     </div>
                   </div>
 
@@ -1548,6 +1724,9 @@ export default function InventoryIntelligence() {
               <Field label="Fornecedor padrao">
                 <input value={productForm.supplier} onChange={(event) => setProductForm((prev) => ({ ...prev, supplier: event.target.value }))} className={inputClass()} />
               </Field>
+              <Field label="Valor padrao">
+                <input type="number" step="0.01" value={productForm.defaultPrice} onChange={(event) => setProductForm((prev) => ({ ...prev, defaultPrice: event.target.value }))} className={inputClass()} />
+              </Field>
               <Field label="Unidades por pacote">
                 <input type="number" step="0.01" value={productForm.unitsPerPackage} onChange={(event) => setProductForm((prev) => ({ ...prev, unitsPerPackage: event.target.value }))} className={inputClass()} />
               </Field>
@@ -1577,6 +1756,7 @@ export default function InventoryIntelligence() {
                 { key: "name", label: "Produto" },
                 { key: "category", label: "Categoria" },
                 { key: "unitBase", label: "Base" },
+                { key: "defaultPrice", label: "Valor", render: (row) => row.defaultPrice ? formatMoney(row.defaultPrice) : "-" },
                 { key: "packageSizeValue", label: "Embalagem", render: (row) => row.packageSizeValue ? `${row.packageSizeValue} ${row.packageSizeUnit || ""}` : "-" },
                 { key: "unitsPerPackage", label: "Un/pct", render: (row) => row.unitsPerPackage || "-" },
                 { key: "packageBaseQuantity", label: "Base/emb.", render: (row) => row.packageBaseQuantity || "-" },
@@ -1609,6 +1789,64 @@ export default function InventoryIntelligence() {
               rows={products}
             />
           </Section>
+        </div>
+      ) : null}
+      {laundryPricesOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-4xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 dark:border-slate-800 dark:bg-slate-950">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+              <div>
+                <h2 className="text-lg font-black text-slate-950 dark:text-slate-50">Valores da lavanderia</h2>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Preencha o valor atual cobrado por unidade de cada item.</p>
+              </div>
+              <button type="button" onClick={() => setLaundryPricesOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto p-4">
+              <MiniTable
+                empty="Nenhum item de lavanderia encontrado."
+                columns={[
+                  { key: "label", label: "Item" },
+                  {
+                    key: "price",
+                    label: "Valor unitario",
+                    render: (row) => (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.price}
+                        onChange={(event) => updateLaundryPrice(row.itemType, "price", event.target.value)}
+                        className={inputClass("max-w-40")}
+                      />
+                    ),
+                  },
+                  {
+                    key: "notes",
+                    label: "Observacoes",
+                    render: (row) => (
+                      <input
+                        value={row.notes || ""}
+                        onChange={(event) => updateLaundryPrice(row.itemType, "notes", event.target.value)}
+                        className={inputClass()}
+                      />
+                    ),
+                  },
+                ]}
+                rows={laundryPrices}
+              />
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+              <button type="button" onClick={() => setLaundryPricesOpen(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900">
+                Cancelar
+              </button>
+              <button type="button" disabled={saving} onClick={saveLaundryPrices} className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60">
+                <Save size={16} />
+                Salvar valores
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
       <EditModal

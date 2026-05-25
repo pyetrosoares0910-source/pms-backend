@@ -8,7 +8,9 @@ const {
   deleteUsageCycle,
   depleteLotAndCreateCycle,
   getAutomatedCleaningUsage,
+  getInventoryStayScope,
   listLaundryDispatches,
+  listLaundryItemPrices,
   listProductConsumptions,
   listProductEntries,
   listUsageCycles,
@@ -19,6 +21,7 @@ const {
   updateProductEntry,
   updateUsageCycle,
   updateLaundryDispatch,
+  upsertLaundryItemPrices,
 } = require("../services/inventoryIntelligenceService.js");
 
 function handleError(res, error, fallback = "Erro no modulo de estoque inteligente.") {
@@ -127,6 +130,24 @@ async function listLaundry(req, res) {
   }
 }
 
+async function listLaundryPrices(req, res) {
+  try {
+    const prices = await listLaundryItemPrices();
+    res.json(prices);
+  } catch (error) {
+    handleError(res, error, "Erro ao listar valores da lavanderia.");
+  }
+}
+
+async function updateLaundryPrices(req, res) {
+  try {
+    const prices = await upsertLaundryItemPrices(req.body.items || req.body);
+    res.json(prices);
+  } catch (error) {
+    handleError(res, error, "Erro ao salvar valores da lavanderia.");
+  }
+}
+
 async function updateLaundry(req, res) {
   try {
     const dispatch = await updateLaundryDispatch(String(req.params.id), req.body);
@@ -201,9 +222,10 @@ async function depleteLot(req, res) {
 
 async function listLots(req, res) {
   try {
+    const scope = await getInventoryStayScope(req.query.stayId);
     const lots = await prisma.productLot.findMany({
       where: {
-        ...(req.query.stayId ? { stayId: String(req.query.stayId) } : {}),
+        ...scope.stockWhere,
         ...(req.query.productId ? { productId: String(req.query.productId) } : {}),
       },
       include: { product: true, stay: true },
@@ -254,10 +276,12 @@ module.exports = {
   listCycles,
   listEntries,
   listLaundry,
+  listLaundryPrices,
   listLots,
   updateConsumption,
   updateCycle,
   updateEntry,
   updateLaundry,
+  updateLaundryPrices,
   updateLot,
 };

@@ -569,6 +569,15 @@ model LaundryDispatchItem {
   @@unique([dispatchId, itemType])
 }
 
+model LaundryItemPrice {
+  id        String          @id @default(cuid())
+  itemType  LaundryItemType @unique
+  price     Decimal         @default(0)
+  notes     String?
+  updatedAt DateTime        @updatedAt
+  createdAt DateTime        @default(now())
+}
+
 enum ProductOperationType {
   CHECKOUT_CLEANING
   DAILY_CLEANING

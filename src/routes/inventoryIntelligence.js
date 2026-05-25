@@ -15,9 +15,11 @@ const {
   listCycles,
   listEntries,
   listLaundry,
+  listLaundryPrices,
   listLots,
   updateConsumption,
   updateLaundry,
+  updateLaundryPrices,
   updateCycle,
   updateEntry,
   updateLot,
@@ -39,6 +41,8 @@ router.get("/inventory-intelligence/laundry", listLaundry);
 router.post("/inventory-intelligence/laundry", createLaundry);
 router.put("/inventory-intelligence/laundry/:id", updateLaundry);
 router.delete("/inventory-intelligence/laundry/:id", deleteLaundry);
+router.get("/inventory-intelligence/laundry-prices", listLaundryPrices);
+router.put("/inventory-intelligence/laundry-prices", updateLaundryPrices);
 router.get("/inventory-intelligence/cycles", listCycles);
 router.post("/inventory-intelligence/cycles", createCycle);
 router.put("/inventory-intelligence/cycles/:id", updateCycle);
