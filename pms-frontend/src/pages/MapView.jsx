@@ -434,7 +434,7 @@ function ReservationActionsModal({
       await updateStatus(pendingStatus);
     } catch (err) {
       console.error("Erro ao remover designacao:", err);
-      alert(err?.message || "Erro ao remover designacao da diarista.");
+      alert(err?.message || "Erro ao remover designação da diarista.");
     } finally {
       setRemovingAssignment(false);
     }
@@ -470,7 +470,7 @@ function ReservationActionsModal({
               <span className="font-medium text-slate-700 dark:text-slate-200">
                 Motivo:
               </span>{" "}
-              {reservation.cleaningChangeReason || "Nao informado"}
+              {reservation.cleaningChangeReason || "Não informado"}
             </div>
           ) : null}
         </div>
@@ -487,7 +487,7 @@ function ReservationActionsModal({
             {updatedAtLabel && (
               <div className="mt-1">
                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                  Ultima alteracao:
+                  Última alteração:
                 </span>{" "}
                 {updatedAtLabel}
               </div>
@@ -504,7 +504,7 @@ function ReservationActionsModal({
                 {assignmentConflict.maid?.name || "Diarista"} esta marcada em{" "}
                 {assignmentConflict.date
                   ? fmtBR(parseDateOnly(assignmentConflict.date))
-                  : "data nao informada"}{" "}
+                  : "data não informada"}{" "}
                 para {assignmentConflict.task?.stay} - {assignmentConflict.task?.rooms}.
               </div>
               {assignmentConflict.isOnlyAssignmentForMaidThatDay ? (
@@ -549,8 +549,8 @@ function ReservationActionsModal({
                 className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
               >
                 {removingAssignment
-                  ? "Removendo designacao..."
-                  : "Remover designacao desta reserva e continuar"}
+                  ? "Removendo designação..."
+                  : "Remover designação desta reserva e continuar"}
               </button>
             </div>
           )}
@@ -672,7 +672,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
         setAssignmentConflict(err.payload.details);
         return;
       }
-      alert(err?.message || "Erro ao salvar alteracoes");
+      alert(err?.message || "Erro ao salvar alterações");
     } finally {
       setLoading(false);
     }
@@ -697,7 +697,7 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
       await saveReservation(form);
     } catch (err) {
       console.error("Erro ao remover designacao:", err);
-      alert(err?.message || "Erro ao remover designacao da diarista.");
+      alert(err?.message || "Erro ao remover designação da diarista.");
     } finally {
       setRemovingAssignment(false);
     }
@@ -823,8 +823,8 @@ function EditReservationModal({ open, onClose, reservation, rooms, onUpdated }) 
               className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
             >
               {removingAssignment
-                ? "Removendo designacao..."
-                : "Remover designacao desta reserva e salvar"}
+                ? "Removendo designação..."
+                : "Remover designação desta reserva e salvar"}
             </button>
           </div>
         )}
@@ -907,9 +907,9 @@ function ReservationConflictModal({
               A nova reserva não foi inserida porque {roomTitle} já esta ocupada.
             </div>
             <div className="mt-1">
-              Periodo solicitado:{" "}
+              Período solicitado:{" "}
               {requested.checkinDate ? fmtBR(parseDateOnly(requested.checkinDate)) : "__/__/__"}{" "}
-              ate{" "}
+              até{" "}
               {requested.checkoutDate ? fmtBR(parseDateOnly(requested.checkoutDate)) : "__/__/__"}.
             </div>
           </div>
@@ -923,14 +923,14 @@ function ReservationConflictModal({
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="font-semibold text-slate-900 dark:text-slate-50">
-                      {reservation.guest?.name || "Hospede sem nome"}
+                      {reservation.guest?.name || "Hóspede sem nome"}
                     </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       {reservation.room?.stay?.name ? `${reservation.room.stay.name} - ` : ""}
                       {reservation.room?.title || roomTitle}
                     </div>
                     <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      {fmtBR(parseDateOnly(reservation.checkinDate))} ate{" "}
+                      {fmtBR(parseDateOnly(reservation.checkinDate))} até{" "}
                       {fmtBR(parseDateOnly(reservation.checkoutDate))} / {reservation.status}
                     </div>
                     {reservation.notes ? (
@@ -1275,7 +1275,7 @@ export default function MapView() {
             Mapa de Reservas
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Visao por acomodacao, periodo e status das reservas.
+            Visão por acomodação, período e status das reservas.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -1532,7 +1532,7 @@ export default function MapView() {
           </span>
         ))}
         <span className="ml-auto hidden text-slate-400 sm:inline">
-          Clique em uma reserva para acoes rapidas.
+          Clique em uma reserva para ações rápidas.
         </span>
       </div>
 

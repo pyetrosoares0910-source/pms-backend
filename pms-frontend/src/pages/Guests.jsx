@@ -81,7 +81,7 @@ function normalizeText(value) {
 }
 
 function getStayName(room) {
-  return room?.stay?.name || "Sem stay";
+  return room?.stay?.name || "Sem empreendimento";
 }
 
 function abbrevStay(name) {
@@ -97,7 +97,7 @@ function abbrevStay(name) {
   const normalized = normalizeText(name);
   const mapped = Object.entries(map).find(([key]) => normalizeText(key) === normalized);
   if (mapped) return mapped[1];
-  return name?.split("(")[0]?.trim() || name || "Sem stay";
+  return name?.split("(")[0]?.trim() || name || "Sem empreendimento";
 }
 
 function hasMeaningfulUpdate(item) {
@@ -243,7 +243,7 @@ export default function Guests() {
       setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
     } catch (err) {
       console.error("Erro ao carregar hospedes:", err);
-      alert(getApiErrorMessage(err, "Erro ao carregar hospedes."));
+      alert(getApiErrorMessage(err, "Erro ao carregar hóspedes."));
     } finally {
       setLoading(false);
     }
@@ -376,18 +376,18 @@ export default function Guests() {
       fetchData();
     } catch (err) {
       console.error("Erro ao criar hospede:", err);
-      alert(getApiErrorMessage(err, "Erro ao criar hospede."));
+      alert(getApiErrorMessage(err, "Erro ao criar hóspede."));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Deseja realmente excluir este hospede?")) return;
+    if (!confirm("Deseja realmente excluir este hóspede?")) return;
     try {
       await api.delete(`/guests/${id}`);
       fetchData();
     } catch (err) {
       console.error("Erro ao excluir hospede:", err);
-      alert(getApiErrorMessage(err, "Erro ao excluir hospede."));
+      alert(getApiErrorMessage(err, "Erro ao excluir hóspede."));
     }
   };
 
@@ -412,7 +412,7 @@ export default function Guests() {
       fetchData();
     } catch (err) {
       console.error("Erro ao atualizar hospede:", err);
-      alert(getApiErrorMessage(err, "Erro ao atualizar hospede."));
+      alert(getApiErrorMessage(err, "Erro ao atualizar hóspede."));
     }
   };
 
@@ -425,7 +425,7 @@ export default function Guests() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
-        Carregando hospedes...
+        Carregando hóspedes...
       </div>
     );
   }
@@ -434,9 +434,9 @@ export default function Guests() {
     <div className="min-h-screen space-y-5 bg-gray-50 p-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Hospedes</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Hóspedes</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Cadastro pesquisavel com contexto de reservas, estadias e contatos.
+            Cadastro pesquisável com contexto de reservas, estadias e contatos.
           </p>
         </div>
         <button
@@ -445,7 +445,7 @@ export default function Guests() {
           className="inline-flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800"
         >
           {showCreateForm ? <X size={16} /> : <Plus size={16} />}
-          {showCreateForm ? "Fechar cadastro" : "Novo hospede"}
+          {showCreateForm ? "Fechar cadastro" : "Novo hóspede"}
         </button>
       </div>
 
@@ -514,7 +514,7 @@ export default function Guests() {
             onChange={(event) => setFilters({ ...filters, stayId: event.target.value, roomId: "all" })}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
           >
-            <option value="all">Todos stays</option>
+            <option value="all">Todos empreendimentos</option>
             {stayOptions.map(([id, name]) => (
               <option key={id} value={id}>
                 {abbrevStay(name)}
@@ -571,7 +571,7 @@ export default function Guests() {
             />
           </label>
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Criado ate
+            Criado até
             <input
               type="date"
               value={filters.createdTo}
@@ -589,7 +589,7 @@ export default function Guests() {
             />
           </label>
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Estadia ate
+            Estadia até
             <input
               type="date"
               value={filters.stayTo}
@@ -639,11 +639,11 @@ export default function Guests() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
           <div>
             <div className="font-semibold text-slate-950 dark:text-slate-50">
-              {visibleGuests.length} de {filteredGuests.length} hospede(s)
+              {visibleGuests.length} de {filteredGuests.length} hóspede(s)
             </div>
             {!hasActiveFilters && !showAllResults && filteredGuests.length > INITIAL_VISIBLE_LIMIT ? (
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                Exibindo os ultimos {INITIAL_VISIBLE_LIMIT} hospedes cadastrados.
+                Exibindo os últimos {INITIAL_VISIBLE_LIMIT} hóspedes cadastrados.
               </div>
             ) : null}
           </div>
@@ -662,13 +662,13 @@ export default function Guests() {
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               <tr>
-                <th className="px-4 py-3">Hospede</th>
+                <th className="px-4 py-3">Hóspede</th>
                 <th className="px-4 py-3">Contato</th>
                 <th className="px-4 py-3">Reservas</th>
                 <th className="px-4 py-3">Status atual</th>
-                <th className="px-4 py-3">Proxima/ultima estadia</th>
-                <th className="px-4 py-3">Historico</th>
-                <th className="px-4 py-3 text-right">Acoes</th>
+                <th className="px-4 py-3">Próxima/última estadia</th>
+                <th className="px-4 py-3">Histórico</th>
+                <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -734,7 +734,7 @@ export default function Guests() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
                         <UserRound size={16} className="text-slate-400" />
-                        {guest.name || "Hospede sem nome"}
+                        {guest.name || "Hóspede sem nome"}
                       </div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         ID {guest.id.slice(0, 8)}
@@ -774,7 +774,7 @@ export default function Guests() {
                         </span>
                       ) : summaryData.total > 0 ? (
                         <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                          historico
+                          histórico
                         </span>
                       ) : (
                         <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
@@ -787,10 +787,10 @@ export default function Guests() {
                         <div>
                           <div className="flex items-center gap-2 font-medium">
                             <CalendarDays size={16} className="text-slate-400" />
-                            {formatDate(referenceReservation.checkinDate)} ate {formatDate(referenceReservation.checkoutDate)}
+                            {formatDate(referenceReservation.checkinDate)} até {formatDate(referenceReservation.checkoutDate)}
                           </div>
                           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            {referenceReservation.room?.title || "Sem acomodacao"} - {abbrevStay(getStayName(referenceReservation.room))}
+                            {referenceReservation.room?.title || "Sem acomodação"} - {abbrevStay(getStayName(referenceReservation.room))}
                           </div>
                           <div className="mt-1">
                             <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase ${getStatusClass(referenceReservation.status)}`}>
@@ -805,7 +805,7 @@ export default function Guests() {
                     <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
                       <div>Criado: {formatDateTime(guest.createdAt)}</div>
                       <div className="mt-1">
-                        Ultima alteracao: {hasMeaningfulUpdate(guest) ? formatDateTime(guest.updatedAt) : "sem alteracao"}
+                        Última alteração: {hasMeaningfulUpdate(guest) ? formatDateTime(guest.updatedAt) : "sem alteração"}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -835,7 +835,7 @@ export default function Guests() {
               {visibleGuests.length === 0 && (
                 <tr>
                   <td colSpan="7" className="px-4 py-10 text-center text-slate-500 dark:text-slate-400">
-                    Nenhum hospede encontrado com os filtros atuais.
+                    Nenhum hóspede encontrado com os filtros atuais.
                   </td>
                 </tr>
               )}

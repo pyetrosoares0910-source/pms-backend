@@ -155,13 +155,13 @@ const CleaningSchedule = () => {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/35 dark:text-emerald-200">
             <Sparkles size={14} />
-            operacao de limpeza
+            operação de limpeza
           </div>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
             Controle de Limpeza
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Escalas por checkout, diaristas e calendario operacional.
+            Escalas por checkout, diaristas e calendário operacional.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ const CleaningSchedule = () => {
       <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/80 bg-white/75 p-4 shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950/60">
         <div className="mr-auto flex items-center gap-2 pb-2 text-sm font-bold text-slate-600 dark:text-slate-300">
           <CalendarDays size={18} />
-          Periodo de exibicao
+          Período de exibição
         </div>
         <div>
           <label className="mb-1 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
@@ -259,7 +259,7 @@ const CleaningSchedule = () => {
                       Diarista
                     </th>
                     <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Acao
+                      Ação
                     </th>
                   </tr>
                 </thead>
@@ -370,7 +370,7 @@ const CleaningSchedule = () => {
                               </button>
                               {t.reservation?.cleaningDateOverride ? (
                                 <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
-                                  Motivo: {t.reservation.cleaningChangeReason || "Nao informado"}
+                                  Motivo: {t.reservation.cleaningChangeReason || "Não informado"}
                                 </div>
                               ) : null}
                             </td>
@@ -474,14 +474,14 @@ const CleaningSchedule = () => {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 dark:text-sky-300">
-              Calendario
+              Calendário
             </p>
             <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950 dark:text-slate-50">
               Agenda de Limpeza
             </h2>
           </div>
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-            Escalas e pendencias
+            Escalas e pendências
           </span>
         </div>
         <div className="app-calendar rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">

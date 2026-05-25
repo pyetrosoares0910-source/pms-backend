@@ -83,7 +83,7 @@ function normalizeText(value) {
 }
 
 function getStayName(room) {
-  return room?.stay?.name || "Sem stay";
+  return room?.stay?.name || "Sem empreendimento";
 }
 
 function abbrevStay(name) {
@@ -99,7 +99,7 @@ function abbrevStay(name) {
   const normalized = normalizeText(name);
   const mapped = Object.entries(map).find(([key]) => normalizeText(key) === normalized);
   if (mapped) return mapped[1];
-  return name?.split("(")[0]?.trim() || name || "Sem stay";
+  return name?.split("(")[0]?.trim() || name || "Sem empreendimento";
 }
 
 function hasMeaningfulUpdate(reservation) {
@@ -390,7 +390,7 @@ export default function Reservations() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Reservas</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Busca rapida, filtros operacionais e detalhes completos das reservas.
+            Busca rápida, filtros operacionais e detalhes completos das reservas.
           </p>
         </div>
         <button
@@ -407,7 +407,7 @@ export default function Reservations() {
         <StatBox label="Total" value={summary.total} />
         <StatBox label="Ativas" value={summary.active} />
         <StatBox label="Futuras" value={summary.upcoming} />
-        <StatBox label="Com alteracao" value={summary.changed} />
+        <StatBox label="Com alteração" value={summary.changed} />
       </div>
 
       {showCreateForm && (
@@ -421,7 +421,7 @@ export default function Reservations() {
             onChange={(event) => setFormData({ ...formData, guestId: event.target.value })}
             required
           >
-            <option value="">Hospede</option>
+            <option value="">Hóspede</option>
             {guestOptions.map((guest) => (
               <option key={guest.id} value={guest.id}>
                 {guest.name}
@@ -435,7 +435,7 @@ export default function Reservations() {
             onChange={(event) => setFormData({ ...formData, roomId: event.target.value })}
             required
           >
-            <option value="">Acomodacao</option>
+            <option value="">Acomodação</option>
             {roomOptions.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.title} - {abbrevStay(getStayName(room))}
@@ -483,7 +483,7 @@ export default function Reservations() {
             className="min-h-20 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 lg:col-span-6"
             value={formData.notes}
             onChange={(event) => setFormData({ ...formData, notes: event.target.value })}
-            placeholder="Observacoes da reserva"
+            placeholder="Observações da reserva"
           />
         </form>
       )}
@@ -495,7 +495,7 @@ export default function Reservations() {
             <input
               value={filters.search}
               onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="Buscar por hospede, telefone, quarto, stay, status, nota ou ID"
+              placeholder="Buscar por hóspede, telefone, quarto, empreendimento, status, nota ou ID"
               className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
@@ -518,7 +518,7 @@ export default function Reservations() {
             onChange={(event) => setFilters({ ...filters, stayId: event.target.value, roomId: "all" })}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
           >
-            <option value="all">Todos stays</option>
+            <option value="all">Todos empreendimentos</option>
             {stayOptions.map(([id, name]) => (
               <option key={id} value={id}>
                 {abbrevStay(name)}
@@ -546,7 +546,7 @@ export default function Reservations() {
             onChange={(event) => setFilters({ ...filters, dateField: event.target.value })}
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
           >
-            <option value="stay">Periodo da estadia</option>
+            <option value="stay">Período da estadia</option>
             <option value="checkin">Check-in</option>
             <option value="checkout">Check-out</option>
           </select>
@@ -590,7 +590,7 @@ export default function Reservations() {
             />
           </label>
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Criada ate
+            Criada até
             <input
               type="date"
               value={filters.createdTo}
@@ -617,9 +617,9 @@ export default function Reservations() {
           ))}
 
           {[
-            ["onlyChanged", "Com ultima alteracao"],
+            ["onlyChanged", "Com última alteração"],
             ["onlyCleaningChanged", "Limpeza alterada"],
-            ["onlyWithNotes", "Com observacao"],
+            ["onlyWithNotes", "Com observação"],
           ].map(([key, label]) => (
             <label
               key={key}
@@ -644,7 +644,7 @@ export default function Reservations() {
             </div>
             {!hasActiveFilters && !showAllResults && filteredReservations.length > INITIAL_VISIBLE_LIMIT ? (
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                Exibindo as ultimas {INITIAL_VISIBLE_LIMIT} reservas criadas.
+                Exibindo as últimas {INITIAL_VISIBLE_LIMIT} reservas criadas.
               </div>
             ) : null}
           </div>
@@ -664,13 +664,13 @@ export default function Reservations() {
             <thead className="bg-slate-100 text-xs uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
               <tr>
                 <th className="px-4 py-3">Reserva</th>
-                <th className="px-4 py-3">Hospede</th>
-                <th className="px-4 py-3">Acomodacao</th>
-                <th className="px-4 py-3">Periodo</th>
+                <th className="px-4 py-3">Hóspede</th>
+                <th className="px-4 py-3">Acomodação</th>
+                <th className="px-4 py-3">Período</th>
                 <th className="px-4 py-3">Limpeza</th>
-                <th className="px-4 py-3">Historico</th>
+                <th className="px-4 py-3">Histórico</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Acoes</th>
+                <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -729,7 +729,7 @@ export default function Reservations() {
                           className="min-h-24 w-full rounded-lg border border-slate-300 bg-white px-2 py-2 dark:border-slate-700 dark:bg-slate-950"
                           value={editData.notes}
                           onChange={(event) => setEditData({ ...editData, notes: event.target.value })}
-                          placeholder="Observacoes"
+                          placeholder="Observações"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -775,12 +775,12 @@ export default function Reservations() {
                         {reservation.id.slice(0, 8)}
                       </div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {reservation.notes ? reservation.notes : "Sem observacao"}
+                        {reservation.notes ? reservation.notes : "Sem observação"}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-900 dark:text-slate-100">
-                        {reservation.guest?.name || "Hospede sem nome"}
+                        {reservation.guest?.name || "Hóspede sem nome"}
                       </div>
                       <div className="mt-1 space-y-0.5 text-xs text-slate-500 dark:text-slate-400">
                         <div>{reservation.guest?.phone || "Sem telefone"}</div>
@@ -788,7 +788,7 @@ export default function Reservations() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold">{reservation.room?.title || "Sem acomodacao"}</div>
+                      <div className="font-semibold">{reservation.room?.title || "Sem acomodação"}</div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {abbrevStay(getStayName(reservation.room))}
                       </div>
@@ -796,10 +796,10 @@ export default function Reservations() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 font-medium">
                         <CalendarDays size={16} className="text-slate-400" />
-                        {formatDate(reservation.checkinDate)} ate {formatDate(reservation.checkoutDate)}
+                        {formatDate(reservation.checkinDate)} até {formatDate(reservation.checkoutDate)}
                       </div>
                       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {nights === null ? "Noites nao calculadas" : `${nights} noite(s)`}
+                        {nights === null ? "Noites não calculadas" : `${nights} noite(s)`}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -808,7 +808,7 @@ export default function Reservations() {
                       </div>
                       {reservation.cleaningDateOverride ? (
                         <div className="mt-1 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-                          Alterada: {reservation.cleaningChangeReason || "Motivo nao informado"}
+                          Alterada: {reservation.cleaningChangeReason || "Motivo não informado"}
                         </div>
                       ) : (
                         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Data do check-out</div>
@@ -817,8 +817,8 @@ export default function Reservations() {
                     <td className="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
                       <div>Criada: {formatDateTime(reservation.createdAt)}</div>
                       <div className="mt-1">
-                        Ultima alteracao:{" "}
-                        {hasMeaningfulUpdate(reservation) ? formatDateTime(reservation.updatedAt) : "sem alteracao"}
+                        Última alteração:{" "}
+                        {hasMeaningfulUpdate(reservation) ? formatDateTime(reservation.updatedAt) : "sem alteração"}
                       </div>
                     </td>
                     <td className="px-4 py-3">

@@ -53,7 +53,7 @@ const emptyPeriodicFilters = {
 };
 
 const frequencyOptions = [
-  { value: "DAILY", label: "Diaria" },
+  { value: "DAILY", label: "Diária" },
   { value: "WEEKLY", label: "Semanal" },
   { value: "BIWEEKLY", label: "Quinzenal" },
   { value: "MONTHLY", label: "Mensal" },
@@ -89,8 +89,8 @@ function getActivationWindow(form) {
 
 function getStatusLabel(active, endsAt) {
   if (!active) return "Inativo";
-  if (endsAt) return `Ativo ate ${formatDate(endsAt)}`;
-  return "Ativo continuo";
+  if (endsAt) return `Ativo até ${formatDate(endsAt)}`;
+  return "Ativo contínuo";
 }
 
 function getTaskScheduleTime(task) {
@@ -290,7 +290,7 @@ export default function CleaningReminders() {
     setError("");
 
     if (periodicForm.roomIds.length === 0) {
-      setError("Selecione pelo menos uma acomodacao.");
+      setError("Selecione pelo menos uma acomodação.");
       return;
     }
 
@@ -329,7 +329,7 @@ export default function CleaningReminders() {
       loadData();
     } catch (err) {
       console.error("Erro ao salvar tarefa periodica:", err);
-      setError(err.message || "Erro ao salvar tarefa periodica.");
+      setError(err.message || "Erro ao salvar tarefa periódica.");
     }
   };
 
@@ -402,7 +402,7 @@ export default function CleaningReminders() {
       loadData();
     } catch (err) {
       console.error("Erro ao alternar tarefa periodica:", err);
-      setError(err.message || "Erro ao alternar tarefa periodica.");
+      setError(err.message || "Erro ao alternar tarefa periódica.");
     }
   };
 
@@ -434,7 +434,7 @@ export default function CleaningReminders() {
       loadData();
     } catch (err) {
       console.error("Erro ao registrar conclusao periodica:", err);
-      setError(err.message || "Erro ao registrar conclusao da tarefa periodica.");
+      setError(err.message || "Erro ao registrar conclusão da tarefa periódica.");
     }
   };
 
@@ -484,20 +484,20 @@ export default function CleaningReminders() {
   };
 
   const removePeriodicTask = async (task) => {
-    if (!confirm(`Remover tarefa periodica "${task.name}"?`)) return;
+    if (!confirm(`Remover tarefa periódica "${task.name}"?`)) return;
     try {
       await api(`/periodic-tasks/${task.id}`, { method: "DELETE" });
       setSelectedPeriodicIds((prev) => prev.filter((id) => id !== task.id));
       loadData();
     } catch (err) {
       console.error("Erro ao remover tarefa periodica:", err);
-      setError(err.message || "Erro ao remover tarefa periodica.");
+      setError(err.message || "Erro ao remover tarefa periódica.");
     }
   };
 
   const removeSelectedPeriodicTasks = async () => {
     if (selectedPeriodicIds.length === 0) return;
-    if (!confirm(`Remover ${selectedPeriodicIds.length} tarefa(s) periodica(s)?`)) return;
+    if (!confirm(`Remover ${selectedPeriodicIds.length} tarefa(s) periódica(s)?`)) return;
 
     try {
       await api("/periodic-tasks/bulk", {
@@ -509,7 +509,7 @@ export default function CleaningReminders() {
       loadData();
     } catch (err) {
       console.error("Erro ao remover tarefas periodicas em massa:", err);
-      setError(err.message || "Erro ao remover tarefas periodicas em massa.");
+      setError(err.message || "Erro ao remover tarefas periódicas em massa.");
     }
   };
 
@@ -530,7 +530,7 @@ export default function CleaningReminders() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Lembretes de limpeza</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Cadastre tarefas recorrentes por acomodacao e lembretes gerais por empreendimento.
+            Cadastre tarefas recorrentes por acomodação e lembretes gerais por empreendimento.
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -549,12 +549,12 @@ export default function CleaningReminders() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="mb-4 flex items-center gap-2">
             <CalendarClock size={20} className="text-sky-700 dark:text-sky-300" />
-            <h2 className="text-xl font-semibold">Tarefas periodicas</h2>
+            <h2 className="text-xl font-semibold">Tarefas periódicas</h2>
           </div>
 
           {editingPeriodicId && (
             <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950 dark:border-sky-800 dark:bg-sky-900/20 dark:text-sky-100">
-              Editando tarefa periodica. Altere os campos e clique em Atualizar tarefa.
+              Editando tarefa periódica. Altere os campos e clique em Atualizar tarefa.
             </div>
           )}
 
@@ -626,12 +626,12 @@ export default function CleaningReminders() {
                   disabled={filteredRooms.length === 0}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700"
                 >
-                  {allFilteredRoomsSelected ? "Limpar selecao" : "Selecionar todas"}
+                  {allFilteredRoomsSelected ? "Limpar seleção" : "Selecionar todas"}
                 </button>
               </div>
               {filteredRooms.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700">
-                  Nenhuma acomodacao encontrada.
+                  Nenhuma acomodação encontrada.
                 </div>
               ) : (
                 <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
@@ -670,7 +670,7 @@ export default function CleaningReminders() {
                 {editingPeriodicId ? <CheckCircle2 size={16} /> : <Plus size={16} />}
                 {editingPeriodicId
                   ? "Atualizar tarefa"
-                  : `Cadastrar em ${periodicForm.roomIds.length || 0} acomodacao(oes)`}
+                  : `Cadastrar em ${periodicForm.roomIds.length || 0} acomodação(ões)`}
               </button>
               {editingPeriodicId && (
                 <button
@@ -689,7 +689,7 @@ export default function CleaningReminders() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
             <Bell size={20} className="text-emerald-700 dark:text-emerald-300" />
-            <h2 className="text-xl font-semibold">Lembretes estaticos</h2>
+            <h2 className="text-xl font-semibold">Lembretes estáticos</h2>
             </div>
             <button
               type="button"
@@ -709,7 +709,7 @@ export default function CleaningReminders() {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold">Tarefas periodicas cadastradas</h2>
+            <h2 className="text-xl font-semibold">Tarefas periódicas cadastradas</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {sortedPeriodicTasks.length} exibida(s) | {selectedPeriodicIds.length} selecionada(s)
             </p>
@@ -721,7 +721,7 @@ export default function CleaningReminders() {
                 onClick={toggleAllPeriodicSelection}
                 className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
               >
-                {allPeriodicTasksSelected ? "Limpar selecao" : "Selecionar todas"}
+                {allPeriodicTasksSelected ? "Limpar seleção" : "Selecionar todas"}
               </button>
               <button
                 type="button"
@@ -790,7 +790,7 @@ export default function CleaningReminders() {
           <div className="py-8 text-center text-sm text-slate-500">Carregando...</div>
         ) : sortedPeriodicTasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 py-8 text-center text-sm text-slate-500 dark:border-slate-700">
-            Nenhuma tarefa periodica cadastrada.
+            Nenhuma tarefa periódica cadastrada.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -812,7 +812,7 @@ export default function CleaningReminders() {
                     <h3 className="font-semibold">{task.name}</h3>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                       {task.room?.stay?.name || "Sem empreendimento"} |{" "}
-                      {task.room?.title || "Sem acomodacao"}
+                      {task.room?.title || "Sem acomodação"}
                     </p>
                     </div>
                   </div>
@@ -832,7 +832,7 @@ export default function CleaningReminders() {
                       Agendada para {formatDate(task.scheduledExecution.executionDate)}
                     </div>
                     <div className="mt-1 text-xs">
-                      Diarista: {task.scheduledExecution.assignedTo?.name || "aguardando designacao"}
+                      Diarista: {task.scheduledExecution.assignedTo?.name || "aguardando designação"}
                     </div>
                   </div>
                 ) : (
@@ -846,9 +846,9 @@ export default function CleaningReminders() {
                   </p>
                 )}
                 <div className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate-500 dark:text-slate-400 md:grid-cols-3">
-                  <div>Frequencia: {task.frequency === "CUSTOM_DAYS" ? `${task.customIntervalDays} dias` : task.frequency}</div>
-                  <div>Ultima: {formatDate(task.lastExecutionDate)}</div>
-                  <div>Proxima: {formatDate(task.nextExecutionDate)}</div>
+                  <div>Frequência: {task.frequency === "CUSTOM_DAYS" ? `${task.customIntervalDays} dias` : task.frequency}</div>
+                  <div>Última: {formatDate(task.lastExecutionDate)}</div>
+                  <div>Próxima: {formatDate(task.nextExecutionDate)}</div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
@@ -865,7 +865,7 @@ export default function CleaningReminders() {
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
                   >
                     <CheckCircle2 size={14} />
-                    Registrar conclusao
+                    Registrar conclusão
                   </button>
                   <button
                     type="button"
@@ -891,7 +891,7 @@ export default function CleaningReminders() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <h2 className="mb-4 text-xl font-semibold">Banco de lembretes estaticos</h2>
+        <h2 className="mb-4 text-xl font-semibold">Banco de lembretes estáticos</h2>
         {loading ? (
           <div className="py-8 text-center text-sm text-slate-500">Carregando...</div>
         ) : reminders.length === 0 ? (
@@ -954,7 +954,7 @@ export default function CleaningReminders() {
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold dark:border-slate-700"
                     >
                       <CalendarClock size={14} />
-                      Ativar por periodo
+                      Ativar por período
                     </button>
                   )}
                   <button
@@ -980,9 +980,9 @@ export default function CleaningReminders() {
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Registrar conclusao</h2>
+                <h2 className="text-xl font-semibold">Registrar conclusão</h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {completionTask.name} | {completionTask.room?.title || "Sem acomodacao"}
+                  {completionTask.name} | {completionTask.room?.title || "Sem acomodação"}
                 </p>
               </div>
               <button
@@ -1009,7 +1009,7 @@ export default function CleaningReminders() {
                 />
               </label>
               <label className="block text-sm font-semibold">
-                Observacao
+                Observação
                 <textarea
                   value={completionForm.notes}
                   onChange={(e) =>
@@ -1020,7 +1020,7 @@ export default function CleaningReminders() {
                 />
               </label>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-100">
-                A proxima designacao sera recalculada com base nessa data.
+                A próxima designação será recalculada com base nessa data.
               </div>
             </div>
 
@@ -1037,7 +1037,7 @@ export default function CleaningReminders() {
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
               >
                 <CheckCircle2 size={16} />
-                Salvar conclusao
+                Salvar conclusão
               </button>
             </div>
           </form>
@@ -1053,10 +1053,10 @@ export default function CleaningReminders() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-semibold">
-                  {editingReminderId ? "Editar lembrete" : "Novo lembrete estatico"}
+                  {editingReminderId ? "Editar lembrete" : "Novo lembrete estático"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  O lembrete sera salvo no banco e ficara inativo ate ser ativado na lista.
+                  O lembrete será salvo no banco e ficará inativo até ser ativado na lista.
                 </p>
               </div>
               <button
@@ -1073,7 +1073,7 @@ export default function CleaningReminders() {
               <input
                 value={reminderForm.title}
                 onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })}
-                placeholder="Titulo do lembrete"
+                placeholder="Título do lembrete"
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                 required
               />
@@ -1180,7 +1180,7 @@ export default function CleaningReminders() {
                   checked={activationForm.mode === "date"}
                   onChange={() => setActivationForm({ ...activationForm, mode: "date" })}
                 />
-                Ativar ate uma data
+                Ativar até uma data
               </label>
               {activationForm.mode === "date" && (
                 <input
