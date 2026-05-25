@@ -1384,7 +1384,7 @@ async function buildInventoryDashboard(query = {}) {
   const stayWhere = inventoryScope.stockWhere;
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
 
-  const [products, inventory, consumptions, entries, reservations, laundryDispatches, usageCycles, activeLots, persistedAlerts] = await Promise.all([
+  const [products, inventory, consumptions, entries, reservations, laundryDispatches, laundryPrices, usageCycles, activeLots, persistedAlerts] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.inventory.findMany({ where: stayWhere, include: { product: true, stay: true } }),
     prisma.productConsumption.findMany({
@@ -1410,6 +1410,7 @@ async function buildInventoryDashboard(query = {}) {
       include: { items: true, room: true, maid: true },
       orderBy: { dispatchDate: "desc" },
     }),
+    prisma.laundryItemPrice.findMany(),
     prisma.productUsageCycle.findMany({
       where: {
         ...stayWhere,
@@ -1438,6 +1439,7 @@ async function buildInventoryDashboard(query = {}) {
   const inventoryRows = aggregateSharedInventoryRows(inventory, inventoryScope);
   const periodConsumptions = consumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs(from).subtract(1, "millisecond")));
   const periodEntries = entries.filter((item) => dayjs(item.entryDate).isAfter(dayjs(from).subtract(1, "millisecond")));
+  const periodLaundryDispatches = laundryDispatches.filter((item) => dayjs(item.dispatchDate).isAfter(dayjs(from).subtract(1, "millisecond")));
   const productIds = new Set([...inventoryRows.map((item) => item.productId), ...periodConsumptions.map((item) => item.productId)]);
 
   const predictions = [...productIds].map((productId) => {
@@ -1479,7 +1481,13 @@ async function buildInventoryDashboard(query = {}) {
       return avgCost * Number(item.baseQuantity || 0);
     },
   );
-  const totalCost = sum(costByProduct, (item) => item.value);
+  const productConsumptionCost = sum(costByProduct, (item) => item.value);
+  const laundryPriceByType = new Map(laundryPrices.map((item) => [item.itemType, Number(item.price || 0)]));
+  const laundryCost = sum(
+    periodLaundryDispatches.flatMap((item) => item.items || []),
+    (item) => Number(item.quantity || 0) * Number(laundryPriceByType.get(item.itemType) || 0),
+  );
+  const totalCost = productConsumptionCost + laundryCost;
   const reservationsInPeriod = reservations.filter((item) => dayjs(item.checkoutDate).isBefore(dayjs(to).add(1, "millisecond")));
   const guestCapacity = sum(reservationsInPeriod, (item) => item.room?.capacity || 1) || reservationsInPeriod.length || 1;
   const [cleaningUsage, todaySummary] = await Promise.all([
@@ -1550,7 +1558,9 @@ async function buildInventoryDashboard(query = {}) {
       costPerReservation: round(totalCost / Math.max(1, reservationsInPeriod.length), 2),
       costPerGuest: round(totalCost / Math.max(1, guestCapacity), 2),
       consumptionEvents: periodConsumptions.length,
-      laundryPieces: sum(laundryDispatches.flatMap((item) => item.items), (item) => item.quantity * item.unitPieces),
+      productConsumptionCost: round(productConsumptionCost, 2),
+      laundryCost: round(laundryCost, 2),
+      laundryPieces: sum(periodLaundryDispatches.flatMap((item) => item.items || []), (item) => item.quantity * item.unitPieces),
       accommodationCleanings: sum(cleaningUsage, (item) => item.accommodationCleanings),
       corridorCleanings: sum(cleaningUsage, (item) => item.corridorCleanings),
     },

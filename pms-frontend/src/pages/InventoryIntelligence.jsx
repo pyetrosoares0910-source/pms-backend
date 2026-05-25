@@ -699,7 +699,6 @@ export default function InventoryIntelligence() {
       });
       setEntryForm({ ...emptyEntry, stayId: entryForm.stayId });
       await load();
-      setTab("dashboard");
     } catch (err) {
       alert(err.message || "Falha ao registrar entrada.");
     } finally {
@@ -717,7 +716,6 @@ export default function InventoryIntelligence() {
       });
       setConsumptionForm({ ...emptyConsumption, stayId: consumptionForm.stayId });
       await load();
-      setTab("dashboard");
     } catch (err) {
       alert(err.message || "Falha ao registrar consumo.");
     } finally {
@@ -885,7 +883,6 @@ export default function InventoryIntelligence() {
       });
       setCycleForm({ ...emptyCycle, stayId: cycleForm.stayId });
       await load();
-      setTab("dashboard");
     } catch (err) {
       alert(err.message || "Falha ao calcular ciclo de consumo.");
     } finally {
