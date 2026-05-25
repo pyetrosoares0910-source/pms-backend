@@ -2,6 +2,10 @@ const { prisma } = require("../prisma.js");
 const {
   buildInventoryDashboard,
   createUsageCycle,
+  deleteLaundryDispatch,
+  deleteProductConsumption,
+  deleteProductEntry,
+  deleteUsageCycle,
   depleteLotAndCreateCycle,
   getAutomatedCleaningUsage,
   listLaundryDispatches,
@@ -11,6 +15,8 @@ const {
   registerLaundryDispatch,
   registerProductConsumption,
   registerProductEntry,
+  updateProductConsumption,
+  updateProductEntry,
   updateUsageCycle,
   updateLaundryDispatch,
 } = require("../services/inventoryIntelligenceService.js");
@@ -49,6 +55,24 @@ async function listEntries(req, res) {
   }
 }
 
+async function updateEntry(req, res) {
+  try {
+    const entry = await updateProductEntry(String(req.params.id), req.body);
+    res.json(entry);
+  } catch (error) {
+    handleError(res, error, "Erro ao atualizar entrada de produto.");
+  }
+}
+
+async function deleteEntry(req, res) {
+  try {
+    const result = await deleteProductEntry(String(req.params.id));
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, "Erro ao excluir entrada de produto.");
+  }
+}
+
 async function createConsumption(req, res) {
   try {
     const consumption = await registerProductConsumption(req.body);
@@ -64,6 +88,24 @@ async function listConsumptions(req, res) {
     res.json(consumptions);
   } catch (error) {
     handleError(res, error, "Erro ao listar consumos operacionais.");
+  }
+}
+
+async function updateConsumption(req, res) {
+  try {
+    const consumption = await updateProductConsumption(String(req.params.id), req.body);
+    res.json(consumption);
+  } catch (error) {
+    handleError(res, error, "Erro ao atualizar consumo operacional.");
+  }
+}
+
+async function deleteConsumption(req, res) {
+  try {
+    const result = await deleteProductConsumption(String(req.params.id));
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, "Erro ao excluir consumo operacional.");
   }
 }
 
@@ -94,6 +136,15 @@ async function updateLaundry(req, res) {
   }
 }
 
+async function deleteLaundry(req, res) {
+  try {
+    const result = await deleteLaundryDispatch(String(req.params.id));
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, "Erro ao excluir envio para lavanderia.");
+  }
+}
+
 async function createCycle(req, res) {
   try {
     const cycle = await createUsageCycle(req.body);
@@ -118,6 +169,15 @@ async function updateCycle(req, res) {
     res.json(cycle);
   } catch (error) {
     handleError(res, error, "Erro ao atualizar ciclo de consumo.");
+  }
+}
+
+async function deleteCycle(req, res) {
+  try {
+    const result = await deleteUsageCycle(String(req.params.id));
+    res.json(result);
+  } catch (error) {
+    handleError(res, error, "Erro ao excluir ciclo de consumo.");
   }
 }
 
@@ -184,6 +244,10 @@ module.exports = {
   createEntry,
   createLaundry,
   cleaningUsage,
+  deleteConsumption,
+  deleteCycle,
+  deleteEntry,
+  deleteLaundry,
   depleteLot,
   dashboard,
   listConsumptions,
@@ -191,7 +255,9 @@ module.exports = {
   listEntries,
   listLaundry,
   listLots,
+  updateConsumption,
   updateCycle,
+  updateEntry,
   updateLaundry,
   updateLot,
 };

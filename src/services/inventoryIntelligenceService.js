@@ -398,6 +398,75 @@ async function listProductEntries(query = {}) {
   });
 }
 
+async function updateProductEntry(id, data) {
+  const current = await prisma.productEntry.findUnique({ where: { id }, include: { lot: true } });
+  if (!current) {
+    const error = new Error("Entrada nao encontrada.");
+    error.status = 404;
+    throw error;
+  }
+
+  const quantity = data.quantity !== undefined ? Number(data.quantity) : current.quantity;
+  const unit = data.unit || current.unit;
+  const normalized = data.quantity !== undefined || data.unit !== undefined
+    ? normalizeQuantity(quantity, unit)
+    : { baseValue: current.baseQuantity };
+  const diff = Number(normalized.baseValue || 0) - Number(current.baseQuantity || 0);
+  const totalCost = data.totalCost !== undefined && data.totalCost !== "" ? Number(data.totalCost) : current.totalCost;
+  const unitCost = totalCost && normalized.baseValue > 0 ? totalCost / normalized.baseValue : null;
+
+  return prisma.$transaction(async (tx) => {
+    const entry = await tx.productEntry.update({
+      where: { id },
+      data: {
+        ...(data.quantity !== undefined ? { quantity } : {}),
+        ...(data.unit !== undefined ? { unit } : {}),
+        baseQuantity: normalized.baseValue,
+        ...(data.supplier !== undefined ? { supplier: data.supplier || null } : {}),
+        ...(data.totalCost !== undefined ? { totalCost, unitCost } : {}),
+        ...(data.entryDate ? { entryDate: new Date(data.entryDate) } : {}),
+        ...(data.expiresAt !== undefined ? { expiresAt: data.expiresAt ? new Date(data.expiresAt) : null } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
+      },
+      include: { product: true, stay: true, lot: true },
+    });
+
+    if (diff !== 0) {
+      await tx.inventory.update({
+        where: { stayId_productId: { stayId: current.stayId, productId: current.productId } },
+        data: { quantity: { increment: diff }, capacity: { increment: diff } },
+      }).catch(() => null);
+      if (current.lotId) {
+        await tx.productLot.update({
+          where: { id: current.lotId },
+          data: { initialQuantity: { increment: diff }, remainingQuantity: { increment: diff } },
+        }).catch(() => null);
+      }
+    }
+
+    return entry;
+  });
+}
+
+async function deleteProductEntry(id) {
+  const current = await prisma.productEntry.findUnique({ where: { id } });
+  if (!current) {
+    const error = new Error("Entrada nao encontrada.");
+    error.status = 404;
+    throw error;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (current.lotId) await tx.productLot.delete({ where: { id: current.lotId } }).catch(() => null);
+    await tx.productEntry.delete({ where: { id } });
+    await tx.inventory.update({
+      where: { stayId_productId: { stayId: current.stayId, productId: current.productId } },
+      data: { quantity: { decrement: current.baseQuantity }, capacity: { decrement: current.baseQuantity } },
+    }).catch(() => null);
+    return { deleted: true, id };
+  });
+}
+
 async function listProductConsumptions(query = {}) {
   const { from, to } = getDateRange(query);
   return prisma.productConsumption.findMany({
@@ -409,6 +478,77 @@ async function listProductConsumptions(query = {}) {
     },
     include: { product: true, stay: true, room: true, staff: true, maid: true, reservation: true },
     orderBy: { occurredAt: "desc" },
+  });
+}
+
+async function updateProductConsumption(id, data) {
+  const current = await prisma.productConsumption.findUnique({ where: { id } });
+  if (!current) {
+    const error = new Error("Consumo nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  const quantity = data.quantity !== undefined ? Number(data.quantity) : current.quantity;
+  const unit = data.unit || current.unit;
+  const normalized = data.quantity !== undefined || data.unit !== undefined
+    ? normalizeQuantity(quantity, unit)
+    : { baseValue: current.baseQuantity };
+  const diff = Number(normalized.baseValue || 0) - Number(current.baseQuantity || 0);
+
+  return prisma.$transaction(async (tx) => {
+    const consumption = await tx.productConsumption.update({
+      where: { id },
+      data: {
+        ...(data.quantity !== undefined ? { quantity } : {}),
+        ...(data.unit !== undefined ? { unit } : {}),
+        baseQuantity: normalized.baseValue,
+        ...(data.operationType ? { operationType: data.operationType } : {}),
+        ...(data.location !== undefined ? { location: data.location || null } : {}),
+        ...(data.occurredAt ? { occurredAt: new Date(data.occurredAt) } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
+      },
+      include: { product: true, stay: true, room: true, staff: true, maid: true, reservation: true },
+    });
+
+    if (diff !== 0) {
+      await tx.inventory.update({
+        where: { stayId_productId: { stayId: current.stayId, productId: current.productId } },
+        data: { quantity: { decrement: diff } },
+      }).catch(() => null);
+      if (current.lotId) {
+        await tx.productLot.update({
+          where: { id: current.lotId },
+          data: { remainingQuantity: { decrement: diff } },
+        }).catch(() => null);
+      }
+    }
+
+    return consumption;
+  });
+}
+
+async function deleteProductConsumption(id) {
+  const current = await prisma.productConsumption.findUnique({ where: { id } });
+  if (!current) {
+    const error = new Error("Consumo nao encontrado.");
+    error.status = 404;
+    throw error;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.productConsumption.delete({ where: { id } });
+    await tx.inventory.update({
+      where: { stayId_productId: { stayId: current.stayId, productId: current.productId } },
+      data: { quantity: { increment: current.baseQuantity } },
+    }).catch(() => null);
+    if (current.lotId) {
+      await tx.productLot.update({
+        where: { id: current.lotId },
+        data: { remainingQuantity: { increment: current.baseQuantity } },
+      }).catch(() => null);
+    }
+    return { deleted: true, id };
   });
 }
 
@@ -533,6 +673,11 @@ async function updateUsageCycle(id, data) {
     data: recalculated,
     include: { stay: true, product: true, lot: true },
   });
+}
+
+async function deleteUsageCycle(id) {
+  await prisma.productUsageCycle.delete({ where: { id } });
+  return { deleted: true, id };
 }
 
 async function listUsageCycles(query = {}) {
@@ -672,6 +817,11 @@ async function updateLaundryDispatch(id, data) {
       include: { stay: true, room: true, maid: true, reservation: true, items: true },
     });
   });
+}
+
+async function deleteLaundryDispatch(id) {
+  await prisma.laundryDispatch.delete({ where: { id } });
+  return { deleted: true, id };
 }
 
 function buildDailySeries(consumptions, days) {
@@ -1023,6 +1173,10 @@ module.exports = {
   buildInventoryDashboard,
   buildDefaultLaundryItems,
   createUsageCycle,
+  deleteLaundryDispatch,
+  deleteProductConsumption,
+  deleteProductEntry,
+  deleteUsageCycle,
   depleteLotAndCreateCycle,
   formatBaseQuantity,
   getAutomatedCleaningUsage,
@@ -1034,6 +1188,8 @@ module.exports = {
   registerLaundryDispatch,
   registerProductConsumption,
   registerProductEntry,
+  updateProductConsumption,
+  updateProductEntry,
   updateUsageCycle,
   updateLaundryDispatch,
 };

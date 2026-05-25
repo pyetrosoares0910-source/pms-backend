@@ -11,7 +11,16 @@ function parseNullableFloat(value) {
 
 function normalizeProductPayload(data = {}) {
   const parsed = {
-    ...data,
+    name: data.name,
+    category: data.category,
+    unitBase: data.unitBase,
+    packageSizeUnit: data.packageSizeUnit,
+    active: data.active,
+    sku: data.sku,
+    supplier: data.supplier,
+    usageUnit: data.usageUnit,
+    shelfLifeDays: data.shelfLifeDays ? parseInt(data.shelfLifeDays, 10) : null,
+    notes: data.notes,
     packageSizeValue: data.packageSizeValue
       ? parseInt(data.packageSizeValue, 10)
       : null,
@@ -42,6 +51,9 @@ function normalizeProductPayload(data = {}) {
   }
 
   parsed.usageUnit = parsed.usageUnit || (parsed.unitBase === "ML" ? "ml" : parsed.unitBase === "G" ? "g" : "un");
+  Object.keys(parsed).forEach((key) => {
+    if (parsed[key] === undefined) delete parsed[key];
+  });
   return parsed;
 }
 
@@ -97,10 +109,26 @@ async function toggleProduct(req, res) {
   res.json(updated);
 }
 
+async function deleteProduct(req, res) {
+  try {
+    await prisma.product.delete({ where: { id: String(req.params.id) } });
+    res.json({ deleted: true, id: String(req.params.id) });
+  } catch (error) {
+    if (error?.code === "P2003") {
+      return res.status(409).json({
+        error: "Produto possui registros vinculados. Exclua entradas/saldos/consumos antes ou desative o produto.",
+      });
+    }
+    console.error("Erro ao excluir produto:", error);
+    res.status(500).json({ error: "Erro ao excluir produto" });
+  }
+}
+
 module.exports = {
   listProducts,
   createProduct,
   getProduct,
   updateProduct,
-  toggleProduct
+  toggleProduct,
+  deleteProduct
 };

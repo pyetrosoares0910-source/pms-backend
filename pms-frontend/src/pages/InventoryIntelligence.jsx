@@ -7,11 +7,13 @@ import {
   CheckCircle2,
   ClipboardCheck,
   PackagePlus,
+  Pencil,
   RefreshCw,
   Save,
   Shirt,
   Sparkles,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import {
   Area,
@@ -207,6 +209,33 @@ function MiniTable({ columns, rows, empty }) {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function RowActions({ onEdit, onDelete }) {
+  return (
+    <div className="flex items-center gap-2">
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+          title="Editar"
+        >
+          <Pencil size={14} />
+        </button>
+      ) : null}
+      {onDelete ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/70 dark:text-rose-200 dark:hover:bg-rose-950/35"
+          title="Excluir"
+        >
+          <Trash2 size={14} />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -438,6 +467,94 @@ export default function InventoryIntelligence() {
     } finally {
       setClosingLotId("");
     }
+  }
+
+  async function updateResource(path, payload, fallback) {
+    try {
+      await api(path, { method: "PUT", body: JSON.stringify(payload) });
+      await load();
+    } catch (err) {
+      alert(err.message || fallback || "Falha ao atualizar.");
+    }
+  }
+
+  async function deleteResource(path, message) {
+    if (!window.confirm(message || "Deseja excluir este registro?")) return;
+    try {
+      await api(path, { method: "DELETE" });
+      await load();
+    } catch (err) {
+      alert(err.message || "Falha ao excluir.");
+    }
+  }
+
+  function promptValue(label, currentValue) {
+    return window.prompt(label, currentValue ?? "");
+  }
+
+  async function editEntry(row) {
+    const quantity = promptValue("Quantidade", row.quantity);
+    if (quantity === null) return;
+    const totalCost = promptValue("Valor total", row.totalCost || "");
+    if (totalCost === null) return;
+    const notes = promptValue("Observacoes", row.notes || "");
+    if (notes === null) return;
+    await updateResource(`/api/inventory-intelligence/entries/${row.id}`, {
+      quantity,
+      unit: row.unit,
+      totalCost,
+      notes,
+    }, "Falha ao editar entrada.");
+  }
+
+  async function editConsumption(row) {
+    const quantity = promptValue("Quantidade", row.quantity);
+    if (quantity === null) return;
+    const notes = promptValue("Observacoes", row.notes || "");
+    if (notes === null) return;
+    await updateResource(`/api/inventory-intelligence/consumptions/${row.id}`, {
+      quantity,
+      unit: row.unit,
+      notes,
+    }, "Falha ao editar consumo.");
+  }
+
+  async function editCycle(row) {
+    const consumedQuantity = promptValue("Quantidade consumida", row.consumedQuantity);
+    if (consumedQuantity === null) return;
+    const endedAt = promptValue("Fim/esgotamento (YYYY-MM-DD)", dayjs(row.endedAt).format("YYYY-MM-DD"));
+    if (endedAt === null) return;
+    await updateResource(`/api/inventory-intelligence/cycles/${row.id}`, {
+      consumedQuantity,
+      endedAt,
+      notes: row.notes || "",
+    }, "Falha ao editar ciclo.");
+  }
+
+  async function editLaundry(row) {
+    const dispatchDate = promptValue("Data de envio (YYYY-MM-DD)", dayjs(row.dispatchDate).format("YYYY-MM-DD"));
+    if (dispatchDate === null) return;
+    const notes = promptValue("Observacoes", row.notes || "");
+    if (notes === null) return;
+    await updateResource(`/api/inventory-intelligence/laundry/${row.id}`, {
+      dispatchDate,
+      notes,
+    }, "Falha ao editar lavanderia.");
+  }
+
+  async function editProduct(row) {
+    const name = promptValue("Nome do produto", row.name);
+    if (name === null) return;
+    const category = promptValue("Categoria", row.category);
+    if (category === null) return;
+    const packageBaseQuantity = promptValue("Quantidade base por embalagem", row.packageBaseQuantity || "");
+    if (packageBaseQuantity === null) return;
+    await updateResource(`/api/products/${row.id}`, {
+      ...row,
+      name,
+      category,
+      packageBaseQuantity,
+    }, "Falha ao editar produto.");
   }
 
   const kpis = dashboard?.kpis || {};
@@ -690,6 +807,16 @@ export default function InventoryIntelligence() {
                 { key: "stay", label: "Empreendimento", render: (row) => row.stay?.name },
                 { key: "baseQuantity", label: "Qtd base" },
                 { key: "totalCost", label: "Valor", render: (row) => row.totalCost ? formatMoney(row.totalCost) : "-" },
+                {
+                  key: "actions",
+                  label: "Acoes",
+                  render: (row) => (
+                    <RowActions
+                      onEdit={() => editEntry(row)}
+                      onDelete={() => deleteResource(`/api/inventory-intelligence/entries/${row.id}`, "Excluir esta entrada e reverter o saldo?")}
+                    />
+                  ),
+                },
               ]}
               rows={recent.entries || []}
             />
@@ -777,6 +904,16 @@ export default function InventoryIntelligence() {
                 { key: "quantity", label: "Qtd", render: (row) => `${row.quantity} ${row.unit}` },
                 { key: "responsible", label: "Responsavel", render: (row) => row.staff?.name || row.maid?.name || "-" },
                 { key: "anomaly", label: "Analise", render: (row) => row.anomalyReason || "coerente" },
+                {
+                  key: "actions",
+                  label: "Acoes",
+                  render: (row) => (
+                    <RowActions
+                      onEdit={() => editConsumption(row)}
+                      onDelete={() => deleteResource(`/api/inventory-intelligence/consumptions/${row.id}`, "Excluir este uso e devolver ao estoque?")}
+                    />
+                  ),
+                },
               ]}
               rows={recent.consumptions || []}
             />
@@ -857,6 +994,16 @@ export default function InventoryIntelligence() {
                 { key: "corridorDays", label: "Dias corredor" },
                 { key: "avgPerWeightedOperation", label: "Media operacional", render: (row) => row.avgPerWeightedOperation ? Number(row.avgPerWeightedOperation).toFixed(2) : "-" },
                 { key: "costPerCheckout", label: "Custo/check-out", render: (row) => row.costPerCheckout ? formatMoney(row.costPerCheckout) : "-" },
+                {
+                  key: "actions",
+                  label: "Acoes",
+                  render: (row) => (
+                    <RowActions
+                      onEdit={() => editCycle(row)}
+                      onDelete={() => deleteResource(`/api/inventory-intelligence/cycles/${row.id}`, "Excluir este ciclo de aprendizado?")}
+                    />
+                  ),
+                },
               ]}
               rows={recent.usageCycles || []}
             />
@@ -944,6 +1091,16 @@ export default function InventoryIntelligence() {
                 { key: "maid", label: "Diarista", render: (row) => row.maid?.name || "-" },
                 { key: "expectedSets", label: "Previsto" },
                 { key: "items", label: "Pecas", render: (row) => row.items?.reduce((total, item) => total + item.quantity * item.unitPieces, 0) || 0 },
+                {
+                  key: "actions",
+                  label: "Acoes",
+                  render: (row) => (
+                    <RowActions
+                      onEdit={() => editLaundry(row)}
+                      onDelete={() => deleteResource(`/api/inventory-intelligence/laundry/${row.id}`, "Excluir este envio para lavanderia?")}
+                    />
+                  ),
+                },
               ]}
               rows={recent.laundryDispatches || []}
             />
@@ -1008,6 +1165,16 @@ export default function InventoryIntelligence() {
                 { key: "unitsPerPackage", label: "Un/pct", render: (row) => row.unitsPerPackage || "-" },
                 { key: "packageBaseQuantity", label: "Base/emb.", render: (row) => row.packageBaseQuantity || "-" },
                 { key: "active", label: "Status", render: (row) => row.active ? "Ativo" : "Inativo" },
+                {
+                  key: "actions",
+                  label: "Acoes",
+                  render: (row) => (
+                    <RowActions
+                      onEdit={() => editProduct(row)}
+                      onDelete={() => deleteResource(`/api/products/${row.id}`, "Excluir este produto do catalogo?")}
+                    />
+                  ),
+                },
               ]}
               rows={products}
             />
