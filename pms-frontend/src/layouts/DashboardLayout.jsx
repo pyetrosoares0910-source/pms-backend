@@ -907,7 +907,7 @@ export default function DashboardLayout() {
       {/* BOTÃO VOLTAR AO TOPO */}
       {questsOpen ? (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/72 px-4 py-6 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="quests-title"
@@ -915,38 +915,40 @@ export default function DashboardLayout() {
             if (event.target === event.currentTarget) setQuestsOpen(false);
           }}
         >
-          <div className="relative max-h-[88dvh] w-full max-w-4xl overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-950 text-slate-100 shadow-2xl shadow-cyan-950/45">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-amber-300 to-fuchsia-400" />
-            <div className="relative overflow-y-auto p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="relative max-h-[88dvh] w-full max-w-4xl overflow-hidden rounded-xl border border-amber-900/40 bg-[#f2e3bc] text-stone-900 shadow-2xl shadow-slate-950/55">
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(255,255,255,0.34),transparent_24%),radial-gradient(circle_at_84%_18%,rgba(120,53,15,0.14),transparent_22%),linear-gradient(135deg,rgba(146,64,14,0.10),transparent_32%,rgba(68,64,60,0.08))]" />
+            <div className="absolute inset-x-4 top-3 h-px bg-amber-900/30" />
+            <div className="absolute inset-x-4 bottom-3 h-px bg-amber-900/30" />
+            <div className="relative overflow-y-auto p-5 sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-amber-900/25 pb-5">
                 <div className="flex items-center gap-4">
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl border border-amber-300/40 bg-amber-300/10 text-amber-200 shadow-lg shadow-amber-950/30">
+                  <div className="grid h-14 w-14 place-items-center rounded-full border-2 border-amber-900/45 bg-amber-800 text-amber-100 shadow-lg shadow-amber-950/25">
                     <Trophy size={28} />
                   </div>
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-100">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-amber-900/30 bg-amber-100/70 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-950">
                       <Sparkles size={13} />
-                      Quests do dia
+                      Pergaminho diario
                     </div>
-                    <h2 id="quests-title" className="mt-2 text-2xl font-black tracking-tight text-white">
-                      Painel de Missoes
+                    <h2 id="quests-title" className="mt-2 font-serif text-3xl font-black tracking-tight text-amber-950">
+                      Quests da Hospedaria
                     </h2>
-                    <p className="mt-1 text-sm font-medium text-slate-400">
-                      Os 6 avisos operacionais do dashboard em formato de jornada.
+                    <p className="mt-1 text-sm font-semibold text-stone-700">
+                      As missoes operacionais do dia, seladas pela guilda StayCore.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-right">
-                    <div className="text-2xl font-black text-amber-200">{questItems.length - pendingQuestCount}/{questItems.length}</div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">concluidas</div>
+                  <div className="rounded-lg border border-amber-900/30 bg-amber-100/65 px-4 py-2 text-right shadow-inner shadow-amber-900/10">
+                    <div className="text-2xl font-black text-amber-950">{questItems.length - pendingQuestCount}/{questItems.length}</div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-stone-600">concluidas</div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setQuestsOpen(false)}
                     aria-label="Fechar quests"
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10 hover:text-white"
+                    className="grid h-10 w-10 place-items-center rounded-lg border border-amber-900/30 bg-amber-100/70 text-amber-950 transition hover:bg-amber-200"
                   >
                     <X size={18} />
                   </button>
@@ -961,44 +963,44 @@ export default function DashboardLayout() {
                       key={quest.id}
                       to={quest.route}
                       onClick={() => setQuestsOpen(false)}
-                      className={`group relative overflow-hidden rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-xl ${
+                      className={`group relative overflow-hidden rounded-lg border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${
                         quest.isPending
-                          ? "border-amber-300/35 bg-[linear-gradient(135deg,rgba(251,191,36,0.14),rgba(15,23,42,0.98)_46%)] hover:shadow-amber-950/30"
-                          : "border-emerald-300/25 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.98)_46%)] hover:shadow-emerald-950/25"
+                          ? "border-amber-900/35 bg-amber-50/80 hover:shadow-amber-900/18"
+                          : "border-emerald-900/25 bg-[#ecf0d0]/80 hover:shadow-emerald-900/14"
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${
+                          className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${
                             quest.isPending
-                              ? "border-amber-300/40 bg-amber-300/12 text-amber-200"
-                              : "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
+                              ? "border-amber-900/35 bg-amber-200/80 text-amber-950"
+                              : "border-emerald-900/25 bg-emerald-100/80 text-emerald-900"
                           }`}
                         >
                           <QuestIcon size={21} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="font-black text-white">{quest.title}</div>
+                            <div className="font-serif text-lg font-black text-amber-950">{quest.title}</div>
                             <div
-                              className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                              className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
                                 quest.isPending
-                                  ? "bg-amber-300/15 text-amber-100"
-                                  : "bg-emerald-300/15 text-emerald-100"
+                                  ? "border-amber-900/30 bg-amber-200/80 text-amber-950"
+                                  : "border-emerald-900/25 bg-emerald-100/80 text-emerald-900"
                               }`}
                             >
                               {quest.isPending ? "pendente" : "ok"}
                             </div>
                           </div>
-                          <p className="mt-2 text-sm font-semibold leading-5 text-slate-300">
+                          <p className="mt-2 text-sm font-semibold leading-5 text-stone-700">
                             {quest.message}
                           </p>
                           <div className="mt-4 flex items-center justify-between gap-3">
-                            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-stone-600">
                               <ShieldCheck size={14} />
                               progresso {quest.progress}
                             </div>
-                            <span className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200 opacity-0 transition group-hover:opacity-100">
+                            <span className="text-xs font-black uppercase tracking-[0.14em] text-amber-900 opacity-0 transition group-hover:opacity-100">
                               abrir
                             </span>
                           </div>
