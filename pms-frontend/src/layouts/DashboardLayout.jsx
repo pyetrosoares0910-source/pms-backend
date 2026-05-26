@@ -38,6 +38,10 @@ import {
   Moon,
   ChevronUp,
   ChevronDown,
+  Sparkles,
+  Trophy,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import {
   buildCheckinAlert,
@@ -47,6 +51,7 @@ import {
   mapCheckoutTask,
 } from "../lib/operationalAlerts";
 import {
+  buildGuestCheckoutAlert,
   GUEST_CHECKOUT_SETTINGS_EVENT,
   getDailyGuestCheckoutSummary,
 } from "../pages/guestCheckoutShared";
@@ -59,6 +64,18 @@ import { getWeeklyPresentationSummary } from "../pages/guestPresentationShared";
 import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "../pages/maintenanceShared";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
+
+function pluralByCount(count, singular, plural) {
+  return Number(count) > 1 ? plural : singular;
+}
+
+function pendingText(count) {
+  return pluralByCount(count, "pendente", "pendentes");
+}
+
+function completedVerbText(count) {
+  return pluralByCount(count, "foi concluida", "foram concluidas");
+}
 
 function getInitialSidebarCollapsed() {
   if (typeof window === "undefined") return false;
@@ -280,6 +297,7 @@ export default function DashboardLayout() {
   const [alertReservations, setAlertReservations] = useState([]);
   const [alertCheckouts, setAlertCheckouts] = useState([]);
   const [alertMaintenance, setAlertMaintenance] = useState([]);
+  const [questsOpen, setQuestsOpen] = useState(false);
 
   const [collapsed, setCollapsed] = useState(getInitialSidebarCollapsed);
   const [showText, setShowText] = useState(() => !getInitialSidebarCollapsed());
@@ -407,6 +425,10 @@ export default function DashboardLayout() {
     () => getDailyGuestCheckoutSummary(alertReservations, dayjs()),
     [alertReservations]
   );
+  const guestCheckoutAlert = useMemo(
+    () => buildGuestCheckoutAlert(guestCheckoutSummary),
+    [guestCheckoutSummary]
+  );
   const maidAssignmentsAlert = useMemo(
     () =>
       buildMaidListAlert(getMaidListDeliverySummary(alertCheckouts, tomorrowStr), "amanha"),
@@ -420,6 +442,82 @@ export default function DashboardLayout() {
     () => buildMaintenanceAlert(getMaintenanceAlertSummary(alertMaintenance, dayjs())),
     [alertMaintenance]
   );
+  const questItems = useMemo(() => {
+    const checkinSummary = getCheckinAlertSummary(alertReservations, dayjs());
+    const presentationPending = presentationSummary.pending > 0;
+    const presentationMessage = presentationPending
+      ? `Alerta: ${presentationSummary.pending} de ${presentationSummary.total} ${pluralByCount(presentationSummary.total, "apresentacao", "apresentacoes")} da semana ainda ${pendingText(presentationSummary.pending)}.`
+      : presentationSummary.total > 0
+        ? `Tudo certo: ${presentationSummary.completed} de ${presentationSummary.total} ${pluralByCount(presentationSummary.total, "apresentacao", "apresentacoes")} da semana ${completedVerbText(presentationSummary.completed)}.`
+        : "Tudo certo: nao ha apresentacao prevista na semana.";
+
+    return [
+      {
+        id: "checkins",
+        title: "Portao de Chegada",
+        route: "/guest-checkins",
+        icon: MapPinCheckInside,
+        isPending: checkinAlert.isPending,
+        progress: `${checkinSummary.finished}/${Math.max(checkinSummary.total, 1)}`,
+        message: checkinAlert.message,
+      },
+      {
+        id: "presentations",
+        title: "Ritual de Boas-vindas",
+        route: "/apresentacao-hospedes",
+        icon: ListCheck,
+        isPending: presentationPending,
+        progress: `${presentationSummary.completed}/${Math.max(presentationSummary.total, 1)}`,
+        message: presentationMessage,
+      },
+      {
+        id: "checkouts",
+        title: "Pergaminhos de Saida",
+        route: "/guest-checkouts",
+        icon: SquareArrowRightExit,
+        isPending: guestCheckoutAlert.isPending,
+        progress: `${guestCheckoutSummary.sent}/${Math.max(guestCheckoutSummary.total, 1)}`,
+        message: guestCheckoutAlert.message,
+      },
+      {
+        id: "maids",
+        title: "Guilda das Diaristas",
+        route: "/maid-assignments",
+        icon: UsersRound,
+        isPending: maidAssignmentsAlert.isPending,
+        progress: maidAssignmentsAlert.isPending ? "acao" : "ok",
+        message: maidAssignmentsAlert.message,
+      },
+      {
+        id: "cleaning",
+        title: "Mapa da Limpeza",
+        route: "/cleaning-schedule",
+        icon: Bubbles,
+        isPending: cleaningAlert.isPending,
+        progress: cleaningAlert.isPending ? "acao" : "ok",
+        message: cleaningAlert.message,
+      },
+      {
+        id: "maintenance",
+        title: "Agenda de Atividades",
+        route: "/maintenance-calendar",
+        icon: CalendarDays,
+        isPending: maintenanceAlert.isPending,
+        progress: maintenanceAlert.isPending ? "acao" : "ok",
+        message: maintenanceAlert.message,
+      },
+    ];
+  }, [
+    alertReservations,
+    checkinAlert,
+    presentationSummary,
+    guestCheckoutAlert,
+    guestCheckoutSummary,
+    maidAssignmentsAlert,
+    cleaningAlert,
+    maintenanceAlert,
+  ]);
+  const pendingQuestCount = questItems.filter((quest) => quest.isPending).length;
 
   // Listener de scroll na janela
   useEffect(() => {
@@ -498,15 +596,27 @@ export default function DashboardLayout() {
           <div className="px-4 py-3">
             <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 shadow-sm shadow-slate-900/5 dark:border-white/10 dark:bg-white/5">
               {user?.imageUrl ? (
-                <img
-                  src={user.imageUrl}
-                  alt={user?.name || "Usuario"}
-                  className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-md shadow-sky-600/20 ring-1 ring-slate-200/70 dark:ring-white/10"
-                />
+                <button
+                  type="button"
+                  onClick={() => setQuestsOpen(true)}
+                  title="Abrir quests"
+                  className="h-9 w-9 shrink-0 overflow-hidden rounded-xl shadow-md shadow-sky-600/20 ring-1 ring-slate-200/70 transition hover:scale-105 hover:ring-sky-300 dark:ring-white/10 dark:hover:ring-sky-400"
+                >
+                  <img
+                    src={user.imageUrl}
+                    alt={user?.name || "Usuario"}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
               ) : (
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20">
+                <button
+                  type="button"
+                  onClick={() => setQuestsOpen(true)}
+                  title="Abrir quests"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-600 text-sm font-black text-white shadow-md shadow-sky-600/20 transition hover:scale-105 hover:bg-sky-700"
+                >
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                </div>
+                </button>
               )}
               <div className="min-w-0">
                 <div className="font-serif text-[13px] italic leading-none text-slate-400 dark:text-slate-500">
@@ -549,6 +659,7 @@ export default function DashboardLayout() {
               to="/maintenance-calendar"
               icon={CalendarDays}
               showText={showText}
+              hasNotification={maintenanceAlert.isPending}
             >
               Agenda de Atividades
             </Item>
@@ -604,13 +715,11 @@ export default function DashboardLayout() {
                 isOpen={groupsOpen.cadastros}
                 onToggle={() => toggleGroup("cadastros")}
                 showText={showText}
-                hasNotification={maintenanceAlert.isPending}
               >
                 <Item
                   to="/maintenance"
                   icon={Wrench}
                   showText={showText}
-                  hasNotification={maintenanceAlert.isPending}
                 >
                   Atividades
                 </Item>
@@ -680,19 +789,27 @@ export default function DashboardLayout() {
           {collapsed && user ? (
             <div className="flex justify-center pb-1">
               {user?.imageUrl ? (
-                <img
-                  src={user.imageUrl}
-                  alt={user?.name || "Usuario"}
-                  title={user?.name || "Usuario"}
-                  className="h-11 w-11 rounded-full object-cover shadow-lg shadow-sky-600/15 ring-2 ring-white dark:ring-slate-800"
-                />
+                <button
+                  type="button"
+                  onClick={() => setQuestsOpen(true)}
+                  title="Abrir quests"
+                  className="h-11 w-11 overflow-hidden rounded-full shadow-lg shadow-sky-600/15 ring-2 ring-white transition hover:scale-105 hover:ring-sky-300 dark:ring-slate-800 dark:hover:ring-sky-400"
+                >
+                  <img
+                    src={user.imageUrl}
+                    alt={user?.name || "Usuario"}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
               ) : (
-                <div
-                  title={user?.name || "Usuario"}
-                  className="grid h-11 w-11 place-items-center rounded-full bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-600/20 ring-2 ring-white dark:ring-slate-800"
+                <button
+                  type="button"
+                  onClick={() => setQuestsOpen(true)}
+                  title="Abrir quests"
+                  className="grid h-11 w-11 place-items-center rounded-full bg-sky-600 text-sm font-black text-white shadow-lg shadow-sky-600/20 ring-2 ring-white transition hover:scale-105 hover:bg-sky-700 dark:ring-slate-800"
                 >
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                </div>
+                </button>
               )}
             </div>
           ) : null}
@@ -788,6 +905,114 @@ export default function DashboardLayout() {
       </main>
 
       {/* BOTÃO VOLTAR AO TOPO */}
+      {questsOpen ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quests-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setQuestsOpen(false);
+          }}
+        >
+          <div className="relative max-h-[88dvh] w-full max-w-4xl overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-950 text-slate-100 shadow-2xl shadow-cyan-950/45">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-amber-300 to-fuchsia-400" />
+            <div className="relative overflow-y-auto p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
+                <div className="flex items-center gap-4">
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl border border-amber-300/40 bg-amber-300/10 text-amber-200 shadow-lg shadow-amber-950/30">
+                    <Trophy size={28} />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-100">
+                      <Sparkles size={13} />
+                      Quests do dia
+                    </div>
+                    <h2 id="quests-title" className="mt-2 text-2xl font-black tracking-tight text-white">
+                      Painel de Missoes
+                    </h2>
+                    <p className="mt-1 text-sm font-medium text-slate-400">
+                      Os 6 avisos operacionais do dashboard em formato de jornada.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-right">
+                    <div className="text-2xl font-black text-amber-200">{questItems.length - pendingQuestCount}/{questItems.length}</div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">concluidas</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuestsOpen(false)}
+                    aria-label="Fechar quests"
+                    className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {questItems.map((quest) => {
+                  const QuestIcon = quest.icon;
+                  return (
+                    <NavLink
+                      key={quest.id}
+                      to={quest.route}
+                      onClick={() => setQuestsOpen(false)}
+                      className={`group relative overflow-hidden rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-xl ${
+                        quest.isPending
+                          ? "border-amber-300/35 bg-[linear-gradient(135deg,rgba(251,191,36,0.14),rgba(15,23,42,0.98)_46%)] hover:shadow-amber-950/30"
+                          : "border-emerald-300/25 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.98)_46%)] hover:shadow-emerald-950/25"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${
+                            quest.isPending
+                              ? "border-amber-300/40 bg-amber-300/12 text-amber-200"
+                              : "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
+                          }`}
+                        >
+                          <QuestIcon size={21} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="font-black text-white">{quest.title}</div>
+                            <div
+                              className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                                quest.isPending
+                                  ? "bg-amber-300/15 text-amber-100"
+                                  : "bg-emerald-300/15 text-emerald-100"
+                              }`}
+                            >
+                              {quest.isPending ? "pendente" : "ok"}
+                            </div>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold leading-5 text-slate-300">
+                            {quest.message}
+                          </p>
+                          <div className="mt-4 flex items-center justify-between gap-3">
+                            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                              <ShieldCheck size={14} />
+                              progresso {quest.progress}
+                            </div>
+                            <span className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200 opacity-0 transition group-hover:opacity-100">
+                              abrir
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showScrollTop && (
         <button
           onClick={handleScrollTop}

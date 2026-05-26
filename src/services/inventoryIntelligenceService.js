@@ -6,7 +6,15 @@ const DEFAULT_WINDOW_DAYS = 30;
 const HISTORY_DAYS = 180;
 const CRITICAL_DAYS = 7;
 const WARNING_DAYS = 14;
-const SHARED_INVENTORY_STAY_NAMES = new Set(["iguatemi", "a", "b", "at", "bt", "c"]);
+const SHARED_INVENTORY_STAY_NAMES = new Set([
+  "iguatemi",
+  "iguatemi stay",
+  "iguatemi a",
+  "iguatemi b",
+  "iguatemi at",
+  "iguatemi bt",
+  "iguatemi c",
+]);
 
 const laundryPieces = {
   FITTED_SHEET: 1,
@@ -127,9 +135,14 @@ function normalizeStayName(name) {
   return String(name || "").trim().toLowerCase();
 }
 
+function isSharedIguatemiStay(stay) {
+  const normalized = normalizeStayName(stay?.name);
+  return SHARED_INVENTORY_STAY_NAMES.has(normalized) || normalized.includes("iguatemi");
+}
+
 async function getInventoryStayScope(stayId) {
   const stays = await prisma.stay.findMany({ select: { id: true, name: true } });
-  const sharedStays = stays.filter((stay) => SHARED_INVENTORY_STAY_NAMES.has(normalizeStayName(stay.name)));
+  const sharedStays = stays.filter(isSharedIguatemiStay);
   const primaryStay = sharedStays.find((stay) => normalizeStayName(stay.name) === "iguatemi") || sharedStays[0] || null;
   const sharedStayIds = sharedStays.map((stay) => stay.id);
 
@@ -247,11 +260,21 @@ function addLaundryTotals(map, items) {
 }
 
 async function getDailyOperationalSummary(query = {}) {
-  const day = query.date ? dayjs(query.date) : dayjs();
+  const day = query.date ? dayjs(parseCalendarDate(query.date)) : dayjs();
   const from = day.startOf("day").toDate();
   const to = day.endOf("day").toDate();
   const stayId = query.stayId ? String(query.stayId) : null;
   const inventoryScope = await getInventoryStayScope(stayId);
+  const stayRoomWhere = stayId
+    ? inventoryScope.isShared
+      ? { room: { stayId: { in: inventoryScope.stockStayIds } } }
+      : { room: { stayId } }
+    : {};
+  const laundryStayWhere = stayId
+    ? inventoryScope.isShared
+      ? { stayId: { in: inventoryScope.stockStayIds } }
+      : { stayId }
+    : {};
 
   const [reservations, laundryDispatches, consumptions, alerts] = await Promise.all([
     prisma.reservation.findMany({
@@ -264,7 +287,7 @@ async function getDailyOperationalSummary(query = {}) {
             checkoutDate: { gte: from, lte: to },
           },
         ],
-        ...(stayId ? { room: { stayId } } : {}),
+        ...stayRoomWhere,
       },
       include: { guest: true, room: { include: { stay: true } } },
       orderBy: { checkoutDate: "asc" },
@@ -272,7 +295,7 @@ async function getDailyOperationalSummary(query = {}) {
     prisma.laundryDispatch.findMany({
       where: {
         dispatchDate: { gte: from, lte: to },
-        ...(stayId ? { stayId } : {}),
+        ...laundryStayWhere,
       },
       include: { items: true, room: true, maid: true, stay: true },
       orderBy: { dispatchDate: "asc" },
@@ -1395,7 +1418,13 @@ async function buildInventoryDashboard(query = {}) {
   const { from, to, days } = getDateRange(query);
   const inventoryScope = await getInventoryStayScope(query.stayId);
   const stayWhere = inventoryScope.stockWhere;
+  const reservationStayWhere = query.stayId
+    ? inventoryScope.isShared
+      ? { room: { stayId: { in: inventoryScope.stockStayIds } } }
+      : { room: { stayId: String(query.stayId) } }
+    : {};
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
+  const today = query.today || query.date || dayjs().format("YYYY-MM-DD");
 
   const [products, inventory, consumptions, entries, reservations, laundryDispatches, laundryPrices, usageCycles, activeLots, persistedAlerts] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
@@ -1414,7 +1443,7 @@ async function buildInventoryDashboard(query = {}) {
       where: {
         checkoutDate: { gte: from, lte: futureTo },
         status: { not: "cancelada" },
-        ...(query.stayId ? { room: { stayId: String(query.stayId) } } : {}),
+        ...reservationStayWhere,
       },
       include: { room: true },
     }),
@@ -1561,7 +1590,7 @@ async function buildInventoryDashboard(query = {}) {
   const guestCapacity = sum(reservationsInPeriod, (item) => item.room?.capacity || 1) || reservationsInPeriod.length || 1;
   const [cleaningUsage, todaySummary] = await Promise.all([
     getAutomatedCleaningUsage({ ...query, from, to }),
-    getDailyOperationalSummary({ stayId: query.stayId }),
+    getDailyOperationalSummary({ stayId: query.stayId, date: today }),
   ]);
   const activeLotProgress = await Promise.all(
     activeLots.map(async (lot) => {

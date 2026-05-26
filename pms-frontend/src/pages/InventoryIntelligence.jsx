@@ -668,6 +668,7 @@ export default function InventoryIntelligence() {
       if (filters.stayId) qs.set("stayId", filters.stayId);
       if (filters.from) qs.set("from", filters.from);
       if (filters.to) qs.set("to", filters.to);
+      qs.set("today", dateInputValue(new Date()));
 
       const [dash, productRows, stayRows, roomRows, maidRows, staffRows, reservationRows, lotRows, laundryPriceRows] = await Promise.all([
         api(`/api/inventory-intelligence/dashboard?${qs.toString()}`),
