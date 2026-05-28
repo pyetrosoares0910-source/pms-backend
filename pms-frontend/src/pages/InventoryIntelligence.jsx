@@ -1089,10 +1089,10 @@ export default function InventoryIntelligence() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/70 dark:bg-cyan-950/35 dark:text-cyan-200">
             <Sparkles size={14} />
-            inteligencia operacional
+            inteligência operacional
           </div>
           <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50">
-            Consumiveis e Estoque
+            Consumíveis e Estoque
           </h1>
         </div>
 
