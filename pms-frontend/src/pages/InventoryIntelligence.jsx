@@ -125,7 +125,7 @@ function buildLaundryDraft(roomSummary) {
     stayId: roomSummary.stayId || "",
     roomId: roomSummary.roomId || roomSummary.id || "",
     reservationId: roomSummary.reservationId || "",
-    maidId: roomSummary.dispatch?.maidId || "",
+    maidId: roomSummary.dispatch?.maidId || roomSummary.maidId || "",
     dispatchDate: dateInputValue(roomSummary.dispatch?.dispatchDate || roomSummary.cleaningDate || new Date()),
     expectedSets: roomSummary.dispatch?.expectedSets || fittedSheets,
     notes: roomSummary.dispatch?.notes || "",

@@ -1,5 +1,10 @@
 const dayjs = require("dayjs");
 const { prisma } = require("../prisma.js");
+const {
+  findRoomForCheckoutTask,
+  makeRoomLookup,
+  normalizeText,
+} = require("./cleaningOperationsService");
 const { toBaseUnit } = require("../utils/units.js");
 
 const DEFAULT_WINDOW_DAYS = 30;
@@ -131,6 +136,14 @@ function parseCalendarDate(value, fallback = new Date()) {
   return new Date(value);
 }
 
+function getDayRange(value) {
+  const date = dayjs(value);
+  return {
+    from: date.startOf("day").toDate(),
+    to: date.endOf("day").toDate(),
+  };
+}
+
 function normalizeStayName(name) {
   return String(name || "").trim().toLowerCase();
 }
@@ -225,6 +238,90 @@ function getReservationCleaningDate(reservation) {
   return reservation.cleaningDateOverride || reservation.checkoutDate;
 }
 
+function buildCheckoutMaidMap(tasks, rooms) {
+  const roomLookup = makeRoomLookup(rooms);
+  const byRoomDay = new Map();
+
+  tasks.forEach((task) => {
+    if (!task.maidId) return;
+    const room = findRoomForCheckoutTask(task, roomLookup);
+    if (!room?.id) return;
+    const dateKey = dayjs(task.date).format("YYYY-MM-DD");
+    byRoomDay.set(`${room.id}|${dateKey}`, {
+      maidId: task.maidId,
+      maid: task.maid || null,
+    });
+  });
+
+  return byRoomDay;
+}
+
+async function findLaundryAssignment({ roomId, reservationId, dispatchDate, tx = prisma }) {
+  let room = null;
+  let cleaningDate = dispatchDate;
+
+  if (reservationId) {
+    const reservation = await tx.reservation.findUnique({
+      where: { id: reservationId },
+      include: { room: { include: { stay: true } } },
+    });
+    if (reservation) {
+      room = reservation.room || null;
+      cleaningDate = getReservationCleaningDate(reservation);
+    }
+  }
+
+  if (!room && roomId) {
+    room = await tx.room.findUnique({
+      where: { id: roomId },
+      include: { stay: true },
+    });
+  }
+
+  if (!room || !cleaningDate) return null;
+
+  const { from, to } = getDayRange(cleaningDate);
+  const tasks = await tx.task.findMany({
+    where: {
+      date: { gte: from, lte: to },
+      maidId: { not: null },
+    },
+    include: { maid: true },
+  });
+  const roomTitle = normalizeText(room.title);
+  const stayName = normalizeText(room.stay?.name);
+
+  return tasks.find((task) => {
+    const sameRoom = normalizeText(task.rooms) === roomTitle;
+    const sameStay = !stayName || normalizeText(task.stay) === stayName;
+    return sameRoom && sameStay;
+  }) || tasks.find((task) => normalizeText(task.rooms) === roomTitle) || null;
+}
+
+async function backfillLaundryDispatchAssignments(dispatches = []) {
+  return Promise.all(dispatches.map(async (dispatch) => {
+    if (dispatch.maidId) return dispatch;
+
+    const assignedTask = await findLaundryAssignment({
+      roomId: dispatch.roomId,
+      reservationId: dispatch.reservationId,
+      dispatchDate: dispatch.dispatchDate,
+    });
+    if (!assignedTask?.maidId) return dispatch;
+
+    await prisma.laundryDispatch.update({
+      where: { id: dispatch.id },
+      data: { maidId: assignedTask.maidId },
+    });
+
+    return {
+      ...dispatch,
+      maidId: assignedTask.maidId,
+      maid: assignedTask.maid || dispatch.maid || null,
+    };
+  }));
+}
+
 function getLaundryItemLabel(itemType) {
   const labels = {
     FITTED_SHEET: "Lencol elastico",
@@ -276,7 +373,7 @@ async function getDailyOperationalSummary(query = {}) {
       : { stayId }
     : {};
 
-  const [reservations, laundryDispatches, consumptions, alerts] = await Promise.all([
+  const [reservations, laundryDispatchRows, consumptions, alerts, checkoutTasks] = await Promise.all([
     prisma.reservation.findMany({
       where: {
         status: { not: "cancelada" },
@@ -316,7 +413,16 @@ async function getDailyOperationalSummary(query = {}) {
       orderBy: { detectedAt: "desc" },
       take: 10,
     }),
+    prisma.task.findMany({
+      where: {
+        date: { gte: from, lte: to },
+        maidId: { not: null },
+      },
+      include: { maid: true },
+    }),
   ]);
+
+  const laundryDispatches = await backfillLaundryDispatchAssignments(laundryDispatchRows);
 
   const expectedLaundryMap = new Map();
   reservations.forEach((reservation) => {
@@ -333,10 +439,19 @@ async function getDailyOperationalSummary(query = {}) {
     if (dispatch.reservationId) dispatchByReservation.set(dispatch.reservationId, dispatch);
     if (dispatch.roomId && !dispatchByRoom.has(dispatch.roomId)) dispatchByRoom.set(dispatch.roomId, dispatch);
   });
+  const roomsForLookup = [...new Map(
+    reservations
+      .map((reservation) => reservation.room)
+      .filter(Boolean)
+      .map((room) => [room.id, room])
+  ).values()];
+  const checkoutMaidByRoomDay = buildCheckoutMaidMap(checkoutTasks, roomsForLookup);
 
   const mapReservationRoom = (reservation) => {
     const defaultItems = buildDefaultLaundryItems(reservation.room);
     const dispatch = dispatchByReservation.get(reservation.id) || dispatchByRoom.get(reservation.roomId) || null;
+    const cleaningDate = getReservationCleaningDate(reservation);
+    const checkoutAssignment = checkoutMaidByRoomDay.get(`${reservation.roomId}|${dayjs(cleaningDate).format("YYYY-MM-DD")}`) || null;
     return {
       reservationId: reservation.id,
       id: reservation.roomId,
@@ -347,7 +462,9 @@ async function getDailyOperationalSummary(query = {}) {
       stayName: reservation.room?.stay?.name || "",
       guestName: reservation.guest?.name || "",
       checkoutDate: reservation.checkoutDate,
-      cleaningDate: getReservationCleaningDate(reservation),
+      cleaningDate,
+      maidId: dispatch?.maidId || checkoutAssignment?.maidId || null,
+      maid: dispatch?.maid || checkoutAssignment?.maid || null,
       expectedItems: defaultItems.map((item) => ({
         ...item,
         label: getLaundryItemLabel(item.itemType),
@@ -892,13 +1009,20 @@ async function registerLaundryDispatch(data) {
     room,
     Array.isArray(data.items) && data.items.length ? data.items : [],
   );
+  const assignedTask = data.maidId
+    ? null
+    : await findLaundryAssignment({
+      roomId: data.roomId,
+      reservationId: data.reservationId,
+      dispatchDate,
+    });
 
   return prisma.laundryDispatch.create({
     data: {
       stayId: data.stayId,
       roomId: data.roomId || null,
       reservationId: data.reservationId || null,
-      maidId: data.maidId ? Number(data.maidId) : null,
+      maidId: data.maidId ? Number(data.maidId) : assignedTask?.maidId || null,
       dispatchDate,
       expectedSets: Number(data.expectedSets || 2),
       notes: data.notes || null,
@@ -1183,7 +1307,7 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
 
 async function listLaundryDispatches(query = {}) {
   const { from, to } = getDateRange(query);
-  return prisma.laundryDispatch.findMany({
+  const dispatches = await prisma.laundryDispatch.findMany({
     where: {
       ...(query.stayId ? { stayId: String(query.stayId) } : {}),
       dispatchDate: { gte: from, lte: to },
@@ -1191,6 +1315,7 @@ async function listLaundryDispatches(query = {}) {
     include: { stay: true, room: true, maid: true, reservation: true, items: true },
     orderBy: { dispatchDate: "desc" },
   });
+  return backfillLaundryDispatchAssignments(dispatches);
 }
 
 async function listLaundryItemPrices() {
@@ -1426,7 +1551,7 @@ async function buildInventoryDashboard(query = {}) {
   const futureTo = dayjs().add(30, "day").endOf("day").toDate();
   const today = query.today || query.date || dayjs().format("YYYY-MM-DD");
 
-  const [products, inventory, consumptions, entries, reservations, laundryDispatches, laundryPrices, usageCycles, activeLots, persistedAlerts] = await Promise.all([
+  const [products, inventory, consumptions, entries, reservations, laundryDispatchRows, laundryPrices, usageCycles, activeLots, persistedAlerts] = await Promise.all([
     prisma.product.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.inventory.findMany({ where: stayWhere, include: { product: true, stay: true } }),
     prisma.productConsumption.findMany({
@@ -1478,6 +1603,7 @@ async function buildInventoryDashboard(query = {}) {
     }),
   ]);
 
+  const laundryDispatches = await backfillLaundryDispatchAssignments(laundryDispatchRows);
   const inventoryRows = aggregateSharedInventoryRows(inventory, inventoryScope);
   const periodConsumptions = consumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs(from).subtract(1, "millisecond")));
   const periodEntries = entries.filter((item) => dayjs(item.entryDate).isAfter(dayjs(from).subtract(1, "millisecond")));
