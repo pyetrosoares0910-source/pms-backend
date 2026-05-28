@@ -166,6 +166,7 @@ const NavGroup = ({
   isOpen,
   onToggle,
   showText,
+  collapsed,
   children,
   hasNotification = false,
 }) => {
@@ -178,7 +179,7 @@ const NavGroup = ({
     : children;
 
   // Modo barra recolhida: só ícone com tooltip
-  if (!showText) {
+  if (collapsed) {
     return (
       <div className="mt-3">
         <div
@@ -263,13 +264,21 @@ const NavGroup = ({
           transition-colors duration-200
         "
       >
-        <div className="flex items-center gap-2">
-          {Icon && <Icon size={14} className="opacity-80" />}
-          <span>{label}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          {Icon && <Icon size={14} className="shrink-0 opacity-80" />}
+          <span
+            className={`
+              overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-out
+              ${showText ? "max-w-40 translate-x-0 opacity-100" : "max-w-0 -translate-x-1 opacity-0"}
+            `}
+          >
+            {label}
+          </span>
         </div>
         <ChevronDown
           size={16}
-          className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+          className={`shrink-0 transition-[opacity,transform] duration-200 ${isOpen ? "rotate-180" : ""
+            } ${showText ? "opacity-100" : "opacity-0"
             }`}
         />
       </button>
@@ -278,7 +287,7 @@ const NavGroup = ({
         className={`
           mt-2 space-y-1 overflow-hidden
           transition-all duration-200
-          ${isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
+          ${showText && isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}
         `}
       >
         {renderedChildren}
@@ -715,6 +724,7 @@ export default function DashboardLayout() {
                 isOpen={groupsOpen.cadastros}
                 onToggle={() => toggleGroup("cadastros")}
                 showText={showText}
+                collapsed={collapsed}
               >
                 <Item
                   to="/maintenance"
@@ -755,6 +765,7 @@ export default function DashboardLayout() {
                 isOpen={groupsOpen.estoque}
                 onToggle={() => toggleGroup("estoque")}
                 showText={showText}
+                collapsed={collapsed}
               >
                 <Item to="/inventory" icon={Boxes} showText={showText} neutralActive>
                   Inventário
@@ -769,6 +780,7 @@ export default function DashboardLayout() {
               isOpen={groupsOpen.relatorios}
               onToggle={() => toggleGroup("relatorios")}
               showText={showText}
+              collapsed={collapsed}
             >
               {!viewerOnly && <Item to="/cleaning-report" icon={Brush} showText={showText}>
                 Relatório de Limpeza
