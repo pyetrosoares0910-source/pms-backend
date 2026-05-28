@@ -1692,7 +1692,7 @@ export default function Dashboard() {
               <div className="mt-1 text-xs font-semibold">vs mês anterior</div>
             </div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-rose-800 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-200">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Cairam</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">Caíram</div>
               <div className="mt-1 text-2xl font-black">{occupancy.reduced}</div>
               <div className="mt-1 text-xs font-semibold">vs mês anterior</div>
             </div>
