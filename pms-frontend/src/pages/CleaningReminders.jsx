@@ -688,8 +688,8 @@ export default function CleaningReminders() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-            <Bell size={20} className="text-emerald-700 dark:text-emerald-300" />
-            <h2 className="text-xl font-semibold">Lembretes estáticos</h2>
+              <Bell size={20} className="text-emerald-700 dark:text-emerald-300" />
+              <h2 className="text-xl font-semibold">Lembretes estáticos</h2>
             </div>
             <button
               type="button"
@@ -809,19 +809,18 @@ export default function CleaningReminders() {
                       aria-label={`Selecionar ${task.name}`}
                     />
                     <div className="min-w-0">
-                    <h3 className="font-semibold">{task.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                      {task.room?.stay?.name || "Sem empreendimento"} |{" "}
-                      {task.room?.title || "Sem acomodação"}
-                    </p>
+                      <h3 className="font-semibold">{task.name}</h3>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {task.room?.stay?.name || "Sem empreendimento"} |{" "}
+                        {task.room?.title || "Sem acomodação"}
+                      </p>
                     </div>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      task.active
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${task.active
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
                         : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    }`}
+                      }`}
                   >
                     {task.active ? "Ativa" : "Inativa"}
                   </span>
@@ -913,11 +912,10 @@ export default function CleaningReminders() {
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      reminder.active
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${reminder.active
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
                         : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    }`}
+                      }`}
                   >
                     {getStatusLabel(reminder.active, reminder.endsAt)}
                   </span>
