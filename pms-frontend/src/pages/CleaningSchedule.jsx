@@ -246,149 +246,149 @@ const CleaningSchedule = () => {
                 </span>
               </div>
               <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                  <tr>
-                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Nº
-                    </th>
-                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Acomodações
-                    </th>
-                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Diarista
-                    </th>
-                    <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                      Ação
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dayTasks.length > 0 ? (
-                    [...dayTasks]
-                      .sort((a, b) => {
-                        const groupA = getCleaningStayGroup(a.stay);
-                        const groupB = getCleaningStayGroup(b.stay);
-                        if (groupA < groupB) return -1;
-                        if (groupA > groupB) return 1;
-                        if (a.rooms < b.rooms) return -1;
-                        if (a.rooms > b.rooms) return 1;
-                        return 0;
-                      })
-                      .flatMap((t, idx, sortedTasks) => {
-                        const stayGroup = getCleaningStayGroup(t.stay);
-                        const startsStayGroup =
-                          idx === 0 || getCleaningStayGroup(sortedTasks[idx - 1].stay) !== stayGroup;
-                        const stayTaskCount = startsStayGroup
-                          ? sortedTasks.filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length
-                          : 0;
-                        const stayTaskIndex = sortedTasks
-                          .slice(0, idx + 1)
-                          .filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length;
-
-                        return [
-                          startsStayGroup ? (
-                            <tr key={`stay-${d.format("YYYY-MM-DD")}-${t.stay}`}>
-                              <td
-                                colSpan="4"
-                                className="border-y border-slate-200/80 bg-slate-100/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/80"
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
-                                    <Hotel size={14} className="text-sky-500" />
-                                    {stayGroup}
-                                  </div>
-                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
-                                    {stayTaskCount} tarefas
-                                  </span>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : null,
-                          <tr
-                            key={t.id || `${t.date}-${t.stay}-${t.rooms}-${idx}`}
-                            className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
-                          >
-                            <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
-                              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                                {stayTaskIndex}
-                              </span>
-                            </td>
-                            <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                              {t.rooms}
-                            </td>
-                            <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
-                              <select
-                                value={t.maidId || ""}
-                                onChange={async (e) => {
-                                  const maidId = e.target.value
-                                    ? parseInt(e.target.value, 10)
-                                    : null;
-
-                                await api(`/tasks/${t.id}/assign`, {
-                                  method: "PUT",
-                                  body: JSON.stringify({ maidId }),
-                                });
-
-                                setTasks((prev) =>
-                                  prev.map((task) =>
-                                    task.id === t.id
-                                      ? {
-                                        ...task,
-                                        maid:
-                                          maids.find(
-                                            (m) => m.id === maidId
-                                          )?.name || null,
-                                        maidId,
-                                      }
-                                      : task
-                                  )
-                                );
-                              }}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
-                              >
-                                <option value="">-- Selecionar --</option>
-                                {maids
-                                  .filter((m) =>
-                                    m.available?.includes(d.format("ddd"))
-                                  )
-                                  .map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                      {m.name}
-                                    </option>
-                                  ))}
-                              </select>
-                            </td>
-                            <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedCleaningTask(t)}
-                                disabled={!t.reservation}
-                                className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                Alterar dia de limpeza
-                              </button>
-                              {t.reservation?.cleaningDateOverride ? (
-                                <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
-                                  Motivo: {t.reservation.cleaningChangeReason || "Não informado"}
-                                </div>
-                              ) : null}
-                            </td>
-                          </tr>,
-                        ].filter(Boolean);
-                      })
-                  ) : (
+                <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                     <tr>
-                      <td
-                        colSpan="4"
-                        className="px-4 py-8 text-center text-sm font-semibold text-slate-400 dark:text-slate-500"
-                      >
-                        Nenhuma tarefa para este dia
-                      </td>
+                      <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
+                        Nº
+                      </th>
+                      <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
+                        Acomodações
+                      </th>
+                      <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
+                        Diarista
+                      </th>
+                      <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
+                        Ação
+                      </th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {dayTasks.length > 0 ? (
+                      [...dayTasks]
+                        .sort((a, b) => {
+                          const groupA = getCleaningStayGroup(a.stay);
+                          const groupB = getCleaningStayGroup(b.stay);
+                          if (groupA < groupB) return -1;
+                          if (groupA > groupB) return 1;
+                          if (a.rooms < b.rooms) return -1;
+                          if (a.rooms > b.rooms) return 1;
+                          return 0;
+                        })
+                        .flatMap((t, idx, sortedTasks) => {
+                          const stayGroup = getCleaningStayGroup(t.stay);
+                          const startsStayGroup =
+                            idx === 0 || getCleaningStayGroup(sortedTasks[idx - 1].stay) !== stayGroup;
+                          const stayTaskCount = startsStayGroup
+                            ? sortedTasks.filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length
+                            : 0;
+                          const stayTaskIndex = sortedTasks
+                            .slice(0, idx + 1)
+                            .filter((item) => getCleaningStayGroup(item.stay) === stayGroup).length;
+
+                          return [
+                            startsStayGroup ? (
+                              <tr key={`stay-${d.format("YYYY-MM-DD")}-${t.stay}`}>
+                                <td
+                                  colSpan="4"
+                                  className="border-y border-slate-200/80 bg-slate-100/80 px-4 py-2 dark:border-slate-800 dark:bg-slate-900/80"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">
+                                      <Hotel size={14} className="text-sky-500" />
+                                      {stayGroup}
+                                    </div>
+                                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                                      {stayTaskCount} tarefas
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : null,
+                            <tr
+                              key={t.id || `${t.date}-${t.stay}-${t.rooms}-${idx}`}
+                              className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
+                            >
+                              <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
+                                <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                                  {stayTaskIndex}
+                                </span>
+                              </td>
+                              <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                                {t.rooms}
+                              </td>
+                              <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
+                                <select
+                                  value={t.maidId || ""}
+                                  onChange={async (e) => {
+                                    const maidId = e.target.value
+                                      ? parseInt(e.target.value, 10)
+                                      : null;
+
+                                    await api(`/tasks/${t.id}/assign`, {
+                                      method: "PUT",
+                                      body: JSON.stringify({ maidId }),
+                                    });
+
+                                    setTasks((prev) =>
+                                      prev.map((task) =>
+                                        task.id === t.id
+                                          ? {
+                                            ...task,
+                                            maid:
+                                              maids.find(
+                                                (m) => m.id === maidId
+                                              )?.name || null,
+                                            maidId,
+                                          }
+                                          : task
+                                      )
+                                    );
+                                  }}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-sky-700 dark:focus:ring-sky-950/50"
+                                >
+                                  <option value="">-- Selecionar --</option>
+                                  {maids
+                                    .filter((m) =>
+                                      m.available?.includes(d.format("ddd"))
+                                    )
+                                    .map((m) => (
+                                      <option key={m.id} value={m.id}>
+                                        {m.name}
+                                      </option>
+                                    ))}
+                                </select>
+                              </td>
+                              <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCleaningTask(t)}
+                                  disabled={!t.reservation}
+                                  className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Alterar dia de limpeza
+                                </button>
+                                {t.reservation?.cleaningDateOverride ? (
+                                  <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">
+                                    Motivo: {t.reservation.cleaningChangeReason || "Não informado"}
+                                  </div>
+                                ) : null}
+                              </td>
+                            </tr>,
+                          ].filter(Boolean);
+                        })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="px-4 py-8 text-center text-sm font-semibold text-slate-400 dark:text-slate-500"
+                        >
+                          Nenhuma tarefa para este dia
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           );
@@ -407,65 +407,65 @@ const CleaningSchedule = () => {
           </span>
         </div>
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-            <tr>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                ID
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
-                Diarista
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                1ª sem
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                2ª sem
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                3ª sem
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                4ª sem
-              </th>
-              <th className="border-b border-slate-200/80 px-4 py-3 text-center font-bold dark:border-slate-800">
-                TOTAL
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedMaidStats.map((m, idx) => (
-              <tr
-                key={idx}
-                className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
-              >
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
-                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
-                  {m.name}
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
-                  {m.byWeek[0]}
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
-                  {m.byWeek[1]}
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
-                  {m.byWeek[2]}
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
-                  {m.byWeek[3]}
-                </td>
-                <td className="border-b border-slate-200/70 px-4 py-3 text-center font-black text-slate-950 dark:border-slate-800 dark:text-slate-50">
-                  {m.total}
-                </td>
+          <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+              <tr>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                  ID
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
+                  Diarista
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                  1ª sem
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                  2ª sem
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                  3ª sem
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
+                  4ª sem
+                </th>
+                <th className="border-b border-slate-200/80 px-4 py-3 text-center font-bold dark:border-slate-800">
+                  TOTAL
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedMaidStats.map((m, idx) => (
+                <tr
+                  key={idx}
+                  className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
+                >
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                    <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                      {String(idx + 1).padStart(2, "0")}
+                    </span>
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
+                    {m.name}
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                    {m.byWeek[0]}
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                    {m.byWeek[1]}
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                    {m.byWeek[2]}
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center dark:border-slate-800">
+                    {m.byWeek[3]}
+                  </td>
+                  <td className="border-b border-slate-200/70 px-4 py-3 text-center font-black text-slate-950 dark:border-slate-800 dark:text-slate-50">
+                    {m.total}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 

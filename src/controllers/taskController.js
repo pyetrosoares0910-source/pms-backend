@@ -76,8 +76,8 @@ exports.getCheckouts = async (req, res) => {
       reservation:
         t.roomId && t.date
           ? reservationsByCleaningScope.get(
-              `${t.roomId}|${toUtcDay(t.date).toISOString().slice(0, 10)}`
-            ) || null
+            `${t.roomId}|${toUtcDay(t.date).toISOString().slice(0, 10)}`
+          ) || null
           : null,
       periodicTasks: t.periodicTasks || [],
       operationalReminders: t.operationalReminders || [],

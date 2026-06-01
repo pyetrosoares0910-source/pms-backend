@@ -605,11 +605,10 @@ export default function Guests() {
               key={filter.id}
               type="button"
               onClick={() => setQuickFilter(filter.id)}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
-                quickFilter === filter.id
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${quickFilter === filter.id
                   ? "bg-sky-700 text-white"
                   : "border border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-              }`}
+                }`}
             >
               {filter.label}
             </button>
