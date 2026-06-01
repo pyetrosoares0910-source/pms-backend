@@ -411,7 +411,7 @@ const CleaningSchedule = () => {
             <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
               <tr>
                 <th className="border-b border-slate-200/80 px-4 py-3 text-center dark:border-slate-800">
-                  ID
+                  Posição
                 </th>
                 <th className="border-b border-slate-200/80 px-4 py-3 dark:border-slate-800">
                   Diarista
