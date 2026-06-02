@@ -102,6 +102,11 @@ function isTaskDueToday(task, referenceDate) {
   return isTaskActive(task) && Boolean(due) && due.isSame(referenceDate, "day");
 }
 
+function isTaskDueOnDate(task, targetDate) {
+  const due = getDueDay(task);
+  return isTaskActive(task) && Boolean(due) && due.isSame(targetDate, "day");
+}
+
 function getResponsibleLabel(task) {
   return task?.collaborator?.name || task?.responsible || "";
 }
@@ -174,15 +179,15 @@ function applyTaskFieldChange(current, field, value, roomMap) {
   return next;
 }
 
-function buildWhatsAppMaintenanceMessage(tasks, mode, dateLabel) {
+function buildWhatsAppMaintenanceMessage(tasks, mode, dateLabel, dayLabel = "hoje") {
   if (tasks.length === 0) {
-    return `Manutencao - ${dateLabel}\n\nNenhuma tarefa ativa para hoje.`;
+    return `Manutencao - ${dateLabel}\n\nNenhuma tarefa ativa para ${dayLabel}.`;
   }
 
   const title =
     mode === "collaborator"
-      ? `Manutencao de hoje por colaborador - ${dateLabel}`
-      : `Manutencao de hoje - ${dateLabel}`;
+      ? `Manutencao de ${dayLabel} por colaborador - ${dateLabel}`
+      : `Manutencao de ${dayLabel} - ${dateLabel}`;
 
   const groupLabel = mode === "collaborator" ? "Responsavel" : "Empreendimento";
   const groupName = (task) =>
@@ -541,6 +546,7 @@ export default function MaintenanceCalendar() {
   const [deletingId, setDeletingId] = useState("");
   const [whatsAppOpen, setWhatsAppOpen] = useState(false);
   const [whatsAppMode, setWhatsAppMode] = useState("all");
+  const [whatsAppDateScope, setWhatsAppDateScope] = useState("today");
   const [whatsAppOrder, setWhatsAppOrder] = useState([]);
   const [copiedList, setCopiedList] = useState(false);
 
@@ -614,19 +620,37 @@ export default function MaintenanceCalendar() {
       ),
     [tasks]
   );
-  const todayTasks = useMemo(
-    () =>
-      scheduledTasks
-        .filter((task) => isTaskDueToday(task, referenceDate))
-        .sort((a, b) => {
+  const tomorrowDate = useMemo(() => referenceDate.add(1, "day"), [referenceDate]);
+  const sortDailyTasks = useCallback(
+    (dailyTasks) =>
+      [...dailyTasks].sort((a, b) => {
           const stayDiff = getTaskStayName(a).localeCompare(getTaskStayName(b), "pt-BR");
           if (stayDiff !== 0) return stayDiff;
           const responsibleDiff = getResponsibleLabel(a).localeCompare(getResponsibleLabel(b), "pt-BR");
           if (responsibleDiff !== 0) return responsibleDiff;
           return String(a.title || "").localeCompare(String(b.title || ""), "pt-BR");
-        }),
-    [referenceDate, scheduledTasks]
+      }),
+    []
   );
+  const todayTasks = useMemo(
+    () => sortDailyTasks(scheduledTasks.filter((task) => isTaskDueOnDate(task, referenceDate))),
+    [referenceDate, scheduledTasks, sortDailyTasks]
+  );
+  const tomorrowTasks = useMemo(
+    () => sortDailyTasks(scheduledTasks.filter((task) => isTaskDueOnDate(task, tomorrowDate))),
+    [scheduledTasks, sortDailyTasks, tomorrowDate]
+  );
+  const selectedWhatsAppDate = whatsAppDateScope === "tomorrow" ? tomorrowDate : referenceDate;
+  const selectedWhatsAppDateLabel = selectedWhatsAppDate.format("DD/MM/YYYY");
+  const selectedWhatsAppDayLabel = whatsAppDateScope === "tomorrow" ? "amanha" : "hoje";
+  const selectedWhatsAppEmptyText =
+    whatsAppDateScope === "tomorrow"
+      ? "Nenhuma tarefa ativa com prazo para amanha."
+      : "Nenhuma tarefa ativa com prazo para hoje.";
+  const selectedWhatsAppTitle =
+    whatsAppMode === "collaborator"
+      ? `Lista por colaborador - ${selectedWhatsAppDayLabel}`
+      : `Lista de manutencao de ${selectedWhatsAppDayLabel}`;
   const whatsAppTasks = useMemo(
     () => whatsAppOrder.map((taskId) => taskMap.get(taskId)).filter(Boolean),
     [taskMap, whatsAppOrder]
@@ -636,9 +660,10 @@ export default function MaintenanceCalendar() {
       buildWhatsAppMaintenanceMessage(
         whatsAppTasks,
         whatsAppMode,
-        referenceDate.format("DD/MM/YYYY")
+        selectedWhatsAppDateLabel,
+        selectedWhatsAppDayLabel
       ),
-    [referenceDate, whatsAppMode, whatsAppTasks]
+    [selectedWhatsAppDateLabel, selectedWhatsAppDayLabel, whatsAppMode, whatsAppTasks]
   );
   const overallSummary = useMemo(
     () => getMaintenanceAlertSummary(tasks, referenceDate),
@@ -775,13 +800,15 @@ export default function MaintenanceCalendar() {
   }, [api, closeEditModal, reloadData, selected]);
 
   const openWhatsAppList = useCallback(
-    (mode) => {
+    (mode, dateScope = "today") => {
       setWhatsAppMode(mode);
-      setWhatsAppOrder(todayTasks.map((task) => task.id));
+      setWhatsAppDateScope(dateScope);
+      const sourceTasks = dateScope === "tomorrow" ? tomorrowTasks : todayTasks;
+      setWhatsAppOrder(sourceTasks.map((task) => task.id));
       setCopiedList(false);
       setWhatsAppOpen(true);
     },
-    [todayTasks]
+    [todayTasks, tomorrowTasks]
   );
 
   const moveWhatsAppTask = useCallback((taskId, direction) => {
@@ -918,11 +945,29 @@ export default function MaintenanceCalendar() {
 
                 <button
                   type="button"
-                  onClick={() => openWhatsAppList("collaborator")}
+                  onClick={() => openWhatsAppList("collaborator", "today")}
                   className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:bg-sky-950/50"
                 >
                   <UserRound className="h-4 w-4" />
                   Por colaborador
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppList("all", "tomorrow")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-700 transition hover:bg-violet-100 dark:border-violet-900/50 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/50"
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  Lista amanha {tomorrowTasks.length > 0 ? `(${tomorrowTasks.length})` : ""}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppList("collaborator", "tomorrow")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-950/50"
+                >
+                  <UserRound className="h-4 w-4" />
+                  Amanha por colaborador
                 </button>
 
                 <button
@@ -1077,8 +1122,8 @@ export default function MaintenanceCalendar() {
       <Modal
         open={whatsAppOpen}
         onClose={() => setWhatsAppOpen(false)}
-        title={whatsAppMode === "collaborator" ? "Lista por colaborador" : "Lista de manutencao do dia"}
-        subtitle="Revise a ordem antes de copiar a mensagem para o WhatsApp."
+        title={selectedWhatsAppTitle}
+        subtitle={`Data da lista: ${selectedWhatsAppDateLabel}. Revise a ordem antes de copiar a mensagem para o WhatsApp.`}
         maxWidthClass="max-w-6xl"
       >
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
@@ -1086,7 +1131,7 @@ export default function MaintenanceCalendar() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Ordem de execucao
+                  Ordem de execucao de {selectedWhatsAppDayLabel}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Use as setas para ajustar o que sera feito primeiro. Remover aqui nao exclui a tarefa.
@@ -1123,7 +1168,7 @@ export default function MaintenanceCalendar() {
 
             {whatsAppTasks.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                Nenhuma tarefa ativa com prazo para hoje.
+                {selectedWhatsAppEmptyText}
               </div>
             ) : (
               <div className="space-y-2">
@@ -1187,7 +1232,9 @@ export default function MaintenanceCalendar() {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview WhatsApp</h3>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Preview WhatsApp - {selectedWhatsAppDayLabel}
+                </h3>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   O texto abaixo ja sai agrupado e com etapas numeradas.
                 </p>
