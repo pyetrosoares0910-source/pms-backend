@@ -350,6 +350,7 @@ export default function DashboardLayout() {
       "/rooms",
       "/staff",
       "/maids",
+      "/maintenance-collaborators",
       "/cleaning-reminders",
       "/apresentacao-hospedes",
       "/guest-checkins",
@@ -750,6 +751,9 @@ export default function DashboardLayout() {
                 </Item>
                 <Item to="/maids" icon={UsersRound} showText={showText}>
                   Diaristas
+                </Item>
+                <Item to="/maintenance-collaborators" icon={UserCog} showText={showText}>
+                  Colaboradores
                 </Item>
                 <Item to="/cleaning-reminders" icon={Bell} showText={showText}>
                   Lembretes de Limpeza

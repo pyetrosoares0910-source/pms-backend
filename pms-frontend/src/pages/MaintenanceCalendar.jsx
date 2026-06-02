@@ -8,11 +8,15 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   Building2,
   CalendarClock,
   CheckCircle2,
   Clock3,
+  Copy,
   LoaderCircle,
+  MessageSquareText,
   PencilLine,
   Plus,
   RefreshCw,
@@ -49,6 +53,7 @@ function buildEmptyForm(dueDate = "") {
     description: "",
     stayId: "",
     roomId: "",
+    collaboratorId: "",
     responsible: "",
     status: "pendente",
     type: "corretiva",
@@ -97,12 +102,37 @@ function isTaskDueToday(task, referenceDate) {
   return isTaskActive(task) && Boolean(due) && due.isSame(referenceDate, "day");
 }
 
+function getResponsibleLabel(task) {
+  return task?.collaborator?.name || task?.responsible || "";
+}
+
+function getTaskStayName(task) {
+  return task?.stay?.name || task?.room?.stay?.name || "Sem empreendimento";
+}
+
+function getTaskLocationName(task) {
+  return task?.room?.title || task?.stay?.name || "Sem local definido";
+}
+
+function splitExecutionSteps(task) {
+  const description = String(task?.description || "").trim();
+  if (!description) return ["Executar atividade conforme necessidade do local."];
+
+  const lines = description
+    .split(/\r?\n|;|\|/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines.length > 0 ? lines : [description];
+}
+
 function buildTaskPayload(form) {
   return {
     title: form.title.trim(),
     description: form.description.trim() || null,
     stayId: form.stayId || null,
     roomId: form.roomId || null,
+    collaboratorId: form.collaboratorId || null,
     responsible: form.responsible.trim() || null,
     status: form.status,
     type: form.type,
@@ -116,7 +146,8 @@ function mapTaskToForm(task) {
     description: task?.description || "",
     stayId: task?.stayId || task?.stay?.id || "",
     roomId: task?.roomId || task?.room?.id || "",
-    responsible: task?.responsible || "",
+    collaboratorId: task?.collaboratorId || task?.collaborator?.id || "",
+    responsible: getResponsibleLabel(task),
     status: task?.status || "pendente",
     type: task?.type || "corretiva",
     dueDate: task?.dueDate ? dayjs.utc(task.dueDate).format("YYYY-MM-DD") : "",
@@ -141,6 +172,55 @@ function applyTaskFieldChange(current, field, value, roomMap) {
   }
 
   return next;
+}
+
+function buildWhatsAppMaintenanceMessage(tasks, mode, dateLabel) {
+  if (tasks.length === 0) {
+    return `Manutencao - ${dateLabel}\n\nNenhuma tarefa ativa para hoje.`;
+  }
+
+  const title =
+    mode === "collaborator"
+      ? `Manutencao de hoje por colaborador - ${dateLabel}`
+      : `Manutencao de hoje - ${dateLabel}`;
+
+  const groupLabel = mode === "collaborator" ? "Responsavel" : "Empreendimento";
+  const groupName = (task) =>
+    mode === "collaborator" ? getResponsibleLabel(task) || "Sem responsavel" : getTaskStayName(task);
+
+  const groups = [];
+  const groupMap = new Map();
+  tasks.forEach((task) => {
+    const name = groupName(task);
+    if (!groupMap.has(name)) {
+      const group = { name, tasks: [] };
+      groupMap.set(name, group);
+      groups.push(group);
+    }
+    groupMap.get(name).tasks.push(task);
+  });
+
+  const lines = [`*${title}*`, ""];
+  let sequence = 1;
+
+  groups.forEach((group) => {
+    lines.push(`*${groupLabel}: ${group.name}*`);
+    group.tasks.forEach((task) => {
+      const responsible = getResponsibleLabel(task) || "Sem responsavel";
+      lines.push(`${sequence}. ${task.title}`);
+      lines.push(`Local: ${getTaskLocationName(task)}`);
+      if (mode !== "collaborator") lines.push(`Responsavel: ${responsible}`);
+      lines.push("Etapas:");
+      splitExecutionSteps(task).forEach((step, index) => {
+        lines.push(`${index + 1}) ${step}`);
+      });
+      if (task.type) lines.push(`Tipo: ${task.type}`);
+      lines.push("");
+      sequence += 1;
+    });
+  });
+
+  return lines.join("\n").trim();
 }
 
 function getEventTone(task, referenceDate) {
@@ -285,6 +365,7 @@ function TaskForm({
   form,
   stays,
   rooms,
+  collaborators,
   onFieldChange,
   onSubmit,
   submitLabel,
@@ -350,11 +431,27 @@ function TaskForm({
 
         <div>
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Responsável</label>
-          <input
-            value={form.responsible}
-            onChange={(e) => onFieldChange("responsible", e.target.value)}
+          <select
+            value={form.collaboratorId}
+            onChange={(e) => {
+              const collaborator = collaborators.find((item) => item.id === e.target.value);
+              onFieldChange("collaboratorId", e.target.value);
+              onFieldChange("responsible", collaborator?.name || "");
+            }}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-          />
+          >
+            <option value="">Sem responsavel</option>
+            {collaborators.map((collaborator) => (
+              <option key={collaborator.id} value={collaborator.id}>
+                {collaborator.name}{collaborator.active === false ? " (inativo)" : ""}
+              </option>
+            ))}
+          </select>
+          {!form.collaboratorId && form.responsible ? (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
+              Responsavel anterior: {form.responsible}. Selecione um colaborador cadastrado para vincular.
+            </p>
+          ) : null}
         </div>
 
         <div>
@@ -429,6 +526,7 @@ export default function MaintenanceCalendar() {
   const [tasks, setTasks] = useState([]);
   const [stays, setStays] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [collaborators, setCollaborators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -441,9 +539,17 @@ export default function MaintenanceCalendar() {
   const [editForm, setEditForm] = useState(buildEmptyForm());
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [whatsAppOpen, setWhatsAppOpen] = useState(false);
+  const [whatsAppMode, setWhatsAppMode] = useState("all");
+  const [whatsAppOrder, setWhatsAppOrder] = useState([]);
+  const [copiedList, setCopiedList] = useState(false);
 
   const orderedStays = useMemo(() => [...stays].sort(sortStays), [stays]);
   const orderedRooms = useMemo(() => [...rooms].sort(sortRooms), [rooms]);
+  const orderedCollaborators = useMemo(
+    () => [...collaborators].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")),
+    [collaborators]
+  );
   const roomMap = useMemo(
     () => new Map(orderedRooms.map((room) => [room.id, room])),
     [orderedRooms]
@@ -456,6 +562,7 @@ export default function MaintenanceCalendar() {
     () => orderedRooms.filter((room) => !editForm.stayId || room.stayId === editForm.stayId),
     [editForm.stayId, orderedRooms]
   );
+  const taskMap = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
 
   const loadData = useCallback(
     async ({ silent = false } = {}) => {
@@ -466,15 +573,17 @@ export default function MaintenanceCalendar() {
       }
 
       try {
-        const [tasksResponse, staysResponse, roomsResponse] = await Promise.all([
+        const [tasksResponse, staysResponse, roomsResponse, collaboratorsResponse] = await Promise.all([
           api("/maintenance"),
           api("/stays"),
           api("/rooms"),
+          api("/maintenance-collaborators?includeInactive=1"),
         ]);
 
         setTasks(Array.isArray(tasksResponse) ? tasksResponse : []);
         setStays(Array.isArray(staysResponse) ? staysResponse : []);
         setRooms(Array.isArray(roomsResponse) ? roomsResponse : []);
+        setCollaborators(Array.isArray(collaboratorsResponse) ? collaboratorsResponse : []);
       } catch (err) {
         console.error("Erro ao carregar agenda de manutencao:", err);
         alert(err?.message || "Erro ao carregar agenda de manutenção.");
@@ -504,6 +613,32 @@ export default function MaintenanceCalendar() {
         String(a.title || "").localeCompare(String(b.title || ""), "pt-BR")
       ),
     [tasks]
+  );
+  const todayTasks = useMemo(
+    () =>
+      scheduledTasks
+        .filter((task) => isTaskDueToday(task, referenceDate))
+        .sort((a, b) => {
+          const stayDiff = getTaskStayName(a).localeCompare(getTaskStayName(b), "pt-BR");
+          if (stayDiff !== 0) return stayDiff;
+          const responsibleDiff = getResponsibleLabel(a).localeCompare(getResponsibleLabel(b), "pt-BR");
+          if (responsibleDiff !== 0) return responsibleDiff;
+          return String(a.title || "").localeCompare(String(b.title || ""), "pt-BR");
+        }),
+    [referenceDate, scheduledTasks]
+  );
+  const whatsAppTasks = useMemo(
+    () => whatsAppOrder.map((taskId) => taskMap.get(taskId)).filter(Boolean),
+    [taskMap, whatsAppOrder]
+  );
+  const whatsAppMessage = useMemo(
+    () =>
+      buildWhatsAppMaintenanceMessage(
+        whatsAppTasks,
+        whatsAppMode,
+        referenceDate.format("DD/MM/YYYY")
+      ),
+    [referenceDate, whatsAppMode, whatsAppTasks]
   );
   const overallSummary = useMemo(
     () => getMaintenanceAlertSummary(tasks, referenceDate),
@@ -639,6 +774,42 @@ export default function MaintenanceCalendar() {
     }
   }, [api, closeEditModal, reloadData, selected]);
 
+  const openWhatsAppList = useCallback(
+    (mode) => {
+      setWhatsAppMode(mode);
+      setWhatsAppOrder(todayTasks.map((task) => task.id));
+      setCopiedList(false);
+      setWhatsAppOpen(true);
+    },
+    [todayTasks]
+  );
+
+  const moveWhatsAppTask = useCallback((taskId, direction) => {
+    setWhatsAppOrder((current) => {
+      const index = current.indexOf(taskId);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
+
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }, []);
+
+  const removeWhatsAppTask = useCallback((taskId) => {
+    setWhatsAppOrder((current) => current.filter((id) => id !== taskId));
+  }, []);
+
+  const copyWhatsAppMessage = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(whatsAppMessage);
+      setCopiedList(true);
+    } catch (err) {
+      console.error("Erro ao copiar lista de manutencao:", err);
+      alert("Nao foi possivel copiar automaticamente. Selecione o texto e copie manualmente.");
+    }
+  }, [whatsAppMessage]);
+
   const handleEventDrop = useCallback(
     async (info) => {
       const task = info.event.extendedProps.task;
@@ -736,6 +907,24 @@ export default function MaintenanceCalendar() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppList("all")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                >
+                  <MessageSquareText className="h-4 w-4" />
+                  Lista de hoje {todayTasks.length > 0 ? `(${todayTasks.length})` : ""}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openWhatsAppList("collaborator")}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-300 dark:hover:bg-sky-950/50"
+                >
+                  <UserRound className="h-4 w-4" />
+                  Por colaborador
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setUnscheduledOpen(true)}
@@ -846,7 +1035,7 @@ export default function MaintenanceCalendar() {
                   info.el.title = [
                     task?.title,
                     task?.room?.title || task?.stay?.name,
-                    task?.responsible,
+                    getResponsibleLabel(task),
                     task?.dueDate ? formatDisplayDate(task.dueDate) : "Sem prazo",
                     task?.status,
                   ]
@@ -856,7 +1045,7 @@ export default function MaintenanceCalendar() {
                 eventContent={(info) => {
                   const task = info.event.extendedProps.task;
                   const detail =
-                    task.room?.title || task.responsible || task.stay?.name || "Sem detalhe";
+                    task.room?.title || getResponsibleLabel(task) || task.stay?.name || "Sem detalhe";
                   const statusNote = isTaskOverdue(task, referenceDate)
                     ? "Atrasada"
                     : isTaskDueToday(task, referenceDate)
@@ -884,6 +1073,144 @@ export default function MaintenanceCalendar() {
           </section>
         )}
       </div>
+
+      <Modal
+        open={whatsAppOpen}
+        onClose={() => setWhatsAppOpen(false)}
+        title={whatsAppMode === "collaborator" ? "Lista por colaborador" : "Lista de manutencao do dia"}
+        subtitle="Revise a ordem antes de copiar a mensagem para o WhatsApp."
+        maxWidthClass="max-w-6xl"
+      >
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Ordem de execucao
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Use as setas para ajustar o que sera feito primeiro. Remover aqui nao exclui a tarefa.
+                </p>
+              </div>
+
+              <div className="inline-flex overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setWhatsAppMode("all")}
+                  className={cx(
+                    "px-3 py-2 text-xs font-semibold transition",
+                    whatsAppMode === "all"
+                      ? "bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-950"
+                      : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                  )}
+                >
+                  Por empreendimento
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWhatsAppMode("collaborator")}
+                  className={cx(
+                    "px-3 py-2 text-xs font-semibold transition",
+                    whatsAppMode === "collaborator"
+                      ? "bg-sky-700 text-white dark:bg-sky-500 dark:text-slate-950"
+                      : "bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                  )}
+                >
+                  Por colaborador
+                </button>
+              </div>
+            </div>
+
+            {whatsAppTasks.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                Nenhuma tarefa ativa com prazo para hoje.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {whatsAppTasks.map((task, index) => (
+                  <article
+                    key={task.id}
+                    className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-slate-100 text-sm font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">{task.title}</div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span>{getTaskStayName(task)}</span>
+                          <span>-</span>
+                          <span>{getTaskLocationName(task)}</span>
+                          <span>-</span>
+                          <span>{getResponsibleLabel(task) || "Sem responsavel"}</span>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          {splitExecutionSteps(task).length} etapa(s)
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveWhatsAppTask(task.id, -1)}
+                          disabled={index === 0}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                          title="Subir"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveWhatsAppTask(task.id, 1)}
+                          disabled={index === whatsAppTasks.length - 1}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-35 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                          title="Descer"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeWhatsAppTask(task.id)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300"
+                          title="Remover da lista"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Preview WhatsApp</h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  O texto abaixo ja sai agrupado e com etapas numeradas.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copyWhatsAppMessage}
+                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400"
+              >
+                <Copy className="h-4 w-4" />
+                {copiedList ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+
+            <textarea
+              value={whatsAppMessage}
+              readOnly
+              rows={22}
+              className="h-[520px] w-full resize-none rounded-[24px] border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 text-slate-800 shadow-inner dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            />
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={unscheduledOpen}
@@ -944,7 +1271,7 @@ export default function MaintenanceCalendar() {
                       Responsável
                     </div>
                     <div className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                      {task.responsible || "Não definido"}
+                      {getResponsibleLabel(task) || "Não definido"}
                     </div>
                   </div>
 
@@ -974,6 +1301,7 @@ export default function MaintenanceCalendar() {
           form={createForm}
           stays={orderedStays}
           rooms={roomsForCreate}
+          collaborators={orderedCollaborators}
           onFieldChange={handleCreateFieldChange}
           onSubmit={handleCreate}
           submitLabel="Salvar atividade"
@@ -1000,6 +1328,7 @@ export default function MaintenanceCalendar() {
             form={editForm}
             stays={orderedStays}
             rooms={roomsForEdit}
+            collaborators={orderedCollaborators}
             onFieldChange={handleEditFieldChange}
             onSubmit={handleUpdate}
             submitLabel="Salvar alterações"

@@ -215,6 +215,7 @@ model MaintenanceTask {
   stayId      String?
   roomId      String?
   responsible String?
+  collaboratorId String?
   status      String            @default("pendente")
   type        String?
   dueDate     DateTime?
@@ -228,9 +229,28 @@ model MaintenanceTask {
   children    MaintenanceTask[] @relation("RecurringParent")
   room        Room?             @relation(fields: [roomId], references: [id])
   stay        Stay?             @relation(fields: [stayId], references: [id])
+  collaborator MaintenanceCollaborator? @relation(fields: [collaboratorId], references: [id], onDelete: SetNull)
 
   @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
   @@index([parentId])
+  @@index([collaboratorId])
+}
+
+model MaintenanceCollaborator {
+  id          String   @id @default(uuid())
+  name        String
+  birthDate   DateTime?
+  cpf         String?
+  pixKey      String?
+  bankName    String?
+  active      Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tasks       MaintenanceTask[]
+
+  @@index([active])
+  @@index([name])
 }
 
 model Product {

@@ -12,6 +12,15 @@ async function generateMaintenanceCode() {
   return `MT-${year}-${stamp}-${random}`;
 }
 
+async function getResponsibleName(collaboratorId, fallbackResponsible) {
+  if (!collaboratorId) return fallbackResponsible || null;
+  const collaborator = await prisma.maintenanceCollaborator.findUnique({
+    where: { id: String(collaboratorId) },
+    select: { name: true },
+  });
+  return collaborator?.name || fallbackResponsible || null;
+}
+
 /* ============================================================
    GET - listar tarefas
    (mantido igual, com filtros opcionais)
@@ -32,7 +41,7 @@ router.get("/", async (req, res) => {
 
     const tasks = await prisma.maintenanceTask.findMany({
       where: filters,
-      include: { stay: true, room: true },
+      include: { stay: true, room: true, collaborator: true },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     });
 
@@ -54,6 +63,7 @@ router.post("/", async (req, res) => {
       stayId,
       roomId,
       responsible,
+      collaboratorId,
       status,
       type,
       dueDate,
@@ -72,7 +82,8 @@ router.post("/", async (req, res) => {
           description: description || null,
           stayId: stayId || null,
           roomId: roomId || null,
-          responsible: responsible || null,
+          responsible: await getResponsibleName(collaboratorId, responsible),
+          collaboratorId: collaboratorId || null,
           status: "pendente",
           type: type || "preventiva",
           isRecurring: true,
@@ -95,7 +106,8 @@ router.post("/", async (req, res) => {
           description: description || null,
           stayId: stayId || null,
           roomId: roomId || null,
-          responsible: responsible || null,
+          responsible: await getResponsibleName(collaboratorId, responsible),
+          collaboratorId: collaboratorId || null,
           status: "pendente",
           type: type || "preventiva",
           dueDate: date,
@@ -113,6 +125,7 @@ router.post("/", async (req, res) => {
 
     // 🧩 CASO 2: tarefa normal
     const code = await generateMaintenanceCode();
+    const responsibleName = await getResponsibleName(collaboratorId, responsible);
     const task = await prisma.maintenanceTask.create({
       data: {
         code,
@@ -120,14 +133,15 @@ router.post("/", async (req, res) => {
         description: description || null,
         stayId: stayId || null,
         roomId: roomId || null,
-        responsible: responsible || null,
+        responsible: responsibleName,
+        collaboratorId: collaboratorId || null,
         status: status || "pendente",
         type: type || "corretiva",
         dueDate: dueDate ? new Date(dueDate) : null,
         isRecurring: false,
         timezone,
       },
-      include: { stay: true, room: true },
+      include: { stay: true, room: true, collaborator: true },
     });
 
     res.status(201).json(task);
@@ -143,7 +157,8 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, stayId, roomId, responsible, status, type, dueDate } = req.body;
+    const { title, description, stayId, roomId, responsible, collaboratorId, status, type, dueDate } = req.body;
+    const responsibleName = await getResponsibleName(collaboratorId, responsible);
 
     const updated = await prisma.maintenanceTask.update({
       where: { id: String(id) },
@@ -152,12 +167,13 @@ router.put("/:id", async (req, res) => {
         description,
         stayId,
         roomId,
-        responsible,
+        responsible: responsibleName,
+        collaboratorId: collaboratorId || null,
         status,
         type,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
-      include: { stay: true, room: true },
+      include: { stay: true, room: true, collaborator: true },
     });
 
     res.json(updated);
@@ -217,6 +233,7 @@ router.post("/:id/generate", async (req, res) => {
             stayId: parent.stayId,
             roomId: parent.roomId,
             responsible: parent.responsible,
+            collaboratorId: parent.collaboratorId,
             status: "pendente",
             type: parent.type,
             dueDate: date,
