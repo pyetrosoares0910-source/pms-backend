@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   AlertTriangle,
@@ -621,6 +621,7 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
 
 export default function InventoryIntelligence() {
   const api = useApi();
+  const autoSavingLaundryRef = useRef(new Set());
   const currentYearRange = getYearDateRange(dayjs().year());
   const [tab, setTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
@@ -1059,11 +1060,64 @@ export default function InventoryIntelligence() {
     setLaundryDrafts((prev) => {
       const next = {};
       (todaySummary.rooms || []).forEach((room) => {
-        next[room.reservationId] = prev[room.reservationId] || buildLaundryDraft(room);
+        const savedDraft = buildLaundryDraft(room);
+        const currentDraft = prev[room.reservationId];
+        next[room.reservationId] = currentDraft && (!savedDraft.id || currentDraft.id === savedDraft.id)
+          ? currentDraft
+          : savedDraft;
       });
       return next;
     });
   }, [todaySummary.date, todaySummary.rooms]);
+
+  useEffect(() => {
+    const missingDispatchRooms = (todaySummary.rooms || []).filter((room) => (
+      room.reservationId &&
+      room.stayId &&
+      !room.dispatch?.id
+    ));
+    if (!missingDispatchRooms.length) return;
+
+    const pendingKeys = [];
+
+    async function autoSaveLaundryDispatches() {
+      const drafts = missingDispatchRooms
+        .map((room) => {
+          const key = `${todaySummary.date || dateInputValue(new Date())}:${room.reservationId}`;
+          if (autoSavingLaundryRef.current.has(key)) return null;
+          autoSavingLaundryRef.current.add(key);
+          pendingKeys.push(key);
+          return buildLaundryDraft(room);
+        })
+        .filter(Boolean);
+
+      if (!drafts.length) return;
+
+      try {
+        await Promise.all(drafts.map((draft) => api("/api/inventory-intelligence/laundry", {
+          method: "POST",
+          body: JSON.stringify({
+            ...draft,
+            items: draft.items.map((item) => ({
+              itemType: item.itemType,
+              quantity: Number(item.quantity || 0),
+              unitPieces: Number(item.unitPieces || 1),
+              notes: item.notes || null,
+            })),
+          }),
+        })));
+        await load();
+      } catch (err) {
+        console.error("Erro ao salvar lavanderia automaticamente:", err);
+        setError(err.message || "Falha ao salvar lavanderia automaticamente.");
+      } finally {
+        pendingKeys.forEach((key) => autoSavingLaundryRef.current.delete(key));
+      }
+    }
+
+    autoSaveLaundryDispatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todaySummary.date, todaySummary.rooms, api]);
 
   useEffect(() => {
     if (!laundryTemplateRoomId) return;
