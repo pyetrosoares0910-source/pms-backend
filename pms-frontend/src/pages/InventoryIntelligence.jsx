@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   AlertTriangle,
@@ -29,6 +29,7 @@ import {
   YAxis,
 } from "recharts";
 import { useApi } from "../lib/api";
+import { markInventoryOpenedToday } from "./inventoryIntelligenceShared";
 
 const operationTypes = [
   ["CHECKOUT_CLEANING", "Limpeza checkout"],
@@ -167,7 +168,8 @@ function getRoomLaundryTemplateValues(room) {
       unitPieces,
       quantity: String(template[itemType] ?? (
         itemType === "PILLOWCASE" ? beds * 2 :
-          itemType === "FITTED_SHEET" || itemType === "TOP_SHEET" || itemType === "FACE_TOWEL" || itemType === "BATH_TOWEL" ? beds : 0
+          itemType === "FACE_TOWEL" || itemType === "BATH_TOWEL" ? beds * 2 :
+            itemType === "FITTED_SHEET" || itemType === "TOP_SHEET" ? beds : 0
       )),
     })),
   };
@@ -661,7 +663,7 @@ export default function InventoryIntelligence() {
     return reservations.filter((reservation) => !filters.stayId || roomIds.has(reservation.roomId));
   }, [reservations, selectedStayRooms, filters.stayId]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -697,12 +699,12 @@ export default function InventoryIntelligence() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [api, filters.from, filters.stayId, filters.to]);
 
   useEffect(() => {
+    markInventoryOpenedToday(dateInputValue(new Date()));
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     setEntryForm((prev) => ({ ...prev, stayId: filters.stayId || prev.stayId }));
@@ -1116,8 +1118,7 @@ export default function InventoryIntelligence() {
     }
 
     autoSaveLaundryDispatches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todaySummary.date, todaySummary.rooms, api]);
+  }, [todaySummary.date, todaySummary.rooms, api, load]);
 
   useEffect(() => {
     if (!laundryTemplateRoomId) return;
@@ -1296,6 +1297,7 @@ export default function InventoryIntelligence() {
               <MiniTable
                 empty="Sem previsões calculadas."
                 columns={[
+                  { key: "stayName", label: "Empreendimento", render: (row) => row.stayName || "-" },
                   { key: "productName", label: "Produto" },
                   { key: "currentStockLabel", label: "Saldo" },
                   { key: "dailyAverage", label: "Média/dia" },

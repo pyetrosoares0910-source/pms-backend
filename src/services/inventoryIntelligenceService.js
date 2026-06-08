@@ -964,10 +964,22 @@ async function updateProductConsumption(id, data) {
         data: { quantity: { decrement: diff } },
       }).catch(() => null);
       if (current.lotId) {
-        await tx.productLot.update({
+        const updatedLot = await tx.productLot.update({
           where: { id: current.lotId },
           data: { remainingQuantity: { decrement: diff } },
         }).catch(() => null);
+        if (updatedLot) {
+          const remaining = Number(updatedLot.remainingQuantity || 0);
+          await tx.productLot.update({
+            where: { id: updatedLot.id },
+            data: {
+              status: remaining <= 0 ? "DEPLETED" : "OPEN",
+              depletedAt: remaining <= 0 ? new Date() : null,
+              openedAt: updatedLot.openedAt || current.occurredAt || new Date(),
+              openedQuantity: updatedLot.openedQuantity || updatedLot.initialQuantity,
+            },
+          }).catch(() => null);
+        }
       }
     }
 
@@ -990,10 +1002,22 @@ async function deleteProductConsumption(id) {
       data: { quantity: { increment: current.baseQuantity } },
     }).catch(() => null);
     if (current.lotId) {
-      await tx.productLot.update({
+      const updatedLot = await tx.productLot.update({
         where: { id: current.lotId },
         data: { remainingQuantity: { increment: current.baseQuantity } },
       }).catch(() => null);
+      if (updatedLot) {
+        const remaining = Number(updatedLot.remainingQuantity || 0);
+        await tx.productLot.update({
+          where: { id: updatedLot.id },
+          data: {
+            status: remaining > 0 ? "OPEN" : "DEPLETED",
+            depletedAt: remaining > 0 ? null : updatedLot.depletedAt,
+            openedAt: updatedLot.openedAt || current.occurredAt || new Date(),
+            openedQuantity: updatedLot.openedQuantity || updatedLot.initialQuantity,
+          },
+        }).catch(() => null);
+      }
     }
     return { deleted: true, id };
   });
@@ -1209,6 +1233,7 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
   const variationPct = previousAverage > 0 && currentAverage > 0
     ? ((currentAverage - previousAverage) / previousAverage) * 100
     : null;
+  const inventoryAdjustment = Number(lot.remainingQuantity || 0) - remainingQuantity;
 
   return prisma.$transaction(async (tx) => {
     const existingCycle = await tx.productUsageCycle.findFirst({ where: { lotId: lot.id } });
@@ -1260,16 +1285,20 @@ async function depleteLotAndCreateCycle(lotId, data = {}) {
       }
     }
 
-    await tx.inventory.upsert({
-      where: { stayId_productId: { stayId: lot.stayId, productId: lot.productId } },
-      update: { quantity: { decrement: consumedQuantity } },
-      create: {
-        stayId: lot.stayId,
-        productId: lot.productId,
-        quantity: -consumedQuantity,
-        capacity: Number(lot.initialQuantity || 0),
-      },
-    });
+    if (inventoryAdjustment !== 0) {
+      await tx.inventory.upsert({
+        where: { stayId_productId: { stayId: lot.stayId, productId: lot.productId } },
+        update: inventoryAdjustment > 0
+          ? { quantity: { decrement: inventoryAdjustment } }
+          : { quantity: { increment: Math.abs(inventoryAdjustment) } },
+        create: {
+          stayId: lot.stayId,
+          productId: lot.productId,
+          quantity: remainingQuantity,
+          capacity: Number(lot.initialQuantity || 0),
+        },
+      });
+    }
 
     await tx.productInventorySnapshot.create({
       data: {
@@ -1608,24 +1637,48 @@ async function buildInventoryDashboard(query = {}) {
   const periodConsumptions = consumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs(from).subtract(1, "millisecond")));
   const periodEntries = entries.filter((item) => dayjs(item.entryDate).isAfter(dayjs(from).subtract(1, "millisecond")));
   const periodLaundryDispatches = laundryDispatches.filter((item) => dayjs(item.dispatchDate).isAfter(dayjs(from).subtract(1, "millisecond")));
-  const productIds = new Set([...inventoryRows.map((item) => item.productId), ...periodConsumptions.map((item) => item.productId)]);
+  const predictionSeeds = new Map();
+  inventoryRows.forEach((row) => {
+    predictionSeeds.set(`${row.stayId || "all"}:${row.productId}`, {
+      stayId: row.stayId || null,
+      stayName: row.stay?.name || null,
+      productId: row.productId,
+      product: row.product,
+      inv: row,
+    });
+  });
+  periodConsumptions.forEach((row) => {
+    const key = `${row.stayId || "all"}:${row.productId}`;
+    if (!predictionSeeds.has(key)) {
+      predictionSeeds.set(key, {
+        stayId: row.stayId || null,
+        stayName: row.stay?.name || null,
+        productId: row.productId,
+        product: row.product,
+        inv: null,
+      });
+    }
+  });
 
-  const predictions = [...productIds].map((productId) => {
-    const product = products.find((item) => item.id === productId) || inventoryRows.find((item) => item.productId === productId)?.product;
-    const inv = inventoryRows.find((item) => item.productId === productId);
-    const productConsumptions = consumptions.filter((item) => item.productId === productId);
+  const predictions = [...predictionSeeds.values()].map(({ stayId, stayName, productId, product: seedProduct, inv }) => {
+    const product = seedProduct || products.find((item) => item.id === productId);
+    const productConsumptions = consumptions.filter(
+      (item) => item.productId === productId && (!stayId || item.stayId === stayId)
+    );
     const last30 = productConsumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs().subtract(30, "day")));
     const last90 = productConsumptions.filter((item) => dayjs(item.occurredAt).isAfter(dayjs().subtract(90, "day")));
     const dailyAverage = (sum(last30, (item) => item.baseQuantity) / 30) || (sum(last90, (item) => item.baseQuantity) / 90);
-    const futureReservations = reservations.filter((reservation) => reservation.room?.stayId === inv?.stayId || !query.stayId);
+    const futureReservations = reservations.filter((reservation) => !stayId || reservation.room?.stayId === stayId);
     const projectedReservationDemand = futureReservations.length ? dailyAverage * Math.min(1.25, 1 + futureReservations.length / 200) : dailyAverage;
     const currentStock = Number(inv?.quantity || 0);
     const daysRemaining = dailyAverage > 0 ? currentStock / dailyAverage : null;
+    const projectedDemand = projectedReservationDemand * 30;
     const recommendedQuantity = dailyAverage > 0
-      ? Math.max(0, (product?.targetStock || dailyAverage * 30) - currentStock)
+      ? Math.max(0, (product?.targetStock || projectedDemand) - currentStock)
       : Math.max(0, Number(product?.targetStock || 0) - currentStock);
     return {
-      stayId: inv?.stayId || query.stayId || null,
+      stayId: stayId || query.stayId || null,
+      stayName,
       productId,
       productName: product?.name || "Produto",
       unitBase: product?.unitBase || "UNIT",
@@ -1635,7 +1688,7 @@ async function buildInventoryDashboard(query = {}) {
       daysRemaining: daysRemaining === null ? null : round(daysRemaining, 1),
       reorderDate: daysRemaining === null ? null : dayjs().add(Math.max(0, daysRemaining - 3), "day").format("YYYY-MM-DD"),
       recommendedQuantity: round(recommendedQuantity, 2),
-      projectedDemand: round(projectedReservationDemand * 30, 2),
+      projectedDemand: round(projectedDemand, 2),
       confidence: Math.min(0.95, Math.max(0.25, productConsumptions.length / 30)),
     };
   });

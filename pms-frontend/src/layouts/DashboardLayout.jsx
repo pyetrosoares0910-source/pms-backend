@@ -62,6 +62,10 @@ import {
 } from "../pages/maidAssignmentsShared";
 import { getWeeklyPresentationSummary } from "../pages/guestPresentationShared";
 import { buildMaintenanceAlert, getMaintenanceAlertSummary } from "../pages/maintenanceShared";
+import {
+  getInventoryOpenedDate,
+  INVENTORY_DAILY_OPENED_EVENT,
+} from "../pages/inventoryIntelligenceShared";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 
@@ -306,6 +310,7 @@ export default function DashboardLayout() {
   const [alertReservations, setAlertReservations] = useState([]);
   const [alertCheckouts, setAlertCheckouts] = useState([]);
   const [alertMaintenance, setAlertMaintenance] = useState([]);
+  const [inventoryOpenedDate, setInventoryOpenedDate] = useState(() => getInventoryOpenedDate());
   const [questsOpen, setQuestsOpen] = useState(false);
 
   const [collapsed, setCollapsed] = useState(getInitialSidebarCollapsed);
@@ -314,7 +319,6 @@ export default function DashboardLayout() {
 
   const [groupsOpen, setGroupsOpen] = useState({
     cadastros: false,
-    estoque: false,
     relatorios: false,
   });
 
@@ -358,20 +362,12 @@ export default function DashboardLayout() {
       "/cleaning-integrity",
     ].includes(path);
 
-    const inEstoque = [
-      "/products",
-      "/inventory",
-      "/purchases",
-      "/consumption",
-    ].includes(path);
-
     const inRelatorios = ["/cleaning-report", "/performance-report"].includes(
       path
     );
 
     setGroupsOpen((prev) => ({
       cadastros: inCadastros || prev.cadastros,
-      estoque: inEstoque || prev.estoque,
       relatorios: inRelatorios || prev.relatorios,
     }));
   }, [location.pathname]);
@@ -423,7 +419,25 @@ export default function DashboardLayout() {
     };
   }, [api, location.pathname]);
 
+  useEffect(() => {
+    const refreshInventoryOpenedDate = () => setInventoryOpenedDate(getInventoryOpenedDate());
+    refreshInventoryOpenedDate();
+
+    const intervalId = window.setInterval(refreshInventoryOpenedDate, 60000);
+    window.addEventListener("focus", refreshInventoryOpenedDate);
+    window.addEventListener("storage", refreshInventoryOpenedDate);
+    window.addEventListener(INVENTORY_DAILY_OPENED_EVENT, refreshInventoryOpenedDate);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshInventoryOpenedDate);
+      window.removeEventListener("storage", refreshInventoryOpenedDate);
+      window.removeEventListener(INVENTORY_DAILY_OPENED_EVENT, refreshInventoryOpenedDate);
+    };
+  }, []);
+
   const tomorrowStr = dayjs().add(1, "day").format("YYYY-MM-DD");
+  const inventoryNeedsDailyOpen = inventoryOpenedDate !== dayjs().format("YYYY-MM-DD");
   const checkinAlert = useMemo(
     () => buildCheckinAlert(getCheckinAlertSummary(alertReservations, dayjs())),
     [alertReservations]
@@ -724,6 +738,17 @@ export default function DashboardLayout() {
               Integridade da Limpeza
             </Item>
           )}
+          {!viewerOnly && (
+            <Item
+              to="/inventory"
+              icon={Boxes}
+              showText={showText}
+              hasNotification={inventoryNeedsDailyOpen}
+              neutralActive
+            >
+              Inventário
+            </Item>
+          )}
 
           {/* Grupos */}
           <div className="mt-4 space-y-2">
@@ -771,21 +796,6 @@ export default function DashboardLayout() {
               </NavGroup>
             )}
 
-            {/* ESTOQUE */}
-            {!viewerOnly && (
-              <NavGroup
-                label="Estoque"
-                icon={Boxes}
-                isOpen={groupsOpen.estoque}
-                onToggle={() => toggleGroup("estoque")}
-                showText={showText}
-                collapsed={collapsed}
-              >
-                <Item to="/inventory" icon={Boxes} showText={showText} neutralActive>
-                  Inventário
-                </Item>
-              </NavGroup>
-            )}
 
             {/* RELATÓRIOS */}
             <NavGroup
