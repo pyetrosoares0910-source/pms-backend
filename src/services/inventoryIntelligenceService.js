@@ -1774,9 +1774,14 @@ async function buildInventoryDashboard(query = {}) {
   const activeLotProgress = await Promise.all(
     activeLots.map(async (lot) => {
       const startedAt = lot.openedAt || lot.createdAt;
+      const sharedLotStayIds = inventoryScope.sharedStayIds || [];
+      const lotUsesSharedScope =
+        (inventoryScope.isShared || inventoryScope.aggregateSharedInAll) &&
+        sharedLotStayIds.includes(lot.stayId);
+      const usageStayIds = lotUsesSharedScope ? sharedLotStayIds : null;
       const usageRows = await getAutomatedCleaningUsage({
         stayId: lot.stayId,
-        stayIds: inventoryScope.isShared ? inventoryScope.stockStayIds : null,
+        stayIds: usageStayIds,
         from: startedAt,
         to: new Date(),
       });
@@ -1788,7 +1793,11 @@ async function buildInventoryDashboard(query = {}) {
       const weightedOperations =
         Number(usage?.accommodationCleanings || 0) +
         Number(usage?.corridorCleanings || 0) * corridorWeight;
-      const learnedCycles = usageCycles.filter((cycle) => cycle.productId === lot.productId);
+      const learnedCycles = usageCycles.filter(
+        (cycle) =>
+          cycle.productId === lot.productId &&
+          (usageStayIds ? usageStayIds.includes(cycle.stayId) : cycle.stayId === lot.stayId)
+      );
       const learnedAverage = mean(
         learnedCycles
           .map((cycle) => Number(cycle.avgPerWeightedOperation))
@@ -1803,7 +1812,7 @@ async function buildInventoryDashboard(query = {}) {
       return {
         lotId: lot.id,
         stayId: lot.stayId,
-        stayName: lot.stay?.name,
+        stayName: lotUsesSharedScope ? inventoryScope.sharedLabel : lot.stay?.name,
         productId: lot.productId,
         productName: lot.product?.name,
         unitBase: lot.product?.unitBase,

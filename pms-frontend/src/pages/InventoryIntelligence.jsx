@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   AlertTriangle,
@@ -33,11 +33,11 @@ import { markInventoryOpenedToday } from "./inventoryIntelligenceShared";
 
 const operationTypes = [
   ["CHECKOUT_CLEANING", "Limpeza checkout"],
-  ["DAILY_CLEANING", "Limpeza diária"],
+  ["DAILY_CLEANING", "Limpeza diÃ¡ria"],
   ["DEEP_CLEANING", "Limpeza pesada"],
   ["COMMON_AREA", "Area comum"],
   ["LAUNDRY", "Lavanderia"],
-  ["MAINTENANCE", "Manutenção"],
+  ["MAINTENANCE", "ManutenÃ§Ã£o"],
   ["WASTE", "Perda/desperdicio"],
   ["ADJUSTMENT", "Ajuste"],
   ["OTHER", "Outro"],
@@ -155,6 +155,15 @@ function groupEntriesByStayDay(entries = []) {
   });
 
   return [...groups.values()].sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+}
+
+function getUsageStayGroupLabel(stayName) {
+  const normalized = String(stayName || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (normalized.includes("iguatemi")) return "Iguatemi - estoque compartilhado";
+  return stayName || "Sem empreendimento";
 }
 
 function getRoomLaundryTemplateValues(room) {
@@ -315,7 +324,7 @@ function TodaySummaryCard({ summary }) {
           <div className="mt-2 flex items-end gap-3">
             <span className="text-5xl font-black leading-none text-slate-950 dark:text-slate-50">{summary?.accommodationCleanings || 0}</span>
             <span className="pb-1 text-sm font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
-              acomodações a limpar
+              acomodaÃ§Ãµes a limpar
             </span>
           </div>
         </div>
@@ -370,7 +379,7 @@ function TodaySummaryCard({ summary }) {
           <Shirt size={18} className="text-cyan-700 dark:text-cyan-200" />
           <div>
             <div className="text-xl font-black text-slate-950 dark:text-slate-50">{bedPieces}</div>
-            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peças de cama</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peÃ§as de cama</div>
           </div>
         </div>
         <div className="flex items-center gap-3 px-4 py-3">
@@ -484,37 +493,37 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
       ["supplier", "Fornecedor", "text"],
       ["entryDate", "Data", "date"],
       ["expiresAt", "Validade", "date"],
-      ["notes", "Observações", "text"],
+      ["notes", "ObservaÃ§Ãµes", "text"],
     ],
     consumption: [
       ["quantity", "Quantidade", "number"],
       ["unit", "Unidade", "select-unit"],
-      ["operationType", "Operação", "select-operation"],
+      ["operationType", "OperaÃ§Ã£o", "select-operation"],
       ["occurredAt", "Data/hora", "datetime-local"],
       ["location", "Local/setor", "text"],
-      ["notes", "Observações", "text"],
+      ["notes", "ObservaÃ§Ãµes", "text"],
     ],
     cycle: [
       ["consumedQuantity", "Quantidade consumida", "number"],
-      ["startedAt", "Início", "date"],
+      ["startedAt", "InÃ­cio", "date"],
       ["endedAt", "Fim/esgotamento", "date"],
-      ["notes", "Observações", "text"],
+      ["notes", "ObservaÃ§Ãµes", "text"],
     ],
     laundry: [
       ["dispatchDate", "Data envio", "date"],
       ["expectedSets", "Jogos previstos", "number"],
-      ["notes", "Observações", "text"],
+      ["notes", "ObservaÃ§Ãµes", "text"],
     ],
     product: [
       ["name", "Nome", "text"],
       ["category", "Categoria", "text"],
       ["unitBase", "Unidade base", "select-base"],
-      ["defaultPrice", "Valor padrão", "number"],
+      ["defaultPrice", "Valor padrÃ£o", "number"],
       ["packageSizeValue", "Tamanho embalagem", "number"],
       ["packageSizeUnit", "Unidade embalagem", "text"],
       ["packageBaseQuantity", "Qtd base por embalagem", "number"],
       ["unitsPerPackage", "Unidades por pacote", "number"],
-      ["minimumStock", "Estoque mínimo", "number"],
+      ["minimumStock", "Estoque mÃ­nimo", "number"],
       ["targetStock", "Estoque alvo", "number"],
       ["corridorWeight", "Peso corredor", "number"],
       ["active", "Produto ativo", "checkbox"],
@@ -597,7 +606,7 @@ function EditModal({ modal, onClose, onChange, onSubmit, products }) {
           <div>
             <h2 className="text-lg font-black text-slate-950 dark:text-slate-50">{titleByType[modal.type]}</h2>
             {modal.type === "product" && products?.length ? (
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Alterações afetam novos cálculos do estoque.</p>
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">AlteraÃ§Ãµes afetam novos cÃ¡lculos do estoque.</p>
             ) : null}
           </div>
           <button type="button" onClick={onClose} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900">
@@ -841,7 +850,7 @@ export default function InventoryIntelligence() {
   async function saveLaundryTemplate() {
     const room = rooms.find((item) => item.id === laundryTemplateRoomId);
     if (!room) {
-      alert("Selecione uma acomodação para configurar.");
+      alert("Selecione uma acomodaÃ§Ã£o para configurar.");
       return;
     }
     setSaving(true);
@@ -863,7 +872,7 @@ export default function InventoryIntelligence() {
       });
       await load();
     } catch (err) {
-      alert(err.message || "Falha ao salvar padrão de lavanderia.");
+      alert(err.message || "Falha ao salvar padrÃ£o de lavanderia.");
     } finally {
       setSaving(false);
     }
@@ -914,7 +923,7 @@ export default function InventoryIntelligence() {
   }
 
   async function closeLotCycle(progress) {
-    const depletedAt = window.prompt("Data de esgotamento/reposição (YYYY-MM-DD)", dayjs().format("YYYY-MM-DD"));
+    const depletedAt = window.prompt("Data de esgotamento/reposiÃ§Ã£o (YYYY-MM-DD)", dayjs().format("YYYY-MM-DD"));
     if (!depletedAt) return;
     const remainingInput = window.prompt("Quantidade que sobrou no lote (base do produto)", "0");
     if (remainingInput === null) return;
@@ -929,7 +938,7 @@ export default function InventoryIntelligence() {
           depletedAt,
           remainingQuantity,
           consumedQuantity,
-          notes: `Fechado automaticamente: ${progress.accommodationCleanings} acomodações + ${progress.corridorCleanings} corredores.`,
+          notes: `Fechado automaticamente: ${progress.accommodationCleanings} acomodaÃ§Ãµes + ${progress.corridorCleanings} corredores.`,
         }),
       });
       await load();
@@ -1025,7 +1034,7 @@ export default function InventoryIntelligence() {
       product: `/api/products/${editModal.row.id}`,
     };
 
-    await updateResource(endpoints[editModal.type], editModal.values, "Falha ao salvar edição.");
+    await updateResource(endpoints[editModal.type], editModal.values, "Falha ao salvar ediÃ§Ã£o.");
   };
 
   async function toggleProductActive(row) {
@@ -1053,10 +1062,39 @@ export default function InventoryIntelligence() {
     productUsage: [],
   }, [dashboard?.todaySummary]);
   const groupedEntryRows = useMemo(() => groupEntriesByStayDay(recent.entries || []), [recent.entries]);
-  const usageLots = dashboard?.activeLotProgress || [];
+  const usageLots = useMemo(() => dashboard?.activeLotProgress || [], [dashboard?.activeLotProgress]);
   const openedUsageLots = usageLots.filter((lot) => lot.status === "OPEN");
   const learnedUsageLots = usageLots.filter((lot) => lot.learnedAverage);
   const usageTotalEstimatedCost = usageLots.reduce((total, lot) => total + Number(lot.estimatedCost || 0), 0);
+  const usageLotGroups = useMemo(() => {
+    const groups = new Map();
+
+    usageLots.forEach((lot) => {
+      const groupName = filters.stayId ? lot.stayName || "Empreendimento selecionado" : getUsageStayGroupLabel(lot.stayName);
+      const current = groups.get(groupName) || {
+        id: groupName,
+        stayName: groupName,
+        lots: [],
+        opened: 0,
+        learned: 0,
+        estimatedCost: 0,
+      };
+
+      current.lots.push(lot);
+      if (lot.status === "OPEN") current.opened += 1;
+      if (lot.learnedAverage) current.learned += 1;
+      current.estimatedCost += Number(lot.estimatedCost || 0);
+      groups.set(groupName, current);
+    });
+
+    return [...groups.values()].sort((a, b) => a.stayName.localeCompare(b.stayName, "pt-BR"));
+  }, [filters.stayId, usageLots]);
+
+  const getUsageLotsForStay = (stayName) => {
+    if (filters.stayId) return usageLots;
+    const groupName = getUsageStayGroupLabel(stayName);
+    return usageLotGroups.find((group) => group.stayName === groupName)?.lots || [];
+  };
 
   useEffect(() => {
     setLaundryDrafts((prev) => {
@@ -1144,10 +1182,10 @@ export default function InventoryIntelligence() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/70 dark:bg-cyan-950/35 dark:text-cyan-200">
             <Sparkles size={14} />
-            inteligência operacional
+            inteligÃªncia operacional
           </div>
           <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50">
-            Consumíveis e Estoque
+            ConsumÃ­veis e Estoque
           </h1>
         </div>
 
@@ -1182,7 +1220,7 @@ export default function InventoryIntelligence() {
             onClick={() => setFilters((prev) => ({ ...prev, ...getYearDateRange(Number(prev.year || dayjs().year()) + 1) }))}
             className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-600 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
           >
-            Próximo ano
+            PrÃ³ximo ano
           </button>
           <button
             type="button"
@@ -1229,7 +1267,7 @@ export default function InventoryIntelligence() {
 
       {loading ? (
         <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-950">
-          Carregando módulo inteligente...
+          Carregando mÃ³dulo inteligente...
         </div>
       ) : null}
 
@@ -1239,11 +1277,11 @@ export default function InventoryIntelligence() {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
             <Kpi icon={Boxes} label="Produtos ativos" value={kpis.activeProducts || 0} />
-            <Kpi icon={AlertTriangle} label="Críticos" value={kpis.criticalProducts || 0} tone="rose" />
-            <Kpi icon={TrendingUp} label="Custo período" value={formatMoney(kpis.totalCost)} tone="emerald" />
+            <Kpi icon={AlertTriangle} label="CrÃ­ticos" value={kpis.criticalProducts || 0} tone="rose" />
+            <Kpi icon={TrendingUp} label="Custo perÃ­odo" value={formatMoney(kpis.totalCost)} tone="emerald" />
             <Kpi icon={ClipboardCheck} label="Custo/reserva" value={formatMoney(kpis.costPerReservation)} tone="amber" />
-            <Kpi icon={Shirt} label="Peças lavanderia" value={kpis.laundryPieces || 0} />
-            <Kpi icon={CheckCircle2} label="Acomodações limpas" value={kpis.accommodationCleanings || 0} tone="emerald" />
+            <Kpi icon={Shirt} label="PeÃ§as lavanderia" value={kpis.laundryPieces || 0} />
+            <Kpi icon={CheckCircle2} label="AcomodaÃ§Ãµes limpas" value={kpis.accommodationCleanings || 0} tone="emerald" />
             <Kpi icon={ClipboardCheck} label="Corredores" value={kpis.corridorCleanings || 0} tone="cyan" />
           </div>
 
@@ -1271,7 +1309,7 @@ export default function InventoryIntelligence() {
                   </div>
                 )) : (
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 dark:bg-slate-900">
-                    Nenhum alerta no período.
+                    Nenhum alerta no perÃ­odo.
                   </div>
                 )}
               </div>
@@ -1293,15 +1331,15 @@ export default function InventoryIntelligence() {
               </div>
             </Section>
 
-            <Section title="Previsão de reposição">
+            <Section title="PrevisÃ£o de reposiÃ§Ã£o">
               <MiniTable
-                empty="Sem previsões calculadas."
+                empty="Sem previsÃµes calculadas."
                 columns={[
                   { key: "stayName", label: "Empreendimento", render: (row) => row.stayName || "-" },
                   { key: "productName", label: "Produto" },
                   { key: "currentStockLabel", label: "Saldo" },
-                  { key: "dailyAverage", label: "Média/dia" },
-                  { key: "daysRemaining", label: "Duração", render: (row) => row.daysRemaining === null ? "Sem histórico" : `${row.daysRemaining} dias` },
+                  { key: "dailyAverage", label: "MÃ©dia/dia" },
+                  { key: "daysRemaining", label: "DuraÃ§Ã£o", render: (row) => row.daysRemaining === null ? "Sem histÃ³rico" : `${row.daysRemaining} dias` },
                   { key: "recommendedQuantity", label: "Comprar", render: (row) => row.recommendedQuantity ? row.recommendedQuantity : "-" },
                 ]}
                 rows={(dashboard?.predictions || []).slice(0, 8)}
@@ -1317,23 +1355,23 @@ export default function InventoryIntelligence() {
                 { key: "productName", label: "Produto" },
                 { key: "category", label: "Categoria" },
                 { key: "quantityLabel", label: "Saldo" },
-                { key: "availability", label: "Disponível", render: (row) => row.availability === null ? "-" : `${row.availability}%` },
+                { key: "availability", label: "DisponÃ­vel", render: (row) => row.availability === null ? "-" : `${row.availability}%` },
               ]}
               rows={dashboard?.inventory || []}
             />
           </Section>
 
-          <Section title="Uso automático por lote">
+          <Section title="Uso automÃ¡tico por lote">
             <MiniTable
-              empty="Nenhum lote ativo com limpeza no período."
+              empty="Nenhum lote ativo com limpeza no perÃ­odo."
               columns={[
                 { key: "productName", label: "Produto" },
                 { key: "stayName", label: "Empreendimento" },
                 { key: "startedAt", label: "Desde", render: (row) => formatDate(row.startedAt) },
                 { key: "accommodationCleanings", label: "Acomodacoes" },
                 { key: "corridorCleanings", label: "Corredores" },
-                { key: "weightedOperations", label: "Operações" },
-                { key: "estimatedConsumed", label: "Estimado", render: (row) => row.estimatedConsumed === null ? "sem histórico" : row.estimatedConsumed },
+                { key: "weightedOperations", label: "OperaÃ§Ãµes" },
+                { key: "estimatedConsumed", label: "Estimado", render: (row) => row.estimatedConsumed === null ? "sem histÃ³rico" : row.estimatedConsumed },
                 {
                   key: "action",
                   label: "Fechar",
@@ -1390,7 +1428,7 @@ export default function InventoryIntelligence() {
             <Field label="Validade">
               <input type="date" value={entryForm.expiresAt} onChange={(event) => setEntryForm((prev) => ({ ...prev, expiresAt: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observações">
+            <Field label="ObservaÃ§Ãµes">
               <input value={entryForm.notes} onChange={(event) => setEntryForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass("lg:col-span-3")} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1445,60 +1483,77 @@ export default function InventoryIntelligence() {
             <div className="grid gap-3 md:grid-cols-4">
               <Kpi icon={Boxes} label="Produtos abertos" value={openedUsageLots.length || 0} />
               <Kpi icon={CheckCircle2} label="Acomodacoes hoje" value={todaySummary.accommodationCleanings || 0} tone="emerald" />
-              <Kpi icon={TrendingUp} label="Com histórico" value={learnedUsageLots.length || 0} tone="amber" />
-              <Kpi icon={DollarSign} label="Custo estimado" value={usageTotalEstimatedCost ? formatMoney(usageTotalEstimatedCost) : "sem histórico"} tone="emerald" />
+              <Kpi icon={TrendingUp} label="Com histÃ³rico" value={learnedUsageLots.length || 0} tone="amber" />
+              <Kpi icon={DollarSign} label="Custo estimado" value={usageTotalEstimatedCost ? formatMoney(usageTotalEstimatedCost) : "sem histÃ³rico"} tone="emerald" />
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-2">
-              {(usageLots || []).slice(0, 8).map((lot) => (
-                <div key={lot.lotId} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-                  <div className="flex items-start justify-between gap-3">
+            <div className="space-y-4">
+              {usageLotGroups.length ? usageLotGroups.map((group) => (
+                <section key={group.id} className="rounded-lg border border-slate-200 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/30">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="text-base font-black text-slate-950 dark:text-slate-50">{lot.productName}</div>
+                      <div className="text-sm font-black uppercase tracking-[0.12em] text-slate-800 dark:text-slate-100">{group.stayName}</div>
                       <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        D.A {formatDate(lot.startedAt)} | {lot.status === "OPEN" ? "aberto" : "fechado"} | saldo {lot.remainingPercent ?? "-"}%
+                        {group.opened} aberto(s) | {group.learned} com histórico | {group.estimatedCost ? formatMoney(group.estimatedCost) : "sem custo estimado"}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => closeLotCycle(lot)}
-                      disabled={closingLotId === lot.lotId}
-                      className="rounded-lg bg-cyan-700 px-3 py-1.5 text-xs font-black text-white transition hover:bg-cyan-800 disabled:opacity-60"
-                    >
-                      {closingLotId === lot.lotId ? "Salvando..." : "Registrar esgotamento"}
-                    </button>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                    <div>
-                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.durationDays || 0}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">dias</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.accommodationCleanings || 0}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">check-outs</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.learnedAverage ? lot.learnedAverage : "sem histórico"}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">média/op.</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.estimatedCost ? formatMoney(lot.estimatedCost) : "sem histórico"}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo</div>
-                    </div>
+
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    {group.lots.map((lot) => (
+                      <div key={lot.lotId} className="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-base font-black text-slate-950 dark:text-slate-50">{lot.productName}</div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                              D.A {formatDate(lot.startedAt)} | {lot.status === "OPEN" ? "aberto" : "fechado"} | saldo {lot.remainingPercent ?? "-"}%
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => closeLotCycle(lot)}
+                            disabled={closingLotId === lot.lotId}
+                            className="rounded-lg bg-cyan-700 px-3 py-1.5 text-xs font-black text-white transition hover:bg-cyan-800 disabled:opacity-60"
+                          >
+                            {closingLotId === lot.lotId ? "Salvando..." : "Registrar esgotamento"}
+                          </button>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                          <div>
+                            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.durationDays || 0}</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">dias</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.accommodationCleanings || 0}</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">check-outs</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.learnedAverage ? lot.learnedAverage : "sem histórico"}</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">média/op.</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-black text-slate-950 dark:text-slate-50">{lot.estimatedCost ? formatMoney(lot.estimatedCost) : "sem histórico"}</div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-              {!(usageLots || []).length ? (
-                <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 xl:col-span-2">
+                </section>
+              )) : (
+                <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800">
                   Sem lotes ativos para acompanhar uso.
                 </div>
-              ) : null}
+              )}
             </div>
 
             <div>
-              <div className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Uso por acomodação de hoje</div>
+              <div className="mb-3 text-sm font-black uppercase tracking-[0.12em] text-slate-700 dark:text-slate-200">Uso por acomodaÃ§Ã£o de hoje</div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {(todaySummary.rooms || []).length ? todaySummary.rooms.map((room) => (
+                {(todaySummary.rooms || []).length ? todaySummary.rooms.map((room) => {
+                  const roomUsageLots = getUsageLotsForStay(room.stayName).slice(0, 4);
+
+                  return (
                   <div key={room.reservationId} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                     <div className="flex items-center gap-3">
                       <div className="h-14 w-20 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
@@ -1514,19 +1569,24 @@ export default function InventoryIntelligence() {
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">
-                      {(usageLots || []).slice(0, 4).map((lot) => (
+                      {roomUsageLots.length ? roomUsageLots.map((lot) => (
                         <div key={`${room.reservationId}-${lot.lotId}`} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-2 py-1.5 text-xs dark:bg-slate-900">
                           <span className="font-bold text-slate-700 dark:text-slate-200">{lot.productName}</span>
                           <span className="font-black text-slate-950 dark:text-slate-50">
-                            {lot.learnedAverage ? `${lot.learnedAverage} ${lot.unitBase || ""}` : "sem histórico"}
+                            {lot.learnedAverage ? `${lot.learnedAverage} ${lot.unitBase || ""}` : "sem histÃ³rico"}
                           </span>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="rounded-lg bg-slate-50 px-2 py-2 text-xs font-bold text-slate-400 dark:bg-slate-900">
+                          Sem produtos ativos neste empreendimento.
+                        </div>
+                      )}
                     </div>
                   </div>
-                )) : (
+                  );
+                }) : (
                   <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800 md:col-span-2 xl:col-span-3">
-                    Nenhuma acomodação com limpeza prevista hoje.
+                    Nenhuma acomodaÃ§Ã£o com limpeza prevista hoje.
                   </div>
                 )}
               </div>
@@ -1546,7 +1606,7 @@ export default function InventoryIntelligence() {
                 {products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </Field>
-            <Field label="Operação">
+            <Field label="OperaÃ§Ã£o">
               <select value={consumptionForm.operationType} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, operationType: event.target.value }))} className={inputClass()}>
                 {operationTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -1562,7 +1622,7 @@ export default function InventoryIntelligence() {
             <Field label="Data/hora">
               <input type="datetime-local" value={consumptionForm.occurredAt} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, occurredAt: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Acomodação">
+            <Field label="AcomodaÃ§Ã£o">
               <select value={consumptionForm.roomId} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, roomId: event.target.value }))} className={inputClass()}>
                 <option value="">Opcional</option>
                 {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
@@ -1584,7 +1644,7 @@ export default function InventoryIntelligence() {
                 {maids.map((maid) => <option key={maid.id} value={maid.id}>{maid.name}</option>)}
               </select>
             </Field>
-            <Field label="Funcionário">
+            <Field label="FuncionÃ¡rio">
               <select value={consumptionForm.staffId} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, staffId: event.target.value }))} className={inputClass()}>
                 <option value="">Opcional</option>
                 {staff.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
@@ -1593,7 +1653,7 @@ export default function InventoryIntelligence() {
             <Field label="Local/setor">
               <input value={consumptionForm.location} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, location: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observações">
+            <Field label="ObservaÃ§Ãµes">
               <input value={consumptionForm.notes} onChange={(event) => setConsumptionForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass()} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1607,13 +1667,13 @@ export default function InventoryIntelligence() {
               columns={[
                 { key: "occurredAt", label: "Data", render: (row) => dayjs(row.occurredAt).format("DD/MM HH:mm") },
                 { key: "product", label: "Produto", render: (row) => row.product?.name },
-                { key: "operationType", label: "Operação" },
+                { key: "operationType", label: "OperaÃ§Ã£o" },
                 { key: "quantity", label: "Qtd", render: (row) => `${row.quantity} ${row.unit}` },
                 { key: "responsible", label: "Responsavel", render: (row) => row.staff?.name || row.maid?.name || "-" },
                 { key: "anomaly", label: "Analise", render: (row) => row.anomalyReason || "coerente" },
                 {
                   key: "actions",
-                  label: "Ações",
+                  label: "AÃ§Ãµes",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("consumption", row)}
@@ -1629,7 +1689,7 @@ export default function InventoryIntelligence() {
       ) : null}
 
       {!loading && tab === "cycles" ? (
-        <Section title="Ciclos de consumo por reposição">
+        <Section title="Ciclos de consumo por reposiÃ§Ã£o">
           <form onSubmit={submitCycle} className="grid gap-3 lg:grid-cols-6">
             <Field label="Empreendimento">
               <select required value={cycleForm.stayId} onChange={(event) => setCycleForm((prev) => ({ ...prev, stayId: event.target.value }))} className={inputClass()}>
@@ -1663,7 +1723,7 @@ export default function InventoryIntelligence() {
                   endedAt: lot?.depletedAt ? dateInputValue(lot.depletedAt) : prev.endedAt,
                 }));
               }} className={inputClass()}>
-                <option value="">Sem lote específico</option>
+                <option value="">Sem lote especÃ­fico</option>
                 {lots
                   .filter((lot) => !cycleForm.productId || lot.productId === cycleForm.productId)
                   .map((lot) => (
@@ -1673,7 +1733,7 @@ export default function InventoryIntelligence() {
                   ))}
               </select>
             </Field>
-            <Field label="Início">
+            <Field label="InÃ­cio">
               <input required type="date" value={cycleForm.startedAt} onChange={(event) => setCycleForm((prev) => ({ ...prev, startedAt: event.target.value }))} className={inputClass()} />
             </Field>
             <Field label="Fim/esgotamento">
@@ -1682,7 +1742,7 @@ export default function InventoryIntelligence() {
             <Field label="Qtd consumida base">
               <input required type="number" step="0.01" value={cycleForm.consumedQuantity} onChange={(event) => setCycleForm((prev) => ({ ...prev, consumedQuantity: event.target.value }))} className={inputClass()} />
             </Field>
-            <Field label="Observações">
+            <Field label="ObservaÃ§Ãµes">
               <input value={cycleForm.notes} onChange={(event) => setCycleForm((prev) => ({ ...prev, notes: event.target.value }))} className={inputClass("lg:col-span-5")} />
             </Field>
             <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white transition hover:bg-cyan-800 disabled:opacity-60 lg:col-span-6">
@@ -1694,16 +1754,16 @@ export default function InventoryIntelligence() {
             <MiniTable
               empty="Sem ciclos calculados."
               columns={[
-                { key: "endedAt", label: "Período", render: (row) => `${formatDate(row.startedAt)} até ${formatDate(row.endedAt)}` },
+                { key: "endedAt", label: "PerÃ­odo", render: (row) => `${formatDate(row.startedAt)} atÃ© ${formatDate(row.endedAt)}` },
                 { key: "product", label: "Produto", render: (row) => row.product?.name },
                 { key: "consumedQuantity", label: "Consumido" },
                 { key: "checkoutCount", label: "Check-outs" },
                 { key: "corridorDays", label: "Dias corredor" },
-                { key: "avgPerWeightedOperation", label: "Média operacional", render: (row) => row.avgPerWeightedOperation ? Number(row.avgPerWeightedOperation).toFixed(2) : "-" },
+                { key: "avgPerWeightedOperation", label: "MÃ©dia operacional", render: (row) => row.avgPerWeightedOperation ? Number(row.avgPerWeightedOperation).toFixed(2) : "-" },
                 { key: "costPerCheckout", label: "Custo/check-out", render: (row) => row.costPerCheckout ? formatMoney(row.costPerCheckout) : "-" },
                 {
                   key: "actions",
-                  label: "Ações",
+                  label: "AÃ§Ãµes",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("cycle", row)}
@@ -1723,7 +1783,7 @@ export default function InventoryIntelligence() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div>
               <div className="text-sm font-black text-slate-950 dark:text-slate-50">Valores atuais da lavanderia</div>
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Usados para estimar custo por acomodação e por dia.</div>
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Usados para estimar custo por acomodaÃ§Ã£o e por dia.</div>
             </div>
             <button
               type="button"
@@ -1737,9 +1797,9 @@ export default function InventoryIntelligence() {
 
           <div className="mb-5 border-b border-slate-200 pb-5 dark:border-slate-800">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <Field label="Padrão da acomodação">
+              <Field label="PadrÃ£o da acomodaÃ§Ã£o">
                 <select value={laundryTemplateRoomId} onChange={(event) => selectLaundryTemplateRoom(event.target.value)} className={inputClass("min-w-72")}>
-                  <option value="">Selecionar acomodação</option>
+                  <option value="">Selecionar acomodaÃ§Ã£o</option>
                   {selectedStayRooms.map((room) => <option key={room.id} value={room.id}>{room.title}</option>)}
                 </select>
               </Field>
@@ -1750,7 +1810,7 @@ export default function InventoryIntelligence() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
               >
                 <Save size={16} />
-                Salvar padrão
+                Salvar padrÃ£o
               </button>
             </div>
 
@@ -1788,7 +1848,7 @@ export default function InventoryIntelligence() {
                     <span className="font-black text-slate-950 dark:text-slate-50">{item.quantity}</span>
                   </div>
                 )) : (
-                  <div className="col-span-2 py-4 text-sm font-bold text-cyan-800 dark:text-cyan-100">Sem peças previstas para hoje.</div>
+                  <div className="col-span-2 py-4 text-sm font-bold text-cyan-800 dark:text-cyan-100">Sem peÃ§as previstas para hoje.</div>
                 )}
               </div>
             </div>
@@ -1855,7 +1915,7 @@ export default function InventoryIntelligence() {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-black text-slate-950 dark:text-slate-50">{getLaundryTotalPieces(draft.items)}</div>
-                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peças</div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">peÃ§as</div>
                       <div className="mt-1 text-sm font-black text-emerald-700 dark:text-emerald-200">{formatMoney(getLaundryCost(draft.items, laundryPriceMap))}</div>
                     </div>
                   </div>
@@ -1870,7 +1930,7 @@ export default function InventoryIntelligence() {
                     <Field label="Data">
                       <input type="date" value={draft.dispatchDate} onChange={(event) => updateLaundryDraft(room.reservationId, { dispatchDate: event.target.value })} className={inputClass()} />
                     </Field>
-                    <Field label="Observações">
+                    <Field label="ObservaÃ§Ãµes">
                       <input value={draft.notes || ""} onChange={(event) => updateLaundryDraft(room.reservationId, { notes: event.target.value })} className={inputClass()} />
                     </Field>
                     <button
@@ -1909,7 +1969,7 @@ export default function InventoryIntelligence() {
               );
             }) : (
               <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-400 dark:border-slate-800">
-                Nenhuma acomodação com check-out para lavanderia hoje.
+                Nenhuma acomodaÃ§Ã£o com check-out para lavanderia hoje.
               </div>
             )}
           </div>
@@ -1918,13 +1978,13 @@ export default function InventoryIntelligence() {
               empty="Sem envios recentes."
               columns={[
                 { key: "dispatchDate", label: "Data", render: (row) => formatDate(row.dispatchDate) },
-                { key: "room", label: "Acomodação", render: (row) => row.room?.title || "-" },
+                { key: "room", label: "AcomodaÃ§Ã£o", render: (row) => row.room?.title || "-" },
                 { key: "maid", label: "Diarista", render: (row) => row.maid?.name || "-" },
                 { key: "expectedSets", label: "Previsto" },
                 { key: "items", label: "Pecas", render: (row) => row.items?.reduce((total, item) => total + item.quantity * item.unitPieces, 0) || 0 },
                 {
                   key: "actions",
-                  label: "Ações",
+                  label: "AÃ§Ãµes",
                   render: (row) => (
                     <RowActions
                       onEdit={() => openEditModal("laundry", row)}
@@ -1940,32 +2000,32 @@ export default function InventoryIntelligence() {
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="text-sm font-black text-slate-950 dark:text-slate-50">Total mensal da lavanderia</div>
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Agrupado pelo mês de envio dentro do período filtrado.</div>
+                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Agrupado pelo mÃªs de envio dentro do perÃ­odo filtrado.</div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-black text-emerald-700 dark:text-emerald-200">{formatMoney(laundryMonthlyTotals.cost)}</div>
-                <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo no período</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">custo no perÃ­odo</div>
               </div>
             </div>
 
             <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Kpi icon={Shirt} label="Roupas de cama" value={laundryMonthlyTotals.bedLinen} />
               <Kpi icon={Shirt} label="Roupas de banho" value={laundryMonthlyTotals.bathLinen} tone="cyan" />
-              <Kpi icon={Shirt} label="Peças" value={laundryMonthlyTotals.pieces} />
-              <Kpi icon={CheckCircle2} label="Acomodações" value={laundryMonthlyTotals.rooms} tone="emerald" />
+              <Kpi icon={Shirt} label="PeÃ§as" value={laundryMonthlyTotals.pieces} />
+              <Kpi icon={CheckCircle2} label="AcomodaÃ§Ãµes" value={laundryMonthlyTotals.rooms} tone="emerald" />
               <Kpi icon={DollarSign} label="Custo" value={formatMoney(laundryMonthlyTotals.cost)} tone="emerald" />
             </div>
 
             <MiniTable
-              empty="Sem envios de lavanderia no período filtrado."
+              empty="Sem envios de lavanderia no perÃ­odo filtrado."
               columns={[
-                { key: "monthLabel", label: "Mês" },
-                { key: "rooms", label: "Acomodações" },
+                { key: "monthLabel", label: "MÃªs" },
+                { key: "rooms", label: "AcomodaÃ§Ãµes" },
                 { key: "bedLinen", label: "Roupas de cama" },
                 { key: "bathLinen", label: "Roupas de banho" },
-                { key: "pieces", label: "Peças" },
+                { key: "pieces", label: "PeÃ§as" },
                 { key: "maids", label: "Diaristas" },
-                { key: "avgPiecesPerDispatch", label: "Peças/acomod." },
+                { key: "avgPiecesPerDispatch", label: "PeÃ§as/acomod." },
                 { key: "cost", label: "Custo", render: (row) => formatMoney(row.cost) },
                 { key: "avgCostPerDispatch", label: "Custo/acomod.", render: (row) => formatMoney(row.avgCostPerDispatch) },
               ]}
@@ -1996,10 +2056,10 @@ export default function InventoryIntelligence() {
               <Field label="Unidade embalagem">
                 <input value={productForm.packageSizeUnit} onChange={(event) => setProductForm((prev) => ({ ...prev, packageSizeUnit: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Fornecedor padrão">
+              <Field label="Fornecedor padrÃ£o">
                 <input value={productForm.supplier} onChange={(event) => setProductForm((prev) => ({ ...prev, supplier: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Valor padrão">
+              <Field label="Valor padrÃ£o">
                 <input type="number" step="0.01" value={productForm.defaultPrice} onChange={(event) => setProductForm((prev) => ({ ...prev, defaultPrice: event.target.value }))} className={inputClass()} />
               </Field>
               <Field label="Unidades por pacote">
@@ -2008,7 +2068,7 @@ export default function InventoryIntelligence() {
               <Field label="Qtd base por embalagem">
                 <input type="number" step="0.01" value={productForm.packageBaseQuantity} onChange={(event) => setProductForm((prev) => ({ ...prev, packageBaseQuantity: event.target.value }))} className={inputClass()} />
               </Field>
-              <Field label="Estoque mínimo">
+              <Field label="Estoque mÃ­nimo">
                 <input type="number" value={productForm.minimumStock} onChange={(event) => setProductForm((prev) => ({ ...prev, minimumStock: event.target.value }))} className={inputClass()} />
               </Field>
               <Field label="Estoque alvo">
@@ -2024,7 +2084,7 @@ export default function InventoryIntelligence() {
             </form>
           </Section>
 
-          <Section title="Catálogo">
+          <Section title="CatÃ¡logo">
             <MiniTable
               empty="Nenhum produto cadastrado."
               columns={[
@@ -2038,7 +2098,7 @@ export default function InventoryIntelligence() {
                 { key: "active", label: "Status", render: (row) => row.active ? "Ativo" : "Inativo" },
                 {
                   key: "actions",
-                  label: "Ações",
+                  label: "AÃ§Ãµes",
                   render: (row) => (
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -2085,7 +2145,7 @@ export default function InventoryIntelligence() {
                   { key: "label", label: "Item" },
                   {
                     key: "price",
-                    label: "Valor unitário",
+                    label: "Valor unitÃ¡rio",
                     render: (row) => (
                       <input
                         type="number"
@@ -2099,7 +2159,7 @@ export default function InventoryIntelligence() {
                   },
                   {
                     key: "notes",
-                    label: "Observações",
+                    label: "ObservaÃ§Ãµes",
                     render: (row) => (
                       <input
                         value={row.notes || ""}
@@ -2134,3 +2194,4 @@ export default function InventoryIntelligence() {
     </div>
   );
 }
+
