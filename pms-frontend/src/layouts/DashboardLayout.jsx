@@ -355,6 +355,7 @@ export default function DashboardLayout() {
       "/apresentacao-hospedes",
       "/guest-checkins",
       "/guest-checkouts",
+      "/cleaning-integrity",
     ].includes(path);
 
     const inEstoque = [
@@ -712,6 +713,15 @@ export default function DashboardLayout() {
               hasNotification={guestCheckoutSummary.pending > 0}
             >
               Check-outs Hóspedes
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item
+              to="/cleaning-integrity"
+              icon={ShieldCheck}
+              showText={showText}
+            >
+              Integridade da Limpeza
             </Item>
           )}
 
