@@ -54,6 +54,8 @@ const CleaningSchedule = () => {
       rooms: t.rooms || "Sem identificação",
       maid: t.maid || null,
       maidId: t.maidId || null,
+      kind: t.kind || "CHECKOUT",
+      notes: t.notes || null,
       reservation: t.reservation || null,
     }));
 
@@ -126,7 +128,9 @@ const CleaningSchedule = () => {
         details: [],
       };
     }
-    groupedEvents[key].details.push(`${t.stay} - ${t.rooms}`);
+    groupedEvents[key].details.push(
+      `${t.kind === "STAY" ? "Durante estadia: " : ""}${t.stay} - ${t.rooms}`
+    );
   });
 
   // paleta adaptada para dark mode (classes completas)
@@ -307,7 +311,11 @@ const CleaningSchedule = () => {
                             ) : null,
                             <tr
                               key={t.id || `${t.date}-${t.stay}-${t.rooms}-${idx}`}
-                              className="transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70"
+                              className={`transition hover:bg-sky-50/40 dark:hover:bg-slate-900/70 ${
+                                t.kind === "STAY"
+                                  ? "bg-teal-50/70 dark:bg-teal-950/20"
+                                  : ""
+                              }`}
                             >
                               <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100">
                                 <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
@@ -315,7 +323,23 @@ const CleaningSchedule = () => {
                                 </span>
                               </td>
                               <td className="border-b border-slate-200/70 px-4 py-3 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200">
-                                {t.rooms}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span>{t.rooms}</span>
+                                  {t.kind === "STAY" ? (
+                                    <span className="rounded-full border border-teal-200 bg-teal-100 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.12em] text-teal-800 dark:border-teal-700 dark:bg-teal-950/60 dark:text-teal-100">
+                                      Durante estadia
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.12em] text-sky-800 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-100">
+                                      Checkout
+                                    </span>
+                                  )}
+                                </div>
+                                {t.kind === "STAY" && t.notes ? (
+                                  <div className="mt-1 text-xs font-medium text-teal-700 dark:text-teal-200">
+                                    {t.notes}
+                                  </div>
+                                ) : null}
                               </td>
                               <td className="border-b border-slate-200/70 px-4 py-3 dark:border-slate-800">
                                 <select
@@ -363,10 +387,10 @@ const CleaningSchedule = () => {
                                 <button
                                   type="button"
                                   onClick={() => setSelectedCleaningTask(t)}
-                                  disabled={!t.reservation}
+                                  disabled={!t.reservation || t.kind === "STAY"}
                                   className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                  Alterar dia de limpeza
+                                  {t.kind === "STAY" ? "Configurada no mapa" : "Alterar dia de limpeza"}
                                 </button>
                                 {t.reservation?.cleaningDateOverride ? (
                                   <div className="mt-2 text-xs text-amber-700 dark:text-amber-200">

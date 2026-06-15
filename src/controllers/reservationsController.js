@@ -4,6 +4,8 @@ const prisma = new PrismaClient();
 
 const STATUS_CANCELADA = "cancelada";
 const DEFAULT_STATUS = "registrada";
+const TASK_KIND_CHECKOUT = "CHECKOUT";
+const TASK_KIND_STAY = "STAY";
 
 function makeHttpError(status, message, details = null) {
   const error = new Error(message);
@@ -64,6 +66,7 @@ function getTaskScopeFromReservation(reservation) {
 
 function getTaskWhereByRoomScope(scope) {
   return {
+    kind: TASK_KIND_CHECKOUT,
     date: { gte: scope.start, lte: scope.end },
     rooms: scope.rooms,
   };
@@ -90,6 +93,7 @@ async function ensureSingleCheckoutTask(tx, scope) {
         date: scope.date,
         stay: scope.stay,
         rooms: scope.rooms,
+        kind: TASK_KIND_CHECKOUT,
       },
     });
   }
@@ -116,7 +120,76 @@ async function ensureSingleCheckoutTask(tx, scope) {
       date: scope.date,
       stay: scope.stay,
       rooms: scope.rooms,
+      kind: TASK_KIND_CHECKOUT,
     },
+  });
+}
+
+function listStayCleaningDates({ checkinDate, checkoutDate, weekday }) {
+  const checkin = getUtcDayRange(checkinDate).start;
+  const checkout = getUtcDayRange(checkoutDate).start;
+  const targetWeekday = Number(weekday);
+
+  if (!checkin || !checkout || !Number.isInteger(targetWeekday) || targetWeekday < 0 || targetWeekday > 6) {
+    return [];
+  }
+
+  const dates = [];
+  const cursor = new Date(checkin);
+  cursor.setUTCDate(cursor.getUTCDate() + 1);
+
+  while (cursor < checkout) {
+    if (cursor.getUTCDay() === targetWeekday) {
+      dates.push(new Date(cursor));
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
+async function replaceStayCleaningTasks(tx, reservation, { enabled, weekday, notes }) {
+  await tx.task.deleteMany({
+    where: {
+      kind: TASK_KIND_STAY,
+      reservationId: reservation.id,
+    },
+  });
+
+  if (!enabled) return [];
+
+  const dates = listStayCleaningDates({
+    checkinDate: reservation.checkinDate,
+    checkoutDate: reservation.checkoutDate,
+    weekday,
+  });
+
+  if (dates.length === 0) return [];
+
+  const stay = normalizeTaskText(reservation.room?.stay?.name, "Sem Stay");
+  const rooms = normalizeTaskText(reservation.room?.title, "Sem identificacao");
+  const recurrenceWeekday = Number(weekday);
+  const normalizedNotes = normalizeTaskText(notes, "Limpeza durante estadia");
+
+  await tx.task.createMany({
+    data: dates.map((date) => ({
+      date,
+      stay,
+      rooms,
+      kind: TASK_KIND_STAY,
+      reservationId: reservation.id,
+      recurrenceWeekday,
+      notes: normalizedNotes,
+    })),
+  });
+
+  return tx.task.findMany({
+    where: {
+      kind: TASK_KIND_STAY,
+      reservationId: reservation.id,
+    },
+    include: { maid: true },
+    orderBy: { date: "asc" },
   });
 }
 
@@ -493,6 +566,13 @@ async function updateReservation(req, res) {
       }
 
       const oldScope = getTaskScopeFromReservation(current);
+      const existingStayCleaning = await tx.task.findFirst({
+        where: {
+          kind: TASK_KIND_STAY,
+          reservationId: current.id,
+        },
+        orderBy: { date: "asc" },
+      });
       const scheduleAffected =
         nextStatus === STATUS_CANCELADA ||
         nextRoomId !== current.roomId ||
@@ -533,6 +613,12 @@ async function updateReservation(req, res) {
           effectiveCleaningDate: current.cleaningDateOverride || current.checkoutDate,
           oldScope,
         });
+        await tx.task.deleteMany({
+          where: {
+            kind: TASK_KIND_STAY,
+            reservationId: current.id,
+          },
+        });
         return reservation;
       }
 
@@ -549,6 +635,13 @@ async function updateReservation(req, res) {
       }
 
       await ensureSingleCheckoutTask(tx, newScope);
+      if (existingStayCleaning) {
+        await replaceStayCleaningTasks(tx, reservation, {
+          enabled: true,
+          weekday: existingStayCleaning.recurrenceWeekday,
+          notes: existingStayCleaning.notes,
+        });
+      }
       return reservation;
     });
 
@@ -683,11 +776,103 @@ async function updateReservationCleaningDate(req, res) {
   }
 }
 
+// GET /reservations/:id/stay-cleanings
+async function getReservationStayCleanings(req, res) {
+  const { id } = req.params;
+
+  try {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: String(id) },
+      include: {
+        guest: true,
+        room: { include: { stay: true } },
+        cleaningTasks: {
+          where: { kind: TASK_KIND_STAY },
+          include: { maid: true },
+          orderBy: { date: "asc" },
+        },
+      },
+    });
+
+    if (!reservation) {
+      return res.status(404).json({ error: "Reserva nao encontrada." });
+    }
+
+    const firstTask = reservation.cleaningTasks[0] || null;
+
+    return res.json({
+      reservationId: reservation.id,
+      enabled: reservation.cleaningTasks.length > 0,
+      weekday: firstTask?.recurrenceWeekday ?? null,
+      notes: firstTask?.notes || "",
+      tasks: reservation.cleaningTasks,
+    });
+  } catch (error) {
+    return handleReservationError(res, error, "Erro ao buscar limpezas durante estadia.");
+  }
+}
+
+// PUT /reservations/:id/stay-cleanings
+async function updateReservationStayCleanings(req, res) {
+  const { id } = req.params;
+  const { enabled, weekday, notes } = req.body;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: String(id) },
+        include: {
+          guest: true,
+          room: { include: { stay: true } },
+        },
+      });
+
+      if (!reservation) {
+        throw makeHttpError(404, "Reserva nao encontrada.");
+      }
+
+      if (reservation.status === STATUS_CANCELADA) {
+        throw makeHttpError(400, "Nao e possivel configurar limpeza de reserva cancelada.");
+      }
+
+      const shouldEnable = Boolean(enabled);
+      const recurrenceWeekday = Number(weekday);
+
+      if (
+        shouldEnable &&
+        (!Number.isInteger(recurrenceWeekday) || recurrenceWeekday < 0 || recurrenceWeekday > 6)
+      ) {
+        throw makeHttpError(400, "Dia da semana invalido para limpeza durante estadia.");
+      }
+
+      const tasks = await replaceStayCleaningTasks(tx, reservation, {
+        enabled: shouldEnable,
+        weekday: recurrenceWeekday,
+        notes,
+      });
+
+      return {
+        reservationId: reservation.id,
+        enabled: tasks.length > 0,
+        weekday: tasks[0]?.recurrenceWeekday ?? (shouldEnable ? recurrenceWeekday : null),
+        notes: tasks[0]?.notes || "",
+        tasks,
+      };
+    });
+
+    return res.json(result);
+  } catch (error) {
+    return handleReservationError(res, error, "Erro interno ao salvar limpezas durante estadia.");
+  }
+}
+
 module.exports = {
   getAllReservations,
   getReservationById,
   createReservation,
   updateReservation,
   updateReservationCleaningDate,
+  getReservationStayCleanings,
+  updateReservationStayCleanings,
   deleteReservation,
 };

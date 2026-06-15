@@ -218,6 +218,7 @@ async function composeCleaningOperations({ prisma, tasks, startDate, endDate }) 
 
   const checkoutTasksByRoomId = new Map();
   planningTasks.forEach((checkoutTask) => {
+    if (checkoutTask.kind && checkoutTask.kind !== "CHECKOUT") return;
     const room = findRoomForCheckoutTask(checkoutTask, roomLookup);
     if (!room) return;
     const enrichedTask = { ...checkoutTask, roomId: room.id, stayId: room.stayId };

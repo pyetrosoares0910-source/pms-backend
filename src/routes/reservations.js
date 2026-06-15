@@ -13,6 +13,8 @@ router.post("/", validateReservationCreate, handleValidation, reservationControl
 
 // Atualizar
 router.put("/:id/cleaning-date", reservationController.updateReservationCleaningDate);
+router.get("/:id/stay-cleanings", reservationController.getReservationStayCleanings);
+router.put("/:id/stay-cleanings", reservationController.updateReservationStayCleanings);
 router.put("/:id", validateReservationUpdate, handleValidation, reservationController.updateReservation);
 
 // Deletar

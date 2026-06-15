@@ -29,7 +29,15 @@ exports.getCheckouts = async (req, res) => {
           lte: endDate,
         },
       },
-      include: { maid: true },
+      include: {
+        maid: true,
+        reservation: {
+          include: {
+            guest: true,
+            room: { include: { stay: true } },
+          },
+        },
+      },
       orderBy: { date: "asc" },
     });
 
@@ -71,14 +79,19 @@ exports.getCheckouts = async (req, res) => {
       rooms: t.rooms || "-", // string ou lista de quartos
       maid: t.maid ? t.maid.name : null,
       maidId: t.maid ? t.maid.id : null,
+      kind: t.kind || "CHECKOUT",
+      recurrenceWeekday: t.recurrenceWeekday ?? null,
+      notes: t.notes || null,
       stayId: t.stayId || null,
       roomId: t.roomId || null,
       reservation:
-        t.roomId && t.date
-          ? reservationsByCleaningScope.get(
-            `${t.roomId}|${toUtcDay(t.date).toISOString().slice(0, 10)}`
-          ) || null
-          : null,
+        t.kind === "STAY"
+          ? t.reservation || null
+          : t.roomId && t.date
+            ? reservationsByCleaningScope.get(
+              `${t.roomId}|${toUtcDay(t.date).toISOString().slice(0, 10)}`
+            ) || null
+            : null,
       periodicTasks: t.periodicTasks || [],
       operationalReminders: t.operationalReminders || [],
     }));
@@ -113,7 +126,7 @@ exports.assignMaid = async (req, res) => {
     const rooms = await prisma.room.findMany({ include: { stay: true } });
     const roomLookup = makeRoomLookup(rooms);
     const room = findRoomForCheckoutTask(updated, roomLookup);
-    if (room) {
+    if ((updated.kind || "CHECKOUT") === "CHECKOUT" && room) {
       await prisma.periodicTaskExecution.updateMany({
         where: {
           roomId: room.id,

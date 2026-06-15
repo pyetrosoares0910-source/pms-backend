@@ -117,6 +117,7 @@ model Reservation {
   cleaningChangeReason String?
   guest        Guest    @relation(fields: [guestId], references: [id])
   room         Room     @relation(fields: [roomId], references: [id])
+  cleaningTasks Task[]
   productConsumptions ProductConsumption[]
   laundryDispatches LaundryDispatch[]
 }
@@ -136,12 +137,20 @@ model Maid {
 }
 
 model Task {
-  id     String   @id @default(uuid())
-  date   DateTime
-  stay   String
-  rooms  String
-  maidId Int?
-  maid   Maid?    @relation(fields: [maidId], references: [id])
+  id                String       @id @default(uuid())
+  date              DateTime
+  stay              String
+  rooms             String
+  kind              String       @default("CHECKOUT")
+  reservationId     String?
+  recurrenceWeekday Int?
+  notes             String?
+  maidId            Int?
+  maid              Maid?        @relation(fields: [maidId], references: [id])
+  reservation       Reservation? @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([kind, date])
+  @@index([reservationId])
 }
 
 model PeriodicTask {

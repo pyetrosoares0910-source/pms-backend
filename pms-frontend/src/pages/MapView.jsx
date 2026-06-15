@@ -85,6 +85,16 @@ const ReservationStatus = {
   CANCELADA: "cancelada",
 };
 
+const WEEKDAY_OPTIONS = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Segunda-feira" },
+  { value: 2, label: "Terca-feira" },
+  { value: 3, label: "Quarta-feira" },
+  { value: 4, label: "Quinta-feira" },
+  { value: 5, label: "Sexta-feira" },
+  { value: 6, label: "Sabado" },
+];
+
 function colorByStatus(status) {
   switch (status) {
     case ReservationStatus.REGISTRADA:
@@ -390,6 +400,7 @@ function ReservationActionsModal({
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [cleaningOpen, setCleaningOpen] = useState(false);
+  const [stayCleaningOpen, setStayCleaningOpen] = useState(false);
   const [assignmentConflict, setAssignmentConflict] = useState(null);
   const [pendingStatus, setPendingStatus] = useState(null);
   const [removingAssignment, setRemovingAssignment] = useState(false);
@@ -591,6 +602,13 @@ function ReservationActionsModal({
             Alterar dia de limpeza
           </button>
           <button
+            onClick={() => setStayCleaningOpen(true)}
+            disabled={loading || reservation.status === "cancelada"}
+            className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 text-white rounded-lg"
+          >
+            Limpezas durante estadia
+          </button>
+          <button
             onClick={() => setEditOpen(true)}
             className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg"
           >
@@ -619,7 +637,177 @@ function ReservationActionsModal({
         reservation={reservation}
         onUpdated={onUpdated}
       />
+      <StayCleaningModal
+        open={stayCleaningOpen}
+        onClose={() => setStayCleaningOpen(false)}
+        reservation={reservation}
+      />
     </>
+  );
+}
+
+function StayCleaningModal({ open, onClose, reservation }) {
+  const api = useApi();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [weekday, setWeekday] = useState(3);
+  const [notes, setNotes] = useState("Limpeza durante estadia");
+  const [tasks, setTasks] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open || !reservation?.id) return;
+
+    let ignore = false;
+    setLoading(true);
+    setError("");
+
+    api(`/reservations/${reservation.id}/stay-cleanings`)
+      .then((data) => {
+        if (ignore) return;
+        setEnabled(Boolean(data.enabled));
+        setWeekday(data.weekday ?? 3);
+        setNotes(data.notes || "Limpeza durante estadia");
+        setTasks(data.tasks || []);
+      })
+      .catch((err) => {
+        if (ignore) return;
+        console.error("Erro ao buscar limpezas durante estadia:", err);
+        setError(err?.message || "Erro ao buscar limpezas durante estadia.");
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [api, open, reservation?.id]);
+
+  if (!open || !reservation) return null;
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const data = await api(`/reservations/${reservation.id}/stay-cleanings`, {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled,
+          weekday: Number(weekday),
+          notes,
+        }),
+      });
+
+      setEnabled(Boolean(data.enabled));
+      setWeekday(data.weekday ?? Number(weekday));
+      setNotes(data.notes || notes);
+      setTasks(data.tasks || []);
+      onClose();
+    } catch (err) {
+      console.error("Erro ao salvar limpezas durante estadia:", err);
+      setError(err?.message || "Erro ao salvar limpezas durante estadia.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Limpezas durante estadia">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+          <div className="font-semibold text-slate-900 dark:text-slate-100">
+            {reservation.guest?.name || "Hospede sem nome"} - {reservation.room?.title || "Sem acomodacao"}
+          </div>
+          <div className="mt-1">
+            {fmtBR(parseDateOnly(reservation.checkinDate))} ate {fmtBR(parseDateOnly(reservation.checkoutDate))}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => setEnabled(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Gerar limpezas recorrentes durante a estadia
+        </label>
+
+        <div>
+          <label className="text-sm">Dia da semana</label>
+          <select
+            value={weekday}
+            onChange={(event) => setWeekday(Number(event.target.value))}
+            disabled={!enabled}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+          >
+            {WEEKDAY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm">Observacao</label>
+          <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            disabled={!enabled}
+            rows={2}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
+          />
+        </div>
+
+        <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/35 dark:text-teal-100">
+          {loading
+            ? "Carregando limpezas..."
+            : enabled
+              ? `${tasks.length} limpeza(s) durante estadia ja cadastrada(s). Ao salvar, a lista sera recalculada.`
+              : "Ao salvar desativado, as limpezas durante estadia desta reserva serao removidas."}
+        </div>
+
+        {tasks.length > 0 && (
+          <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-sm last:border-b-0 dark:border-slate-700"
+              >
+                <span>{fmtBR(parseDateOnly(task.date))}</span>
+                <span className="text-xs font-semibold text-teal-700 dark:text-teal-200">
+                  Durante estadia
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
+
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-slate-700 dark:border-slate-600 dark:text-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading || saving}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-white hover:bg-teal-700 disabled:opacity-60"
+          >
+            {saving ? "Salvando..." : "Salvar recorrencia"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
