@@ -21,6 +21,7 @@ const CleaningSchedule = lazy(() => import("../pages/CleaningSchedule"));
 const Maids = lazy(() => import("../pages/Maids"));
 const CleaningReport = lazy(() => import("../pages/CleaningReport"));
 const PerformanceReport = lazy(() => import("../pages/PerformanceReport"));
+const PerformanceReport2 = lazy(() => import("../pages/PerformanceReport2"));
 const MaintenanceCalendar = lazy(() => import("../pages/MaintenanceCalendar"));
 const MaintenanceCollaborators = lazy(() => import("../pages/MaintenanceCollaborators"));
 const MaidAssignments = lazy(() => import("../pages/MaidAssignments"));
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
           { path: "/maids", element: page(Maids) },
           { path: "/cleaning-report", element: page(CleaningReport) },
           { path: "/performance-report", element: page(PerformanceReport) },
+          { path: "/performance-report-2", element: page(PerformanceReport2) },
           { path: "/maintenance-calendar", element: page(MaintenanceCalendar) },
           { path: "/maintenance-collaborators", element: page(MaintenanceCollaborators) },
           { path: "/maid-assignments", element: page(MaidAssignments) },

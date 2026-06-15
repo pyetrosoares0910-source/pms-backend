@@ -41,6 +41,7 @@ import {
   Sparkles,
   Trophy,
   ShieldCheck,
+  TrendingUp,
   X,
 } from "lucide-react";
 import {
@@ -362,7 +363,7 @@ export default function DashboardLayout() {
       "/cleaning-integrity",
     ].includes(path);
 
-    const inRelatorios = ["/cleaning-report", "/performance-report"].includes(
+    const inRelatorios = ["/cleaning-report", "/performance-report", "/performance-report-2"].includes(
       path
     );
 
@@ -815,6 +816,13 @@ export default function DashboardLayout() {
                 showText={showText}
               >
                 Relatório de Desempenho
+              </Item>
+              <Item
+                to="/performance-report-2"
+                icon={TrendingUp}
+                showText={showText}
+              >
+                Relatório de Desempenho 2
               </Item>
             </NavGroup>
           </div>

@@ -4,6 +4,7 @@ const VIEWER_ALLOWED_PATHS = new Set([
   "/dashboard",
   "/map",
   "/performance-report",
+  "/performance-report-2",
 ]);
 
 export function normalizeRole(role) {
