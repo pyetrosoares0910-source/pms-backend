@@ -3,11 +3,7 @@ const ASSISTED_CHECKIN_REQUIRED_CODE = "ASSISTED_CHECKIN_REQUIRED";
 function getAssistedCheckinStatus(assistedCheckin) {
   if (!assistedCheckin) return "pendente";
   if (assistedCheckin.keyDeliveryConfirmedAt) return "concluido";
-  if (
-    assistedCheckin.scheduledArrivalAt &&
-    assistedCheckin.rulesMessageSentAt &&
-    assistedCheckin.documentsReceivedAt
-  ) {
+  if (isAssistedCheckinReadyForActivation(assistedCheckin)) {
     return "pronto_para_entrega";
   }
   if (
@@ -22,11 +18,14 @@ function getAssistedCheckinStatus(assistedCheckin) {
 }
 
 function isAssistedCheckinComplete(assistedCheckin) {
+  return Boolean(assistedCheckin?.keyDeliveryConfirmedAt);
+}
+
+function isAssistedCheckinReadyForActivation(assistedCheckin) {
   return Boolean(
     assistedCheckin?.scheduledArrivalAt &&
       assistedCheckin?.rulesMessageSentAt &&
-      assistedCheckin?.documentsReceivedAt &&
-      assistedCheckin?.keyDeliveryConfirmedAt
+      assistedCheckin?.documentsReceivedAt
   );
 }
 
@@ -36,6 +35,7 @@ function withAssistedCheckinStatus(assistedCheckin) {
     ...assistedCheckin,
     status: getAssistedCheckinStatus(assistedCheckin),
     complete: isAssistedCheckinComplete(assistedCheckin),
+    readyForActivation: isAssistedCheckinReadyForActivation(assistedCheckin),
   };
 }
 
@@ -74,6 +74,12 @@ function normalizeAssistedCheckinPayload(payload = {}) {
     data.notes = notes || null;
   }
 
+  if (Object.prototype.hasOwnProperty.call(payload, "rulesMessageText")) {
+    const rulesMessageText =
+      typeof payload.rulesMessageText === "string" ? payload.rulesMessageText.trim() : "";
+    data.rulesMessageText = rulesMessageText || null;
+  }
+
   return data;
 }
 
@@ -81,6 +87,7 @@ module.exports = {
   ASSISTED_CHECKIN_REQUIRED_CODE,
   getAssistedCheckinStatus,
   isAssistedCheckinComplete,
+  isAssistedCheckinReadyForActivation,
   normalizeAssistedCheckinPayload,
   withAssistedCheckinStatus,
   withReservationAssistedStatus,

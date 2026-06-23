@@ -1,7 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const {
   ASSISTED_CHECKIN_REQUIRED_CODE,
-  isAssistedCheckinComplete,
+  isAssistedCheckinReadyForActivation,
   withReservationAssistedStatus,
 } = require("../services/assistedCheckins");
 
@@ -367,7 +367,6 @@ function buildAssistedCheckinRequiredDetails(reservation, assistedCheckin) {
       scheduledArrivalAt: !assistedCheckin?.scheduledArrivalAt,
       rulesMessageSentAt: !assistedCheckin?.rulesMessageSentAt,
       documentsReceivedAt: !assistedCheckin?.documentsReceivedAt,
-      keyDeliveryConfirmedAt: !assistedCheckin?.keyDeliveryConfirmedAt,
     },
   };
 }
@@ -642,7 +641,10 @@ async function updateReservation(req, res) {
           throw makeHttpError(400, "roomId invalido. Verifique se a acomodacao existe.");
         }
 
-        if (nextRoom.selfCheckinEnabled === false && !isAssistedCheckinComplete(current.assistedCheckin)) {
+        if (
+          nextRoom.selfCheckinEnabled === false &&
+          !isAssistedCheckinReadyForActivation(current.assistedCheckin)
+        ) {
           throw makeHttpError(
             409,
             "Check-in presencial obrigatorio antes de ativar esta reserva.",

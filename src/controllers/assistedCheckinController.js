@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const {
+  isAssistedCheckinReadyForActivation,
   normalizeAssistedCheckinPayload,
   withAssistedCheckinStatus,
   withReservationAssistedStatus,
@@ -107,16 +108,39 @@ async function upsertAssistedCheckin(req, res) {
       });
     }
 
-    const assistedCheckin = await prisma.assistedCheckin.upsert({
-      where: { reservationId },
-      create: {
-        reservationId,
-        ...data,
-      },
-      update: data,
+    const result = await prisma.$transaction(async (tx) => {
+      const assistedCheckin = await tx.assistedCheckin.upsert({
+        where: { reservationId },
+        create: {
+          reservationId,
+          ...data,
+        },
+        update: data,
+      });
+
+      let reservationStatus = reservation.status;
+      if (
+        isAssistedCheckinReadyForActivation(assistedCheckin) &&
+        !["ativa", "concluida", "cancelada"].includes(reservation.status)
+      ) {
+        const updatedReservation = await tx.reservation.update({
+          where: { id: reservationId },
+          data: { status: "ativa" },
+          select: { status: true },
+        });
+        reservationStatus = updatedReservation.status;
+      }
+
+      return {
+        assistedCheckin,
+        reservationStatus,
+      };
     });
 
-    return res.json(withAssistedCheckinStatus(assistedCheckin));
+    return res.json({
+      ...withAssistedCheckinStatus(result.assistedCheckin),
+      reservationStatus: result.reservationStatus,
+    });
   } catch (error) {
     console.error("Erro ao salvar check-in presencial:", error);
     return res.status(500).json({ error: "Erro ao salvar check-in presencial." });

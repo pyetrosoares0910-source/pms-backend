@@ -10,6 +10,35 @@ const STATUS_LABELS = {
   concluido: "Concluido",
 };
 
+const DEFAULT_RULES_MESSAGE = `*Regras do Condomínio - Informações Importantes*
+
+Prezados(as),
+
+Para garantir a boa convivência e o cumprimento das normas do condomínio, pedimos a gentileza de observar atentamente as orientações abaixo:
+
+*1. Entrada e saída com malas*
+A entrada e saída com malas devem ser feitas exclusivamente pela lateral do prédio (entrada de pedestres).
+*Não é permitido utilizar a entrada social para esse fim.*
+
+⚠️ *Atenção:* o não cumprimento dessa regra está sujeito à multa conforme as normas do condomínio.
+
+*2. Localização da lixeira do condomínio*
+A lixeira está localizada no acesso lateral interno. Para encontrá-la, siga as instruções abaixo:
+
+- De frente para os elevadores, siga pela saída para a área externa;
+- Logo à direita, no meio do corredor, encontram-se as lixeiras para descarte de lixo;
+- Seguindo um pouco mais à frente e virando à direita, há um corredor que dá acesso direto à saída lateral para a rua.
+
+*3. Acesso pela porta lateral*
+A saída lateral possui uma porta de acesso controlado:
+
+- Para entrar no condomínio (da rua para dentro), é necessário utilizar a TAG;
+- Para sair do condomínio (de dentro para a rua), há um botão/interruptor sinalizado ao lado da porta, que realiza a abertura automática.
+
+Em caso de dúvidas, estou à disposição para ajudar.
+
+Agradecemos a compreensão e a colaboração de todos.`;
+
 function statusTone(status) {
   if (status === "concluido") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200";
   if (status === "pronto_para_entrega") return "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200";
@@ -95,6 +124,7 @@ export default function AssistedCheckins() {
           const assisted = getAssisted(reservation);
           next[reservation.id] = {
             scheduledArrivalAt: toDateTimeLocal(assisted.scheduledArrivalAt),
+            rulesMessageText: assisted.rulesMessageText || DEFAULT_RULES_MESSAGE,
             notes: assisted.notes || "",
           };
         });
@@ -145,11 +175,19 @@ export default function AssistedCheckins() {
       updateLocalAssisted(reservation.id, updated);
       setDrafts((prev) => ({
         ...prev,
-        [reservation.id]: {
-          scheduledArrivalAt: toDateTimeLocal(updated.scheduledArrivalAt),
-          notes: updated.notes || "",
-        },
-      }));
+          [reservation.id]: {
+            scheduledArrivalAt: toDateTimeLocal(updated.scheduledArrivalAt),
+            rulesMessageText: updated.rulesMessageText || DEFAULT_RULES_MESSAGE,
+            notes: updated.notes || "",
+          },
+        }));
+      if (updated.reservationStatus) {
+        setReservations((prev) =>
+          prev.map((item) =>
+            item.id === reservation.id ? { ...item, status: updated.reservationStatus } : item
+          )
+        );
+      }
     } catch (err) {
       console.error("Erro ao salvar check-in presencial:", err);
       setError(err?.message || "Erro ao salvar check-in presencial.");
@@ -169,7 +207,22 @@ export default function AssistedCheckins() {
     const draft = drafts[reservation.id] || {};
     saveFields(reservation, {
       scheduledArrivalAt: fromDateTimeLocal(draft.scheduledArrivalAt),
+      rulesMessageText: draft.rulesMessageText || DEFAULT_RULES_MESSAGE,
       notes: draft.notes || null,
+    });
+  };
+
+  const copyRulesMessage = async (reservation) => {
+    const draft = drafts[reservation.id] || {};
+    const text = draft.rulesMessageText || DEFAULT_RULES_MESSAGE;
+    await navigator.clipboard.writeText(text);
+  };
+
+  const confirmRulesSent = (reservation) => {
+    const draft = drafts[reservation.id] || {};
+    saveFields(reservation, {
+      rulesMessageText: draft.rulesMessageText || DEFAULT_RULES_MESSAGE,
+      rulesMessageSentAt: new Date().toISOString(),
     });
   };
 
@@ -228,7 +281,7 @@ export default function AssistedCheckins() {
           ["Pendentes", summary.pendente || 0],
           ["Em andamento", summary.em_andamento || 0],
           ["Prontos", summary.pronto_para_entrega || 0],
-          ["Concluidos", summary.concluido || 0],
+          ["Check-ins realizados", summary.concluido || 0],
         ].map(([label, value]) => (
           <div key={label} className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</div>
@@ -297,6 +350,40 @@ export default function AssistedCheckins() {
                       />
                     </label>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Modelo WhatsApp - regras do condominio
+                      <textarea
+                        value={draft.rulesMessageText || DEFAULT_RULES_MESSAGE}
+                        onChange={(event) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [reservation.id]: {
+                              ...(prev[reservation.id] || {}),
+                              rulesMessageText: event.target.value,
+                            },
+                          }))
+                        }
+                        rows={12}
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                      />
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyRulesMessage(reservation)}
+                        className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Copiar mensagem
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => confirmRulesSent(reservation)}
+                        disabled={saving}
+                        className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                      >
+                        Confirmar envio das regras
+                      </button>
+                    </div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                       Observacoes
                       <textarea
                         value={draft.notes || ""}
@@ -339,7 +426,11 @@ export default function AssistedCheckins() {
                       icon={MessageSquareText}
                       label="Regras enviadas"
                       value={assisted.rulesMessageSentAt}
-                      onToggle={() => toggleTimestamp(reservation, "rulesMessageSentAt")}
+                      onToggle={() =>
+                        assisted.rulesMessageSentAt
+                          ? toggleTimestamp(reservation, "rulesMessageSentAt")
+                          : confirmRulesSent(reservation)
+                      }
                       disabled={saving}
                     />
                     <StepButton
@@ -362,7 +453,12 @@ export default function AssistedCheckins() {
                 {assisted.complete ? (
                   <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-100">
                     <CheckCircle2 size={16} />
-                    Processo completo. A reserva pode ser ativada.
+                    Chaves entregues. Check-in presencial realizado.
+                  </div>
+                ) : assisted.readyForActivation ? (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 dark:bg-sky-950/30 dark:text-sky-100">
+                    <CheckCircle2 size={16} />
+                    Horario, regras e documentos confirmados. Reserva ativa.
                   </div>
                 ) : null}
               </article>

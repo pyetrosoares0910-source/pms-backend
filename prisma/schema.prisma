@@ -128,6 +128,7 @@ model AssistedCheckin {
   id                    String      @id @default(uuid())
   reservationId         String      @unique
   scheduledArrivalAt    DateTime?
+  rulesMessageText      String?
   rulesMessageSentAt    DateTime?
   documentsReceivedAt   DateTime?
   keyDeliveryConfirmedAt DateTime?
