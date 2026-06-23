@@ -107,6 +107,7 @@ export default function AssistedCheckins() {
   const [from, setFrom] = useState(dayjs().subtract(2, "day").format("YYYY-MM-DD"));
   const [to, setTo] = useState(dayjs().add(14, "day").format("YYYY-MM-DD"));
   const [reservations, setReservations] = useState([]);
+  const [collaborators, setCollaborators] = useState([]);
   const [drafts, setDrafts] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
@@ -116,14 +117,19 @@ export default function AssistedCheckins() {
     setLoading(true);
     setError("");
     try {
-      const data = await api(`/assisted-checkins?from=${from}&to=${to}`);
+      const [data, collaboratorsData] = await Promise.all([
+        api(`/assisted-checkins?from=${from}&to=${to}`),
+        api("/maintenance-collaborators"),
+      ]);
       setReservations(Array.isArray(data) ? data : []);
+      setCollaborators(Array.isArray(collaboratorsData) ? collaboratorsData : []);
       setDrafts((prev) => {
         const next = { ...prev };
         (Array.isArray(data) ? data : []).forEach((reservation) => {
           const assisted = getAssisted(reservation);
           next[reservation.id] = {
             scheduledArrivalAt: toDateTimeLocal(assisted.scheduledArrivalAt),
+            maintenanceCollaboratorId: assisted.maintenanceTask?.collaboratorId || "",
             rulesMessageText: assisted.rulesMessageText || DEFAULT_RULES_MESSAGE,
             notes: assisted.notes || "",
           };
@@ -177,6 +183,7 @@ export default function AssistedCheckins() {
         ...prev,
           [reservation.id]: {
             scheduledArrivalAt: toDateTimeLocal(updated.scheduledArrivalAt),
+            maintenanceCollaboratorId: updated.maintenanceTask?.collaboratorId || "",
             rulesMessageText: updated.rulesMessageText || DEFAULT_RULES_MESSAGE,
             notes: updated.notes || "",
           },
@@ -207,6 +214,7 @@ export default function AssistedCheckins() {
     const draft = drafts[reservation.id] || {};
     saveFields(reservation, {
       scheduledArrivalAt: fromDateTimeLocal(draft.scheduledArrivalAt),
+      maintenanceCollaboratorId: draft.maintenanceCollaboratorId || null,
       rulesMessageText: draft.rulesMessageText || DEFAULT_RULES_MESSAGE,
       notes: draft.notes || null,
     });
@@ -349,6 +357,37 @@ export default function AssistedCheckins() {
                         className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                       />
                     </label>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Responsavel pela entrega
+                      <select
+                        value={draft.maintenanceCollaboratorId || ""}
+                        onChange={(event) =>
+                          setDrafts((prev) => ({
+                            ...prev,
+                            [reservation.id]: {
+                              ...(prev[reservation.id] || {}),
+                              maintenanceCollaboratorId: event.target.value,
+                            },
+                          }))
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                      >
+                        <option value="">Sem responsavel definido</option>
+                        {collaborators.map((collaborator) => (
+                          <option key={collaborator.id} value={collaborator.id}>
+                            {collaborator.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {assisted.maintenanceTask ? (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">
+                        Atividade gerada: {assisted.maintenanceTask.code || assisted.maintenanceTask.title}
+                        {assisted.maintenanceTask.collaborator?.name
+                          ? ` - ${assisted.maintenanceTask.collaborator.name}`
+                          : ""}
+                      </div>
+                    ) : null}
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
                       Modelo WhatsApp - regras do condominio
                       <textarea

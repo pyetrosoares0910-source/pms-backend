@@ -132,10 +132,12 @@ model AssistedCheckin {
   rulesMessageSentAt    DateTime?
   documentsReceivedAt   DateTime?
   keyDeliveryConfirmedAt DateTime?
+  maintenanceTaskId     String?     @unique
   notes                 String?
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
   reservation           Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  maintenanceTask       MaintenanceTask? @relation(fields: [maintenanceTaskId], references: [id], onDelete: SetNull)
 
   @@index([scheduledArrivalAt])
 }
@@ -257,6 +259,7 @@ model MaintenanceTask {
   room        Room?             @relation(fields: [roomId], references: [id])
   stay        Stay?             @relation(fields: [stayId], references: [id])
   collaborator MaintenanceCollaborator? @relation(fields: [collaboratorId], references: [id], onDelete: SetNull)
+  assistedCheckin AssistedCheckin?
 
   @@unique([parentId, dueDate], map: "uniq_parent_dueDate")
   @@index([parentId])

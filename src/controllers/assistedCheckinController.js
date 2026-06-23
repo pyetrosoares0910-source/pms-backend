@@ -21,6 +21,126 @@ function addDays(date, days) {
   return next;
 }
 
+async function generateMaintenanceCode(tx) {
+  const year = new Date().getFullYear();
+  const stamp = Date.now().toString().slice(-6);
+  const random = Math.floor(Math.random() * 1000);
+  return `MT-${year}-${stamp}-${random}`;
+}
+
+async function getResponsibleName(tx, collaboratorId) {
+  if (!collaboratorId) return null;
+  const collaborator = await tx.maintenanceCollaborator.findUnique({
+    where: { id: String(collaboratorId) },
+    select: { name: true },
+  });
+  return collaborator?.name || null;
+}
+
+function formatPtBrDateTime(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  }).format(value);
+}
+
+function buildKeyDeliveryTaskData(reservation, assistedCheckin, responsibleName, collaboratorId) {
+  const scheduled = assistedCheckin.scheduledArrivalAt;
+  const stayName = reservation.room?.stay?.name || "Sem empreendimento";
+  const roomTitle = reservation.room?.title || "Sem unidade";
+  const guestName = reservation.guest?.name || "Hospede sem nome";
+  const scheduledLabel = formatPtBrDateTime(scheduled);
+
+  return {
+    title: `Entrega de chaves - ${roomTitle}`,
+    description: [
+      `Check-in presencial para ${guestName}.`,
+      scheduledLabel ? `Horario combinado: ${scheduledLabel}.` : null,
+      `Unidade: ${roomTitle}.`,
+      `Empreendimento: ${stayName}.`,
+      "Confirmar entrega das chaves na pagina Check-ins presenciais.",
+      assistedCheckin.notes ? `Observacoes: ${assistedCheckin.notes}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    stayId: reservation.room?.stayId || null,
+    roomId: reservation.roomId,
+    responsible: responsibleName,
+    collaboratorId: collaboratorId || null,
+    status: "pendente",
+    type: "check-in presencial",
+    dueDate: scheduled,
+    isRecurring: false,
+    timezone: "America/Sao_Paulo",
+  };
+}
+
+async function syncKeyDeliveryMaintenanceTask(tx, reservation, assistedCheckin, collaboratorId) {
+  if (!assistedCheckin.scheduledArrivalAt) {
+    if (assistedCheckin.maintenanceTaskId) {
+      await tx.maintenanceTask.deleteMany({
+        where: {
+          id: assistedCheckin.maintenanceTaskId,
+          status: { not: "concluido" },
+        },
+      });
+      return tx.assistedCheckin.update({
+        where: { id: assistedCheckin.id },
+        data: { maintenanceTaskId: null },
+      });
+    }
+    return assistedCheckin;
+  }
+
+  const currentTask = assistedCheckin.maintenanceTaskId
+    ? await tx.maintenanceTask.findUnique({
+        where: { id: assistedCheckin.maintenanceTaskId },
+        select: { collaboratorId: true, status: true },
+      })
+    : null;
+  const nextCollaboratorId =
+    typeof collaboratorId === "undefined" ? currentTask?.collaboratorId || null : collaboratorId || null;
+  const responsibleName = await getResponsibleName(tx, nextCollaboratorId);
+  const data = buildKeyDeliveryTaskData(
+    reservation,
+    assistedCheckin,
+    responsibleName,
+    nextCollaboratorId
+  );
+
+  if (assistedCheckin.maintenanceTaskId && currentTask) {
+    await tx.maintenanceTask.update({
+      where: { id: assistedCheckin.maintenanceTaskId },
+      data: {
+        ...data,
+        status: currentTask.status === "concluido" ? "concluido" : data.status,
+      },
+    });
+    return tx.assistedCheckin.findUnique({
+      where: { id: assistedCheckin.id },
+      include: { maintenanceTask: { include: { collaborator: true } } },
+    });
+  }
+
+  const task = await tx.maintenanceTask.create({
+    data: {
+      code: await generateMaintenanceCode(tx),
+      ...data,
+    },
+  });
+
+  return tx.assistedCheckin.update({
+    where: { id: assistedCheckin.id },
+    data: { maintenanceTaskId: task.id },
+    include: { maintenanceTask: { include: { collaborator: true } } },
+  });
+}
+
 function buildDateWhere(query) {
   const now = new Date();
   const from = toValidDate(query.from) || addDays(now, -7);
@@ -44,7 +164,9 @@ async function listAssistedCheckins(req, res) {
       include: {
         room: { include: { stay: true } },
         guest: true,
-        assistedCheckin: true,
+        assistedCheckin: {
+          include: { maintenanceTask: { include: { collaborator: true } } },
+        },
       },
       orderBy: [{ checkinDate: "asc" }, { createdAt: "asc" }],
     });
@@ -63,7 +185,9 @@ async function getAssistedCheckin(req, res) {
       include: {
         room: { include: { stay: true } },
         guest: true,
-        assistedCheckin: true,
+        assistedCheckin: {
+          include: { maintenanceTask: { include: { collaborator: true } } },
+        },
       },
     });
 
@@ -97,6 +221,13 @@ async function upsertAssistedCheckin(req, res) {
     }
 
     const data = normalizeAssistedCheckinPayload(req.body);
+    const hasCollaboratorPayload = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "maintenanceCollaboratorId"
+    );
+    const maintenanceCollaboratorId = hasCollaboratorPayload
+      ? req.body.maintenanceCollaboratorId || null
+      : undefined;
     const invalidFields = Object.entries(data)
       .filter(([field, value]) => field !== "notes" && typeof value === "undefined")
       .map(([field]) => field);
@@ -109,7 +240,7 @@ async function upsertAssistedCheckin(req, res) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const assistedCheckin = await tx.assistedCheckin.upsert({
+      let assistedCheckin = await tx.assistedCheckin.upsert({
         where: { reservationId },
         create: {
           reservationId,
@@ -117,6 +248,33 @@ async function upsertAssistedCheckin(req, res) {
         },
         update: data,
       });
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, "scheduledArrivalAt") ||
+        Object.prototype.hasOwnProperty.call(data, "notes") ||
+        hasCollaboratorPayload
+      ) {
+        assistedCheckin = await syncKeyDeliveryMaintenanceTask(
+          tx,
+          reservation,
+          assistedCheckin,
+          maintenanceCollaboratorId
+        );
+      }
+
+      if (
+        Object.prototype.hasOwnProperty.call(data, "keyDeliveryConfirmedAt") &&
+        assistedCheckin.maintenanceTaskId
+      ) {
+        await tx.maintenanceTask.update({
+          where: { id: assistedCheckin.maintenanceTaskId },
+          data: { status: assistedCheckin.keyDeliveryConfirmedAt ? "concluido" : "pendente" },
+        });
+        assistedCheckin = await tx.assistedCheckin.findUnique({
+          where: { id: assistedCheckin.id },
+          include: { maintenanceTask: { include: { collaborator: true } } },
+        });
+      }
 
       let reservationStatus = reservation.status;
       if (
