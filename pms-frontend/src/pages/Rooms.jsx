@@ -13,6 +13,7 @@ function normalizeRoomPayload(data) {
     category: category || null,
     description: description || null,
     stayId: data.stayId || null,
+    selfCheckinEnabled: data.selfCheckinEnabled !== false,
     position: data.position === "" ? null : Number.parseInt(data.position, 10),
     preparedBeds: data.preparedBeds === "" ? 1 : Number.parseInt(data.preparedBeds, 10),
     laundryTemplate: {
@@ -38,6 +39,7 @@ export default function Rooms() {
     position: "",
     description: "",
     active: true,
+    selfCheckinEnabled: true,
     stayId: "",
     preparedBeds: "1",
     fittedSheets: "1",
@@ -56,6 +58,7 @@ export default function Rooms() {
     position: "",
     description: "",
     active: true,
+    selfCheckinEnabled: true,
     stayId: "",
     preparedBeds: "1",
     fittedSheets: "1",
@@ -98,6 +101,7 @@ export default function Rooms() {
         position: "",
         description: "",
         active: true,
+        selfCheckinEnabled: true,
         stayId: "",
         preparedBeds: "1",
         fittedSheets: "1",
@@ -134,6 +138,7 @@ export default function Rooms() {
       position: room.position,
       description: room.description,
       active: room.active,
+      selfCheckinEnabled: room.selfCheckinEnabled !== false,
       stayId: room.stayId || "",
       preparedBeds: String(room.preparedBeds ?? 1),
       fittedSheets: String(room.laundryTemplate?.FITTED_SHEET ?? room.preparedBeds ?? 1),
@@ -154,6 +159,7 @@ export default function Rooms() {
       position: "",
       description: "",
       active: true,
+      selfCheckinEnabled: true,
       stayId: "",
       preparedBeds: "1",
       fittedSheets: "1",
@@ -307,6 +313,17 @@ export default function Rooms() {
           Unidade ativa?
         </label>
 
+        <label className="flex items-center gap-2 col-span-2">
+          <input
+            type="checkbox"
+            checked={formData.selfCheckinEnabled}
+            onChange={(e) =>
+              setFormData({ ...formData, selfCheckinEnabled: e.target.checked })
+            }
+          />
+          Permite self-check-in?
+        </label>
+
         <select
           className="border p-2 rounded col-span-2
                      bg-white dark:bg-slate-900
@@ -343,6 +360,7 @@ export default function Rooms() {
             <th className="p-2 text-left dark:text-slate-100">Lavanderia</th>
             <th className="p-2 text-left dark:text-slate-100">Empreendimento</th>
             <th className="p-2 text-center dark:text-slate-100">Ativo?</th>
+            <th className="p-2 text-center dark:text-slate-100">Check-in</th>
             <th className="p-2 text-center dark:text-slate-100">Ações</th>
           </tr>
         </thead>
@@ -475,6 +493,16 @@ export default function Rooms() {
                     />
                   </td>
 
+                  <td className="p-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={editData.selfCheckinEnabled}
+                      onChange={(e) =>
+                        setEditData({ ...editData, selfCheckinEnabled: e.target.checked })
+                      }
+                    />
+                  </td>
+
                   <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleUpdate(room.id)}
@@ -544,6 +572,10 @@ export default function Rooms() {
                     {room.active ? "✅" : "❌"}
                   </td>
 
+                  <td className="p-2 text-center text-sm text-slate-900 dark:text-slate-100">
+                    {room.selfCheckinEnabled === false ? "Presencial" : "Self"}
+                  </td>
+
                   <td className="p-2 flex flex-col items-center gap-2">
                     <button
                       onClick={() => handleEdit(room)}
@@ -567,7 +599,7 @@ export default function Rooms() {
           {rooms.length === 0 && (
             <tr>
               <td
-                colSpan="9"
+                colSpan="10"
                 className="p-4 text-center text-gray-500 dark:text-slate-400"
               >
                 Nenhuma UH cadastrada.

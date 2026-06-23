@@ -1,4 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
+const {
+  ASSISTED_CHECKIN_REQUIRED_CODE,
+  isAssistedCheckinComplete,
+  withReservationAssistedStatus,
+} = require("../services/assistedCheckins");
 
 const prisma = new PrismaClient();
 
@@ -353,6 +358,32 @@ function buildReservationConflictDetails({ roomId, checkinDate, checkoutDate, re
   };
 }
 
+function buildAssistedCheckinRequiredDetails(reservation, assistedCheckin) {
+  return {
+    code: ASSISTED_CHECKIN_REQUIRED_CODE,
+    reservationId: reservation.id,
+    roomId: reservation.roomId,
+    missing: {
+      scheduledArrivalAt: !assistedCheckin?.scheduledArrivalAt,
+      rulesMessageSentAt: !assistedCheckin?.rulesMessageSentAt,
+      documentsReceivedAt: !assistedCheckin?.documentsReceivedAt,
+      keyDeliveryConfirmedAt: !assistedCheckin?.keyDeliveryConfirmedAt,
+    },
+  };
+}
+
+async function ensureAssistedCheckinRecord(tx, reservation) {
+  if (reservation.status === STATUS_CANCELADA || reservation.room?.selfCheckinEnabled !== false) {
+    return null;
+  }
+
+  return tx.assistedCheckin.upsert({
+    where: { reservationId: reservation.id },
+    create: { reservationId: reservation.id },
+    update: {},
+  });
+}
+
 async function findOverlappingReservations(tx, { roomId, checkinDate, checkoutDate, excludeId }) {
   const where = {
     roomId: String(roomId),
@@ -407,11 +438,12 @@ async function getAllReservations(req, res) {
       include: {
         room: { include: { stay: true } },
         guest: true,
+        assistedCheckin: true,
       },
       orderBy: { checkinDate: "asc" },
     });
 
-    return res.json(reservations);
+    return res.json(reservations.map(withReservationAssistedStatus));
   } catch (error) {
     console.error("Erro ao listar reservas:", error);
     return res.status(500).json({ error: "Erro ao listar reservas." });
@@ -428,6 +460,7 @@ async function getReservationById(req, res) {
       include: {
         room: { include: { stay: true } },
         guest: true,
+        assistedCheckin: true,
       },
     });
 
@@ -435,7 +468,7 @@ async function getReservationById(req, res) {
       return res.status(404).json({ error: "Reserva nao encontrada." });
     }
 
-    return res.json(reservation);
+    return res.json(withReservationAssistedStatus(reservation));
   } catch (error) {
     console.error("Erro ao buscar reserva:", error);
     return res.status(500).json({ error: "Erro ao buscar reserva." });
@@ -458,6 +491,28 @@ async function createReservation(req, res) {
 
       if (checkout <= checkin) {
         throw makeHttpError(400, "Data de check-out deve ser posterior ao check-in.");
+      }
+
+      const room = await tx.room.findUnique({
+        where: { id: String(roomId) },
+        include: { stay: true },
+      });
+
+      if (!room) {
+        throw makeHttpError(400, "roomId invalido. Verifique se a acomodacao existe.");
+      }
+
+      if (normalizedStatus === "ativa" && room.selfCheckinEnabled === false) {
+        throw makeHttpError(409, "Check-in presencial obrigatorio antes de ativar esta reserva.", {
+          code: ASSISTED_CHECKIN_REQUIRED_CODE,
+          roomId: String(roomId),
+          missing: {
+            scheduledArrivalAt: true,
+            rulesMessageSentAt: true,
+            documentsReceivedAt: true,
+            keyDeliveryConfirmedAt: true,
+          },
+        });
       }
 
       const overlappingReservations = await findOverlappingReservations(tx, {
@@ -491,18 +546,26 @@ async function createReservation(req, res) {
         include: {
           room: { include: { stay: true } },
           guest: true,
+          assistedCheckin: true,
         },
       });
 
       if (reservation.status !== STATUS_CANCELADA) {
         const scope = getTaskScopeFromReservation(reservation);
         await ensureSingleCheckoutTask(tx, scope);
+        const assistedCheckin = await ensureAssistedCheckinRecord(tx, {
+          ...reservation,
+          room,
+        });
+        if (assistedCheckin) {
+          return { ...reservation, assistedCheckin };
+        }
       }
 
       return reservation;
     });
 
-    return res.status(201).json(created);
+    return res.status(201).json(withReservationAssistedStatus(created));
   } catch (error) {
     return handleReservationError(res, error, "Erro ao criar reserva.");
   }
@@ -520,6 +583,7 @@ async function updateReservation(req, res) {
         include: {
           room: { include: { stay: true } },
           guest: true,
+          assistedCheckin: true,
         },
       });
 
@@ -565,6 +629,28 @@ async function updateReservation(req, res) {
         }
       }
 
+      if (nextStatus === "ativa") {
+        const nextRoom =
+          nextRoomId === current.roomId
+            ? current.room
+            : await tx.room.findUnique({
+                where: { id: nextRoomId },
+                include: { stay: true },
+              });
+
+        if (!nextRoom) {
+          throw makeHttpError(400, "roomId invalido. Verifique se a acomodacao existe.");
+        }
+
+        if (nextRoom.selfCheckinEnabled === false && !isAssistedCheckinComplete(current.assistedCheckin)) {
+          throw makeHttpError(
+            409,
+            "Check-in presencial obrigatorio antes de ativar esta reserva.",
+            buildAssistedCheckinRequiredDetails(current, current.assistedCheckin)
+          );
+        }
+      }
+
       const oldScope = getTaskScopeFromReservation(current);
       const existingStayCleaning = await tx.task.findFirst({
         where: {
@@ -603,6 +689,7 @@ async function updateReservation(req, res) {
         include: {
           room: { include: { stay: true } },
           guest: true,
+          assistedCheckin: true,
         },
       });
 
@@ -635,6 +722,7 @@ async function updateReservation(req, res) {
       }
 
       await ensureSingleCheckoutTask(tx, newScope);
+      const assistedCheckin = await ensureAssistedCheckinRecord(tx, reservation);
       if (existingStayCleaning) {
         await replaceStayCleaningTasks(tx, reservation, {
           enabled: true,
@@ -642,10 +730,13 @@ async function updateReservation(req, res) {
           notes: existingStayCleaning.notes,
         });
       }
+      if (assistedCheckin) {
+        return { ...reservation, assistedCheckin };
+      }
       return reservation;
     });
 
-    return res.json(updated);
+    return res.json(withReservationAssistedStatus(updated));
   } catch (error) {
     return handleReservationError(res, error, "Erro interno ao atualizar reserva.");
   }
@@ -708,6 +799,7 @@ async function updateReservationCleaningDate(req, res) {
         include: {
           room: { include: { stay: true } },
           guest: true,
+          assistedCheckin: true,
         },
       });
 
@@ -745,6 +837,7 @@ async function updateReservationCleaningDate(req, res) {
         include: {
           room: { include: { stay: true } },
           guest: true,
+          assistedCheckin: true,
         },
       });
 
@@ -770,7 +863,7 @@ async function updateReservationCleaningDate(req, res) {
       return reservation;
     });
 
-    return res.json(updated);
+    return res.json(withReservationAssistedStatus(updated));
   } catch (error) {
     return handleReservationError(res, error, "Erro interno ao alterar data de limpeza.");
   }

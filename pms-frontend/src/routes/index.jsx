@@ -30,6 +30,7 @@ const Inventory = lazy(() => import("../pages/Inventory"));
 const Purchases = lazy(() => import("../pages/Purchases"));
 const ConsumptionProfiles = lazy(() => import("../pages/ConsumptionProfiles"));
 const GuestCheckins = lazy(() => import("../pages/GuestCheckins"));
+const AssistedCheckins = lazy(() => import("../pages/AssistedCheckins"));
 const GuestCheckouts = lazy(() => import("../pages/GuestCheckouts"));
 const CleaningIntegrity = lazy(() => import("../pages/CleaningIntegrity"));
 const ApresentacaoHospedes = lazy(() => import("../pages/ApresentacaoHospedes"));
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
           { path: "/maid-assignments", element: page(MaidAssignments) },
           { path: "/apresentacao-hospedes", element: page(ApresentacaoHospedes) },
           { path: "/guest-checkins", element: page(GuestCheckins) },
+          { path: "/assisted-checkins", element: page(AssistedCheckins) },
           { path: "/guest-checkouts", element: page(GuestCheckouts) },
           { path: "/cleaning-integrity", element: page(CleaningIntegrity) },
           { path: "/cleaning-reminders", element: page(CleaningReminders) },

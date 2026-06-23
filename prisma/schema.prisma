@@ -41,6 +41,7 @@ model Stay {
 model Room {
   id               String               @id @default(uuid())
   active           Boolean              @default(true)
+  selfCheckinEnabled Boolean            @default(true)
   stayId           String?
   description      String?
   title            String
@@ -120,6 +121,22 @@ model Reservation {
   cleaningTasks Task[]
   productConsumptions ProductConsumption[]
   laundryDispatches LaundryDispatch[]
+  assistedCheckin AssistedCheckin?
+}
+
+model AssistedCheckin {
+  id                    String      @id @default(uuid())
+  reservationId         String      @unique
+  scheduledArrivalAt    DateTime?
+  rulesMessageSentAt    DateTime?
+  documentsReceivedAt   DateTime?
+  keyDeliveryConfirmedAt DateTime?
+  notes                 String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  reservation           Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledArrivalAt])
 }
 
 model Maid {

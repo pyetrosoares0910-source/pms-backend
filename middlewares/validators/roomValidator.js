@@ -21,6 +21,11 @@ exports.validateRoom = [
     .isBoolean()
     .withMessage("Campo active deve ser booleano."),
 
+  body("selfCheckinEnabled")
+    .optional()
+    .isBoolean()
+    .withMessage("Campo selfCheckinEnabled deve ser booleano."),
+
   body("stayId")
     .optional({ values: "falsy" })
     .isUUID()

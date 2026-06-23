@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApi } from "../lib/api";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -397,6 +398,7 @@ function ReservationActionsModal({
   rooms,
 }) {
   const api = useApi();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [cleaningOpen, setCleaningOpen] = useState(false);
@@ -423,6 +425,10 @@ function ReservationActionsModal({
       if (err?.status === 409 && err?.payload?.details?.code === "ASSIGNED_MAID_CONFLICT") {
         setPendingStatus(newStatus);
         setAssignmentConflict(err.payload.details);
+        return;
+      }
+      if (err?.status === 409 && err?.payload?.details?.code === "ASSISTED_CHECKIN_REQUIRED") {
+        openAssistedCheckins();
         return;
       }
       alert(err?.message || "Erro ao atualizar reserva");
@@ -461,6 +467,13 @@ function ReservationActionsModal({
   const otherAssignments = (assignmentConflict?.sameDayAssignments || []).filter(
     (item) => !item.isCurrentReservation
   );
+  const isAssistedCheckin = reservation.room?.selfCheckinEnabled === false;
+  const assistedComplete = reservation.assistedCheckin?.complete === true;
+
+  function openAssistedCheckins() {
+    onClose();
+    navigate("/assisted-checkins");
+  }
 
   return (
     <>
@@ -471,6 +484,14 @@ function ReservationActionsModal({
         <p className="text-sm mb-4 text-slate-600 dark:text-slate-300">
           {fmtBR(ci)} → {fmtBR(co)}
         </p>
+        {isAssistedCheckin && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            Esta unidade exige check-in presencial e entrega de chaves.
+            {!assistedComplete
+              ? " Complete o processo antes de ativar a reserva."
+              : " Processo presencial completo."}
+          </div>
+        )}
         <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
           <span className="font-medium text-slate-700 dark:text-slate-200">
             Limpeza:
@@ -566,13 +587,23 @@ function ReservationActionsModal({
             </div>
           )}
 
-          <button
-            onClick={() => updateStatus("ativa")}
-            disabled={loading}
-            className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
-          >
-            Fazer check-in
-          </button>
+          {isAssistedCheckin && !assistedComplete ? (
+            <button
+              onClick={openAssistedCheckins}
+              disabled={loading}
+              className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
+            >
+              Gerenciar check-in presencial
+            </button>
+          ) : (
+            <button
+              onClick={() => updateStatus("ativa")}
+              disabled={loading}
+              className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
+            >
+              Fazer check-in
+            </button>
+          )}
           <button
             onClick={() => updateStatus("agendada")}
             disabled={loading}

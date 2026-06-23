@@ -14,6 +14,7 @@ import {
   SquareArrowRight as SquareArrowRightExit,
   MapPinCheckInside,
   CheckLine,
+  KeyRound,
   TicketsPlane,
   BadgeInfo,
   Map,
@@ -359,6 +360,7 @@ export default function DashboardLayout() {
       "/cleaning-reminders",
       "/apresentacao-hospedes",
       "/guest-checkins",
+      "/assisted-checkins",
       "/guest-checkouts",
       "/cleaning-integrity",
     ].includes(path);
@@ -718,6 +720,15 @@ export default function DashboardLayout() {
               hasNotification={checkinAlert.isPending}
             >
               Check-ins Hóspedes
+            </Item>
+          )}
+          {!viewerOnly && (
+            <Item
+              to="/assisted-checkins"
+              icon={KeyRound}
+              showText={showText}
+            >
+              Check-ins presenciais
             </Item>
           )}
           {!viewerOnly && (

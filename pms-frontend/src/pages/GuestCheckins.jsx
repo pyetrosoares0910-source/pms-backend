@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { useApi } from "../lib/api";
@@ -206,6 +207,7 @@ function StatusBadge({ status }) {
 
 export default function GuestCheckins() {
   const api = useApi();
+  const navigate = useNavigate();
   const today = dayjs().format("YYYY-MM-DD");
 
   const [accessDate, setAccessDate] = useState(today);
@@ -392,6 +394,15 @@ export default function GuestCheckins() {
   };
 
   const updateReservationStatus = async (reservation, newStatus) => {
+    if (
+      newStatus === "ativa" &&
+      reservation.room?.selfCheckinEnabled === false &&
+      reservation.assistedCheckin?.complete !== true
+    ) {
+      navigate("/assisted-checkins");
+      return;
+    }
+
     if (inFlightReservationIdsRef.current.has(reservation.id)) return;
     inFlightReservationIdsRef.current.add(reservation.id);
     setSubmittingId(reservation.id);
@@ -404,6 +415,10 @@ export default function GuestCheckins() {
       setReservations((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     } catch (err) {
       console.error("Erro ao atualizar reserva:", err);
+      if (err?.status === 409 && err?.payload?.details?.code === "ASSISTED_CHECKIN_REQUIRED") {
+        navigate("/assisted-checkins");
+        return;
+      }
       alert("Erro ao atualizar reserva.");
     } finally {
       inFlightReservationIdsRef.current.delete(reservation.id);
@@ -461,6 +476,9 @@ export default function GuestCheckins() {
               <div className="space-y-4">
                 {accessReservations.map((reservation) => {
                   const isActive = reservation.status === "ativa";
+                  const needsAssistedCheckin =
+                    reservation.room?.selfCheckinEnabled === false &&
+                    reservation.assistedCheckin?.complete !== true;
                   const genderValue =
                     settings.genderOverrides[getGenderKey(reservation)] ||
                     inferGender(reservation.guest?.name);
@@ -513,6 +531,8 @@ export default function GuestCheckins() {
                             className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${
                               isActive
                                 ? "bg-sky-700 hover:bg-sky-800"
+                                : needsAssistedCheckin
+                                ? "bg-amber-600 hover:bg-amber-700"
                                 : "bg-cyan-600 hover:bg-cyan-700"
                             }`}
                           >
@@ -520,6 +540,8 @@ export default function GuestCheckins() {
                               ? "Salvando..."
                               : isActive
                               ? "Reverter check-in"
+                              : needsAssistedCheckin
+                              ? "Check-in presencial"
                               : "Fazer check-in"}
                           </button>
                         </div>

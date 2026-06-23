@@ -20,6 +20,10 @@ function normalizeRoomPayload(payload = {}) {
     normalized.title = normalized.title.trim();
   }
 
+  if (typeof normalized.selfCheckinEnabled === "string") {
+    normalized.selfCheckinEnabled = normalized.selfCheckinEnabled !== "false";
+  }
+
   if (
     normalized.position === "" ||
     normalized.position === null ||
