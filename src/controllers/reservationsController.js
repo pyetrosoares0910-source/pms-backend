@@ -961,6 +961,51 @@ async function updateReservationStayCleanings(req, res) {
   }
 }
 
+// DELETE /reservations/:id/stay-cleanings/:taskId
+async function deleteReservationStayCleaningTask(req, res) {
+  const { id, taskId } = req.params;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const task = await tx.task.findFirst({
+        where: {
+          id: String(taskId),
+          reservationId: String(id),
+          kind: TASK_KIND_STAY,
+        },
+      });
+
+      if (!task) {
+        throw makeHttpError(404, "Limpeza durante estadia nao encontrada para esta reserva.");
+      }
+
+      await tx.task.delete({ where: { id: task.id } });
+
+      const remainingTasks = await tx.task.findMany({
+        where: {
+          reservationId: String(id),
+          kind: TASK_KIND_STAY,
+        },
+        include: { maid: true },
+        orderBy: { date: "asc" },
+      });
+
+      const firstTask = remainingTasks[0] || null;
+      return {
+        reservationId: String(id),
+        enabled: remainingTasks.length > 0,
+        weekday: firstTask?.recurrenceWeekday ?? task.recurrenceWeekday ?? null,
+        notes: firstTask?.notes || task.notes || "",
+        tasks: remainingTasks,
+      };
+    });
+
+    return res.json(result);
+  } catch (error) {
+    return handleReservationError(res, error, "Erro interno ao remover limpeza durante estadia.");
+  }
+}
+
 module.exports = {
   getAllReservations,
   getReservationById,
@@ -969,5 +1014,6 @@ module.exports = {
   updateReservationCleaningDate,
   getReservationStayCleanings,
   updateReservationStayCleanings,
+  deleteReservationStayCleaningTask,
   deleteReservation,
 };

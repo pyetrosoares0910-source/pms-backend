@@ -15,6 +15,7 @@ router.post("/", validateReservationCreate, handleValidation, reservationControl
 router.put("/:id/cleaning-date", reservationController.updateReservationCleaningDate);
 router.get("/:id/stay-cleanings", reservationController.getReservationStayCleanings);
 router.put("/:id/stay-cleanings", reservationController.updateReservationStayCleanings);
+router.delete("/:id/stay-cleanings/:taskId", reservationController.deleteReservationStayCleaningTask);
 router.put("/:id", validateReservationUpdate, handleValidation, reservationController.updateReservation);
 
 // Deletar

@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -686,6 +687,7 @@ function StayCleaningModal({ open, onClose, reservation }) {
   const [notes, setNotes] = useState("Limpeza durante estadia");
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState("");
+  const [removingTaskId, setRemovingTaskId] = useState(null);
 
   useEffect(() => {
     if (!open || !reservation?.id) return;
@@ -743,6 +745,29 @@ function StayCleaningModal({ open, onClose, reservation }) {
       setError(err?.message || "Erro ao salvar limpezas durante estadia.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteTask(task) {
+    if (!window.confirm(`Remover a limpeza de ${fmtBR(parseDateOnly(task.date))}?`)) return;
+
+    setRemovingTaskId(task.id);
+    setError("");
+
+    try {
+      const data = await api(`/reservations/${reservation.id}/stay-cleanings/${task.id}`, {
+        method: "DELETE",
+      });
+
+      setEnabled(Boolean(data.enabled));
+      setWeekday(data.weekday ?? weekday);
+      setNotes(data.notes || notes);
+      setTasks(data.tasks || []);
+    } catch (err) {
+      console.error("Erro ao remover limpeza durante estadia:", err);
+      setError(err?.message || "Erro ao remover limpeza durante estadia.");
+    } finally {
+      setRemovingTaskId(null);
     }
   }
 
@@ -810,10 +835,21 @@ function StayCleaningModal({ open, onClose, reservation }) {
                 key={task.id}
                 className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-sm last:border-b-0 dark:border-slate-700"
               >
-                <span>{fmtBR(parseDateOnly(task.date))}</span>
-                <span className="text-xs font-semibold text-teal-700 dark:text-teal-200">
-                  Durante estadia
-                </span>
+                <div>
+                  <div>{fmtBR(parseDateOnly(task.date))}</div>
+                  <div className="text-xs font-semibold text-teal-700 dark:text-teal-200">
+                    Durante estadia
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTask(task)}
+                  disabled={saving || removingTaskId === task.id}
+                  title="Remover limpeza"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900/70 dark:text-red-300 dark:hover:bg-red-950/40"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
           </div>
